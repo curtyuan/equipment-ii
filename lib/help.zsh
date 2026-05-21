@@ -21,7 +21,7 @@ usage: jj COMMAND [ARGS]
 Commands:
   set NAME VALUE       Set a variable in tmux and this shell
   load                 Load variables into this shell
-  interactive          Select variables with fzf and load them
+  interactive          Select variables with fzf and copy values
   variable [PATTERN]   Print variables, optionally filtered by name
   payload [CATEGORY]   Select, render, copy, and print a payload
   unset NAME [...]     Remove JJ_ variables

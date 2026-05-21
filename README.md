@@ -131,7 +131,7 @@ export JJ_CLIP_CMD='tmux load-buffer -'
 | `jj set NAME VALUE` | `jjs NAME VALUE` | Set internal `JJ_NAME` in tmux and export `NAME` in this shell |
 | `jj set` | `jjs` | Open a TUI to choose `DOMAIN/LHOST/RHOST/LPORT/RPORT` and type a value |
 | `jj load` | `jjl` | Load tmux variables into this shell without the internal `JJ_` prefix |
-| `jj interactive` | `jji` | Select tmux variables with fzf and load them without the internal `JJ_` prefix |
+| `jj interactive` | `jji` | Select tmux variables with fzf and copy their values |
 | `jj variable [PATTERN]` | `jjv [PATTERN]` | Print tmux variables without the internal `JJ_` prefix, filtered by name |
 | `jj variable host` | `jjv host` | Print configured host variables as name/value lines |
 | `jj variable cred` | `jjv cred` | Print configured credential variables as name/value lines |
@@ -160,6 +160,10 @@ use names without that prefix, such as `$LHOST` and `$DOMAIN`.
 
 `jjp` reads tmux session variables directly. Another pane can render a payload
 without running `jjl` first, even though `echo $LHOST` still needs `jjl`.
+
+`jji` copies selected variable values through the configured copy backend. It
+does not load variables into the shell. Use `jjl` to load all variables into the
+current shell.
 
 `jjv host` prints configured host variables as two-line pairs:
 

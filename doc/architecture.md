@@ -257,7 +257,11 @@ current shell environment = local state for one pane
 
 `jjs` writes to both tmux and the current shell.
 
-`jjl` copies tmux `JJ_` values into the current shell.
+`jjl` copies tmux `JJ_` values into the current shell without the internal
+prefix.
+
+`jji` copies selected variable values through the copy layer. It does not load
+variables into the current shell.
 
 `jjp` does not depend on current shell values. It reads tmux session values
 directly at render time, so another pane can render immediately after `jjs`
@@ -272,8 +276,7 @@ variable loading layer:
   - read tmux JJ_ values
   - validate names
   - strip JJ_ only for variable TUI display
-  - map selected display lines back to JJ_ before export
-  - export selected values into current shell
+  - export all values into current shell through jjl
 
 fuzzy search layer:
   - present candidate lines
@@ -286,6 +289,7 @@ payload render layer:
   - return rendered text
 
 copy layer:
+  - receive selected variable values from jji
   - receive rendered text
   - copy via configured or detected backend
   - avoid breaking inside tmux

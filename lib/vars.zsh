@@ -85,8 +85,8 @@ jj_cmd_interactive() {
 usage: jj interactive
        jji
 
-Select JJ_ variables from the current tmux session with fzf and export them
-into this shell. Use Tab to select multiple variables.
+Select variables from the current tmux session with fzf and copy their values.
+Use Tab to select multiple variables. Use jjl to load variables into this shell.
 EOF
     return 0
   fi
@@ -94,16 +94,29 @@ EOF
   jj_tmux_available || return
   jj_require_cmd fzf || return
 
-  local selected line count=0
+  local selected copied line value count=0
   selected="$(jj_var_lines_from_tmux | jj_var_display_lines_for_fzf | fzf --multi --prompt='jj vars> ')" || return
+  [[ -n "$selected" ]] || return
 
   while IFS= read -r line; do
     [[ -n "$line" ]] || continue
-    jj_export_var_line "$(jj_var_line_from_display "$line")" || return
+    value="${line#*=}"
+    if [[ $count -eq 0 ]]; then
+      copied="$value"
+    else
+      copied="${copied}"$'\n'"${value}"
+    fi
     (( count++ ))
   done <<< "$selected"
 
-  print "loaded ${count} variable(s)"
+  if jj_clip_copy "$copied"; then
+    print "copied ${count} variable value(s)"
+  else
+    print "selected ${count} variable value(s); clipboard copy failed"
+  fi
+
+  print
+  print -r -- "$copied"
 }
 
 jj_cmd_variable() {

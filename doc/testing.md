@@ -201,11 +201,10 @@ HASH2
 deadbeef
 ```
 
-## Interactive Variable Display Test
+## Interactive Variable Copy Test
 
-This uses fzf filter mode to verify that `jji` can load variables while the TUI
-candidate text does not expose the `JJ_` prefix. Loaded shell variables should
-also be unprefixed.
+This uses fzf filter mode to verify that `jji` copies selected variable values.
+It should not load variables into the shell.
 
 ```zsh
 tmux kill-session -t codex-jj-jji 2>/dev/null || true
@@ -214,18 +213,20 @@ tmux send-keys -t codex-jj-jji "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali"
 tmux send-keys -t codex-jj-jji "source ./jj.plugin.zsh" Enter
 tmux send-keys -t codex-jj-jji "jjs LHOST 172.16.1.10" Enter
 tmux send-keys -t codex-jj-jji "unset LHOST JJ_LHOST" Enter
-tmux send-keys -t codex-jj-jji "FZF_DEFAULT_OPTS='--filter=LHOST' jji" Enter
+tmux send-keys -t codex-jj-jji "FZF_DEFAULT_OPTS='--filter=LHOST' JJ_CLIP_CMD='tmux load-buffer -' jji" Enter
 tmux send-keys -t codex-jj-jji "echo loaded:\$LHOST" Enter
 sleep 2
 tmux capture-pane -t codex-jj-jji -p -S -100
+tmux show-buffer
 tmux kill-session -t codex-jj-jji
 ```
 
 Expected signs:
 
 ```text
-loaded 1 variable(s)
-loaded:172.16.1.10
+copied 1 variable value(s)
+172.16.1.10
+loaded:
 ```
 
 ## Interactive Set Test

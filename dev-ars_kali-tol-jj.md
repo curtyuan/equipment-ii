@@ -53,7 +53,7 @@ Command behavior follows this model:
 jjs   writes internal JJ_ names to tmux and unprefixed names to current shell
 jjl   loads tmux session values into current shell without JJ_ prefix
 jjv   reads tmux session values and displays them without JJ_ prefix
-jji   reads tmux session values, then loads selected values without JJ_ prefix
+jji   reads tmux session values, then copies selected variable values
 jjp   reads tmux session values directly while rendering
 ```
 
@@ -216,11 +216,13 @@ Behavior:
 2. Present them in fzf.
 3. Support fuzzy search.
 4. Support Tab multi-select.
-5. Export selected variables into the current shell without the JJ_ prefix.
-6. Print the number of loaded variables.
+5. Copy selected variable values through the configured copy layer.
+6. Print the copied values.
+7. Do not export values into the current shell.
 ```
 
-This command is a variable loading layer, not a payload layer.
+This command is a variable copy layer, not a shell loading layer. Use `jjl` to
+load all tmux variables into the current shell.
 
 ### `jj variable [PATTERN]`
 

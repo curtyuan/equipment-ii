@@ -176,6 +176,7 @@ Clipboard backend handling.
 
 Responsibilities:
 
+- Prefer `JJ_CLIP_BACKEND` when configured.
 - Prefer `JJ_CLIP_CMD` when configured.
 - Auto-detect common clipboard tools.
 - Fall back to tmux buffer when available.
@@ -197,6 +198,17 @@ print -rn -- "$text" | tmux load-buffer -
 
 This is intentionally stdin-based. It is more stable for payloads containing
 spaces, quotes, shell metacharacters, and HTML-like text.
+
+Primary SSH/Kali backend:
+
+```zsh
+export JJ_CLIP_BACKEND=osc52
+```
+
+OSC52 base64-encodes the rendered payload and emits an escape sequence. This is
+useful over SSH when the local terminal supports OSC52 clipboard writes. Inside
+tmux, `jj` wraps the OSC52 sequence in tmux passthrough framing; tmux and the
+terminal still need to allow it.
 
 ### `lib/help.zsh`
 

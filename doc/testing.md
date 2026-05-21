@@ -123,6 +123,22 @@ Expected buffer:
 <script>alert('a b/c;whoami & test')</script>
 ```
 
+## OSC52 Sequence Test
+
+This verifies that the OSC52 backend encodes special-character payload text
+without shell escaping loss. It does not prove that the local terminal accepts
+OSC52 clipboard writes.
+
+```zsh
+zsh -fc 'source ./jj.plugin.zsh; jj_clip_osc52_sequence "a b/c;whoami & test" | base64 | tr -d "\n"'
+```
+
+Expected sign:
+
+```text
+G101MjtjO1lTQmlMMk03ZDJodllXMXBJQ1lnZEdWemRBPT0H
+```
+
 ## Variable Guard Test
 
 ```zsh
@@ -146,6 +162,43 @@ Expected signs:
 GOOD_NAME=ok
 unset GOOD_NAME
 jj: invalid variable name: BAD-NAME
+```
+
+## Variable View Test
+
+```zsh
+tmux kill-session -t codex-jj-views 2>/dev/null || true
+tmux new-session -d -s codex-jj-views -x 120 -y 35 zsh
+tmux send-keys -t codex-jj-views "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-jj-views "source ./jj.plugin.zsh" Enter
+tmux send-keys -t codex-jj-views "jjs LHOST 192.0.2.10" Enter
+tmux send-keys -t codex-jj-views "jjs RHOST 198.51.100.20" Enter
+tmux send-keys -t codex-jj-views "jjs LPORT 4444" Enter
+tmux send-keys -t codex-jj-views "jjs USER1 alice" Enter
+tmux send-keys -t codex-jj-views "jjs PASSWD1 secret" Enter
+tmux send-keys -t codex-jj-views "jjs HASH2 deadbeef" Enter
+tmux send-keys -t codex-jj-views "jjv host" Enter
+tmux send-keys -t codex-jj-views "jjv cred" Enter
+sleep 2
+tmux capture-pane -t codex-jj-views -p -S -160
+tmux kill-session -t codex-jj-views
+```
+
+Expected signs:
+
+```text
+LHOST
+192.0.2.10
+RHOST
+198.51.100.20
+LPORT
+4444
+USER1
+alice
+PASSWD1
+secret
+HASH2
+deadbeef
 ```
 
 ## Interactive Variable Display Test

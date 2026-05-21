@@ -17,13 +17,13 @@ payload renderer = always reads fresh tmux session values
 - zsh
 - tmux
 - fzf for `jji` and `jjp`
-- Optional clipboard backend: `clip.exe`, `wl-copy`, `xclip`, `xsel`, or `pbcopy`
+- coreutils for `base64`, used by OSC52 clipboard copy
 
 Kali:
 
 ```zsh
 sudo apt update
-sudo apt install -y zsh tmux fzf wl-clipboard xclip xsel
+sudo apt install -y zsh tmux fzf coreutils
 ```
 
 ## Kali Deployment
@@ -35,7 +35,7 @@ your zsh plugin directory. Do not source internal files under `lib/` directly.
 
 ```zsh
 sudo apt update
-sudo apt install -y zsh tmux fzf wl-clipboard xclip xsel
+sudo apt install -y zsh tmux fzf coreutils
 ```
 
 ### 2. Put Plugin Code In Place
@@ -110,25 +110,18 @@ export JJ_PAYLOAD_DIR=/path/to/payloads
 
 ## Clipboard Setup
 
-`jjp` copies rendered payloads to a clipboard backend.
-
-Explicit backend:
+For Kali over SSH, use OSC52 so `jjp` can copy rendered payloads to the local
+terminal clipboard without X server or Wayland clipboard tools:
 
 ```zsh
-export JJ_CLIP_CMD='clip.exe'
-export JJ_CLIP_CMD='xclip -selection clipboard'
-export JJ_CLIP_CMD='tmux load-buffer -'
+export JJ_CLIP_BACKEND=osc52
 ```
 
-Auto-detect order:
+Inside tmux, OSC52 also depends on your terminal and tmux clipboard/passthrough
+settings. If it does not copy out, keep using the tmux buffer backend:
 
-```text
-clip.exe
-wl-copy
-xclip
-xsel
-pbcopy
-tmux set-buffer
+```zsh
+export JJ_CLIP_CMD='tmux load-buffer -'
 ```
 
 ## Commands
@@ -140,6 +133,8 @@ tmux set-buffer
 | `jj load` | `jjl` | Load tmux variables into this shell without the internal `JJ_` prefix |
 | `jj interactive` | `jji` | Select tmux variables with fzf and load them without the internal `JJ_` prefix |
 | `jj variable [PATTERN]` | `jjv [PATTERN]` | Print tmux variables without the internal `JJ_` prefix, filtered by name |
+| `jj variable host` | `jjv host` | Print configured host variables as name/value lines |
+| `jj variable cred` | `jjv cred` | Print configured credential variables as name/value lines |
 | `jj payload [CATEGORY]` | `jjp [CATEGORY]` | Select, render, copy, and print a payload |
 | `jj unset NAME [...]` | | Remove `JJ_` variables from tmux and this shell |
 | `jj help [COMMAND]` | `jjh [COMMAND]` | Show help |
@@ -155,6 +150,8 @@ jjs LPORT 443
 jjs DOMAIN example.test
 
 jjv
+jjv host
+jjv cred
 jjp linux
 ```
 
@@ -163,6 +160,27 @@ use names without that prefix, such as `$LHOST` and `$DOMAIN`.
 
 `jjp` reads tmux session variables directly. Another pane can render a payload
 without running `jjl` first, even though `echo $LHOST` still needs `jjl`.
+
+`jjv host` prints configured host variables as two-line pairs:
+
+```text
+LHOST
+192.168.45.192
+LPORT
+443
+```
+
+`jjv cred` prints configured credential variables. It shows only values that are
+set:
+
+```text
+USER1
+alice
+PASSWD1
+secret
+HASH1
+...
+```
 
 ## Payload Library
 

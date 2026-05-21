@@ -114,17 +114,22 @@ usage: jj variable [PATTERN]
 
 Print variables from the current tmux session. PATTERN filters variable
 names only, case-insensitively.
+
+Special views:
+  jjv host     Print configured DOMAIN/LHOST/RHOST/LPORT/RPORT as name/value pairs
+  jjv cred     Print configured USER*/PASSWD*/HASH* as name/value pairs
 EOF
     return 0
   fi
 
   jj_tmux_available || return
 
-  if [[ $# -gt 0 ]]; then
-    jj_var_lines_from_tmux | jj_var_filter_by_name "$1" | jj_var_display_lines_for_fzf
-  else
-    jj_var_lines_from_tmux | jj_var_display_lines_for_fzf
-  fi
+  case "${1:-}" in
+    host) jj_var_print_named_view DOMAIN LHOST RHOST LPORT RPORT ;;
+    cred) jj_var_print_cred_view ;;
+    "") jj_var_lines_from_tmux | jj_var_display_lines_for_fzf ;;
+    *) jj_var_lines_from_tmux | jj_var_filter_by_name "$1" | jj_var_display_lines_for_fzf ;;
+  esac
 }
 
 jj_cmd_unset() {
@@ -173,6 +178,52 @@ jj_var_filter_by_name() {
   local pattern="$1"
   pattern="${(L)pattern}"
   awk -F= -v pat="$pattern" 'tolower($1) ~ pat {print}'
+}
+
+jj_var_print_named_view() {
+  local raw name line
+  for raw in "$@"; do
+    name="$(jj_var_normalize_name "$raw")" || return
+    line="$(jj_var_line_by_name "$name")"
+    [[ -n "$line" ]] || continue
+    jj_var_print_name_value "$line"
+  done
+}
+
+jj_var_print_cred_view() {
+  jj_var_lines_from_tmux \
+    | awk -F= '
+        /^JJ_(USER|PASSWD|HASH)[0-9]*=/ {
+          name = $1
+          sub(/^JJ_/, "", name)
+          rank = 0
+          if (name ~ /^PASSWD/) rank = 1
+          if (name ~ /^HASH/) rank = 2
+          suffix = name
+          sub(/^(USER|PASSWD|HASH)/, "", suffix)
+          if (suffix == "") suffix = 0
+          print suffix "\t" rank "\t" $0
+        }
+      ' \
+    | sort -n -k1,1 -k2,2 \
+    | cut -f3- \
+    | while IFS= read -r line; do
+        [[ -n "$line" ]] || continue
+        jj_var_print_name_value "$line"
+      done
+}
+
+jj_var_line_by_name() {
+  local name="$1"
+  jj_var_lines_from_tmux | awk -F= -v target="$name" '$1 == target {print; exit}'
+}
+
+jj_var_print_name_value() {
+  local line="$1"
+  local name="${line%%=*}"
+  local value="${line#*=}"
+  print "$(jj_var_shell_name "$name")"
+  print -r -- "$value"
 }
 
 jj_var_default_names() {

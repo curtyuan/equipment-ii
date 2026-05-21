@@ -235,9 +235,11 @@ Behavior:
 ```text
 1. Read all JJ_ variables from tmux.
 2. If PATTERN is omitted, print all variables without the JJ_ prefix.
-3. If PATTERN is provided, filter by variable name only.
-4. Do not open fzf.
-5. Do not filter values.
+3. If PATTERN is host, print configured host variables as name/value lines.
+4. If PATTERN is cred, print configured credential variables as name/value lines.
+5. Otherwise filter by variable name only.
+6. Do not open fzf.
+7. Do not filter values.
 ```
 
 Examples:
@@ -245,14 +247,54 @@ Examples:
 ```zsh
 jjv
 jjv host
+jjv cred
 jjv port
 jjv domain
 ```
 
-Expected filtering:
+Expected host view:
 
 ```text
-jjv host   matches LHOST and RHOST
+LHOST
+192.168.45.192
+RHOST
+192.168.201.175
+LPORT
+443
+RPORT
+80
+```
+
+Expected credential view:
+
+```text
+USER1
+alice
+PASSWD1
+secret
+HASH1
+...
+```
+
+Only configured credential variables are printed. Supported names:
+
+```text
+USER
+PASSWD
+HASH
+USER1
+PASSWD1
+HASH1
+USER2
+PASSWD2
+HASH2
+...
+```
+
+Expected fallback filtering:
+
+```text
+jjv port   matches LPORT and RPORT
 jjv 443    does not match LPORT=443 unless the variable name contains 443
 ```
 
@@ -511,10 +553,30 @@ quotes, shell metacharacters, newlines, and other special characters.
 Current strategy:
 
 ```text
-1. If JJ_CLIP_CMD is set, pipe rendered payload to that command.
-2. Otherwise auto-detect clip.exe, wl-copy, xclip, xsel, pbcopy.
-3. If no clipboard tool is found inside tmux, pipe to tmux load-buffer -.
+1. If JJ_CLIP_BACKEND is set, use that named backend.
+2. If JJ_CLIP_CMD is set, pipe rendered payload to that command.
+3. Otherwise auto-detect clip.exe, wl-copy, xclip, xsel, pbcopy.
+4. If no clipboard tool is found inside tmux, pipe to tmux load-buffer -.
 ```
+
+Supported named backend:
+
+```text
+osc52
+```
+
+OSC52 is intended for SSH sessions where the remote Kali shell should copy text
+to the local terminal clipboard. The payload is base64 encoded before being
+wrapped in the OSC52 escape sequence. Inside tmux, the sequence is wrapped in
+tmux passthrough escape framing.
+
+Kali over SSH deployment should set:
+
+```zsh
+export JJ_CLIP_BACKEND=osc52
+```
+
+Do not require X server or Wayland clipboard packages for this workflow.
 
 Preferred tmux behavior:
 
@@ -532,11 +594,12 @@ This is safer for special characters and less likely to break inside tmux.
 Open design topic:
 
 ```text
-Can a special-character strategy or encoding layer simplify copy behavior
-without breaking tmux?
+Should OSC52 be auto-detected in SSH sessions, or stay explicit through
+JJ_CLIP_BACKEND=osc52?
 ```
 
-This should be discussed before adding OSC52 or advanced escaping.
+Current decision: OSC52 is explicit so unsupported terminal/tmux combinations do
+not print confusing escape artifacts.
 
 ## Plugin Architecture
 
@@ -595,13 +658,13 @@ Implemented:
 - fresh tmux-based payload rendering
 - deterministic non-interactive fzf filter behavior
 - stdin-based tmux buffer fallback for copy
+- explicit OSC52 backend for SSH/local-terminal clipboard copy
 ```
 
 Not implemented yet:
 
 ```text
 - fzf keybinds for in-TUI category switching
-- OSC52 clipboard backend
 - formal automated test script
 - strict warning for missing variables in payload templates
 ```

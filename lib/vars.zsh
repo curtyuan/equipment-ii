@@ -107,30 +107,22 @@ EOF
   print "loaded ${count} variable(s)"
 }
 
-ii_cmd_variable() {
+ii_cmd_list() {
   if [[ "${1:-}" == "--help" ]]; then
     cat <<'EOF'
-usage: ii variable [PATTERN]
-       ii v [PATTERN]
+usage: ii ls [PATTERN]
 
-Print variables from the current tmux session. PATTERN filters variable
-names only, case-insensitively.
-
-Special views:
-  ii v host    Print configured DOMAIN/LHOST/RHOST/LPORT/RPORT as name/value pairs
-  ii v cred    Print configured USER*/PASSWD*/HASH* as name/value pairs
+Print non-empty variables from the current tmux session.
+PATTERN filters variable names only, case-insensitively.
+Output format is key, value, then a blank line.
 EOF
     return 0
   fi
 
   ii_tmux_available || return
 
-  case "${1:-}" in
-    host) ii_var_print_named_view DOMAIN LHOST RHOST LPORT RPORT ;;
-    cred) ii_var_print_cred_view ;;
-    "") ii_var_lines_from_tmux | ii_var_display_lines_for_fzf ;;
-    *) ii_var_lines_from_tmux | ii_var_filter_by_name "$1" | ii_var_display_lines_for_fzf ;;
-  esac
+  local pattern="${1:-}"
+  ii_var_print_list "$pattern"
 }
 
 ii_cmd_unset() {

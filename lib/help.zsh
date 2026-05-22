@@ -6,7 +6,7 @@ ii_cmd_help() {
       set|s) ii_cmd_set --help ;;
       load|l) ii_cmd_load --help ;;
       interactive|i) ii_cmd_interactive --help ;;
-      variable|vars|var|v) ii_cmd_variable --help ;;
+      ls|list|variable|vars|var|v) ii_cmd_list --help ;;
       payload|p) ii_cmd_payload --help ;;
       unset|u) ii_cmd_unset --help ;;
       help|h) ii_cmd_help ;;
@@ -23,7 +23,7 @@ Commands:
   set|s -d [IFACE]       Detect LHOST from an interface, default tun0
   load|l                 Load variables into this shell
   interactive|i          Select, edit, delete, add, and copy variables
-  variable|v [PATTERN]   Print variables, optionally filtered by name
+  ls [PATTERN]           List non-empty variables, optionally filtered by key
   payload|p [CATEGORY]   Select, render, copy, and print a payload
   unset|u NAME [...]     Remove JJ_ variables
   help|h [COMMAND]       Show help

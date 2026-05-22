@@ -78,6 +78,26 @@ ii_var_print_name_value() {
   print -r -- "$value"
 }
 
+ii_var_print_list() {
+  local pattern="${1:-}"
+  local line name value shell_name lower_pattern
+  lower_pattern="${(L)pattern}"
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    name="${line%%=*}"
+    value="${line#*=}"
+    [[ -n "$value" ]] || continue
+    shell_name="$(ii_var_shell_name "$name")"
+    if [[ -n "$lower_pattern" && "${(L)shell_name}" != *"$lower_pattern"* ]]; then
+      continue
+    fi
+    print -r -- "$shell_name"
+    print -r -- "$value"
+    print
+  done < <(ii_var_lines_from_tmux | sort)
+}
+
 ii_var_default_names() {
   print DOMAIN
   print LHOST

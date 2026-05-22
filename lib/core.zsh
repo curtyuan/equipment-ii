@@ -11,7 +11,7 @@ ii() {
     s:*) ii_cmd_set "${cmd#s:}" "$@" ;;
     load|l) ii_cmd_load "$@" ;;
     interactive|i) ii_cmd_interactive "$@" ;;
-    variable|vars|var|v) ii_cmd_variable "$@" ;;
+    ls|list|variable|vars|var|v) ii_cmd_list "$@" ;;
     payload|p) ii_cmd_payload "$@" ;;
     unset|u) ii_cmd_unset "$@" ;;
     help|h|-h|--help) ii_cmd_help "$@" ;;

@@ -72,8 +72,8 @@ tmux send-keys -t codex-jj-test "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-jj-test "ii s LHOST 127.0.0.1" Enter
 tmux send-keys -t codex-jj-test "ii s LPORT 4444" Enter
 tmux send-keys -t codex-jj-test "ii s DOMAIN example.test" Enter
-tmux send-keys -t codex-jj-test "ii v" Enter
-tmux send-keys -t codex-jj-test "ii v host" Enter
+tmux send-keys -t codex-jj-test "ii ls" Enter
+tmux send-keys -t codex-jj-test "ii ls host" Enter
 tmux send-keys -t codex-jj-test "ii l" Enter
 tmux send-keys -t codex-jj-test "FZF_DEFAULT_OPTS='--filter=sh-tcp' JJ_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
 sleep 2
@@ -201,9 +201,9 @@ tmux new-session -d -s codex-jj-vars -x 120 -y 30 zsh
 tmux send-keys -t codex-jj-vars "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-jj-vars "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-jj-vars "ii s GOOD_NAME ok" Enter
-tmux send-keys -t codex-jj-vars "ii v good" Enter
+tmux send-keys -t codex-jj-vars "ii ls good" Enter
 tmux send-keys -t codex-jj-vars "ii unset GOOD_NAME" Enter
-tmux send-keys -t codex-jj-vars "ii v good" Enter
+tmux send-keys -t codex-jj-vars "ii ls good" Enter
 tmux send-keys -t codex-jj-vars "ii set 'BAD-NAME' value" Enter
 sleep 2
 tmux capture-pane -t codex-jj-vars -p -S -100
@@ -228,9 +228,9 @@ tmux send-keys -t codex-ii-unset-all "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-unset-all "ii s LHOST 192.0.2.10" Enter
 tmux send-keys -t codex-ii-unset-all "ii s USER1 alice" Enter
 tmux send-keys -t codex-ii-unset-all "printf 'n\n' | ii unset -a" Enter
-tmux send-keys -t codex-ii-unset-all "ii v" Enter
+tmux send-keys -t codex-ii-unset-all "ii ls" Enter
 tmux send-keys -t codex-ii-unset-all "printf 'y\n' | ii unset -a" Enter
-tmux send-keys -t codex-ii-unset-all "ii v" Enter
+tmux send-keys -t codex-ii-unset-all "ii ls" Enter
 sleep 2
 tmux capture-pane -t codex-ii-unset-all -p -S -160
 tmux kill-session -t codex-ii-unset-all
@@ -260,8 +260,10 @@ tmux send-keys -t codex-jj-views "ii s LPORT 4444" Enter
 tmux send-keys -t codex-jj-views "ii s USER1 alice" Enter
 tmux send-keys -t codex-jj-views "ii s PASSWD1 secret" Enter
 tmux send-keys -t codex-jj-views "ii s HASH2 deadbeef" Enter
-tmux send-keys -t codex-jj-views "ii v host" Enter
-tmux send-keys -t codex-jj-views "ii v cred" Enter
+tmux send-keys -t codex-jj-views "ii ls host" Enter
+tmux send-keys -t codex-jj-views "ii ls user" Enter
+tmux send-keys -t codex-jj-views "ii ls passwd" Enter
+tmux send-keys -t codex-jj-views "ii ls hash" Enter
 sleep 2
 tmux capture-pane -t codex-jj-views -p -S -160
 tmux kill-session -t codex-jj-views
@@ -324,7 +326,7 @@ tmux send-keys -t codex-ii-keys "ii s r 10.0.0.5" Enter
 tmux send-keys -t codex-ii-keys "ii s:r 10.0.0.6" Enter
 tmux send-keys -t codex-ii-keys "JJ_SET_VALUE_FILTER=10.0.0.7 ii s r" Enter
 tmux send-keys -t codex-ii-keys "JJ_EDIT_VALUE_FILTER=10.0.0.8 ii_cmd_interactive_edit_variable RHOST" Enter
-tmux send-keys -t codex-ii-keys "ii v host" Enter
+tmux send-keys -t codex-ii-keys "ii ls host" Enter
 sleep 3
 tmux capture-pane -t codex-ii-keys -p -S -200
 tmux show-buffer
@@ -434,7 +436,7 @@ tmux new-session -d -s codex-ii-s-filter -x 120 -y 35 zsh
 tmux send-keys -t codex-ii-s-filter "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-s-filter "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-s-filter "JJ_SET_VAR_FILTER=LHOST JJ_SET_VALUE_FILTER=192.0.2.10 ii s" Enter
-tmux send-keys -t codex-ii-s-filter "ii v host" Enter
+tmux send-keys -t codex-ii-s-filter "ii ls host" Enter
 tmux send-keys -t codex-ii-s-filter "echo loaded:\$LHOST/\$lhost" Enter
 tmux send-keys -t codex-ii-s-filter "echo hidden:\$JJ_LHOST" Enter
 sleep 2
@@ -460,7 +462,7 @@ source ./ii.plugin.zsh
 
 ii s LHOST 192.168.45.192
 ii s LPORT 443
-ii v
+ii ls
 ii i
 ii p linux
 ```

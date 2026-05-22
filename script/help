@@ -9,7 +9,7 @@ topics=(
   set
   load
   interactive
-  variable
+  ls
   payload
   unset
 )

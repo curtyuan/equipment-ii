@@ -52,7 +52,7 @@ Command behavior follows this model:
 ```text
 ii s   writes internal JJ_ names to tmux and unprefixed names to current shell
 ii l   loads tmux session values into current shell without JJ_ prefix
-ii v   reads tmux session values and displays them without JJ_ prefix
+ii ls  reads non-empty tmux session values and displays them without JJ_ prefix
 ii i   reads tmux session values, then copies selected variable values
 ii p   reads tmux session values directly while rendering
 ```
@@ -83,7 +83,7 @@ Dispatches to command implementations:
 ii set
 ii load
 ii interactive
-ii variable
+ii ls
 ii payload
 ii unset
 ii help
@@ -95,7 +95,7 @@ ii help
 ii s
 ii l
 ii i
-ii v
+ii ls
 ii p
 ii h
 ```
@@ -106,12 +106,12 @@ Final naming decision:
 ii s = ii set
 ii l = ii load
 ii i = ii interactive
-ii v = ii variable
+ii ls = variable list
 ii p = ii payload
 ii h = ii help
 ```
 
-`ii p` is payload-only. Variable listing belongs to `ii v`.
+`ii p` is payload-only. Variable listing belongs to `ii ls`.
 
 ## Command Specs
 
@@ -277,22 +277,16 @@ Behavior:
 This command is a variable copy/add layer, not a shell loading layer. Use
 `ii l` to load non-empty tmux variables into the current shell.
 
-### `ii variable [PATTERN]`
-
-Short form:
-
-```text
-ii v [PATTERN]
-```
+### `ii ls [PATTERN]`
 
 Behavior:
 
 ```text
 1. Read all JJ_ variables from tmux.
-2. If PATTERN is omitted, print all variables without the JJ_ prefix.
-3. If PATTERN is host, print configured host variables as name/value lines.
-4. If PATTERN is cred, print configured credential variables as name/value lines.
-5. Otherwise filter by variable name only.
+2. Skip empty values.
+3. If PATTERN is omitted, print every non-empty variable.
+4. If PATTERN is present, filter by key name only, case-insensitively.
+5. Print each match as key line, value line, blank line.
 6. Do not open fzf.
 7. Do not filter values.
 ```
@@ -300,57 +294,34 @@ Behavior:
 Examples:
 
 ```zsh
-ii v
-ii v host
-ii v cred
-ii v port
-ii v domain
+ii ls
+ii ls host
+ii ls user
+ii ls port
+ii ls d
 ```
 
-Expected host view:
+Expected output:
 
 ```text
 LHOST
 192.168.45.192
+
 RHOST
 192.168.201.175
+
 LPORT
 443
+
 RPORT
 80
-```
-
-Expected credential view:
-
-```text
-USER1
-alice
-PASSWD1
-secret
-HASH1
-...
-```
-
-Only configured credential variables are printed. Supported names:
-
-```text
-USER
-PASSWD
-HASH
-USER1
-PASSWD1
-HASH1
-USER2
-PASSWD2
-HASH2
-...
 ```
 
 Expected fallback filtering:
 
 ```text
-ii v port   matches LPORT and RPORT
-ii v 443    does not match LPORT=443 unless the variable name contains 443
+ii ls port   matches LPORT and RPORT
+ii ls 443    does not match LPORT=443 unless the variable name contains 443
 ```
 
 ### `ii payload [CATEGORY]`
@@ -769,7 +740,7 @@ ii help
 ii help set
 ii help load
 ii help interactive
-ii help variable
+ii help ls
 ii help payload
 ii help unset
 ```

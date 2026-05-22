@@ -147,7 +147,7 @@ Commands:
 ```text
 ii_cmd_set
 ii_cmd_load
-ii_cmd_variable
+ii_cmd_list
 ii_cmd_unset
 ```
 

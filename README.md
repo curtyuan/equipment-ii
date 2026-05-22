@@ -177,9 +177,7 @@ export JJ_CLIP_CMD='tmux load-buffer -'
 | `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `JJ_` prefix |
 | `ii interactive` | `ii i` | Select variable names with fzf, preview values, and copy selected values |
-| `ii variable [PATTERN]` | `ii v [PATTERN]` | Print tmux variables without the internal `JJ_` prefix, filtered by name |
-| `ii variable host` | `ii v host` | Print configured host variables as name/value lines |
-| `ii variable cred` | `ii v cred` | Print configured credential variables as name/value lines |
+| `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, and print a payload |
 | `ii unset NAME [...]` | | Remove `JJ_` variables from tmux and this shell |
 | `ii unset -a` | | Prompt, then remove all `JJ_` variables from the current tmux session |
@@ -197,9 +195,9 @@ ii s DOMAIN example.test
 ii s USER1 alice
 ii s PASSWD1 secret
 
-ii v
-ii v host
-ii v cred
+ii ls
+ii ls host
+ii ls user
 ii p linux
 ```
 
@@ -246,25 +244,22 @@ PASSWD2
 HASH2
 ```
 
-`ii v host` prints configured host variables as two-line pairs:
+`ii ls` prints non-empty variables as key/value blocks:
 
 ```text
 LHOST
 192.168.45.192
+
 LPORT
 443
 ```
 
-`ii v cred` prints configured credential variables. It shows only values that are
-set:
+`ii ls PATTERN` filters by key name, case-insensitively.
 
-```text
-USER1
-alice
-PASSWD1
-secret
-HASH1
-...
+```zsh
+ii ls host
+ii ls user
+ii ls l
 ```
 
 ## Payload Library
@@ -331,7 +326,7 @@ ii p sqli
 ii help
 ii help set
 ii help load
-ii help variable
+ii help ls
 ii help payload
 ii help unset
 ```

@@ -86,7 +86,7 @@ ii_payload_select_fzf() {
   fzf --ansi --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1,2,3 \
     --bind='enter:accept' \
     --preview="zsh -fc 'source \"\$1\"; export JJ_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \$'\'' Enter Render/Copy     Type Filter\n Esc Abort'\''' -- ${(q)plugin_file} ${(q)payload_dir} {1}" \
-    --preview-window='down:50%:wrap'
+    --preview-window='down:50%:nowrap:noinfo'
 }
 
 ii_payload_entries_for_fzf() {

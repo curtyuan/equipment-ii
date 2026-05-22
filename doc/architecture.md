@@ -172,6 +172,7 @@ Responsibilities:
 - Render `${JJ_NAME}` placeholders using fresh tmux session values.
 - Display first-line `# description:` metadata in preview without copying it.
 - Keep description and keys independent from the payload body in fzf preview.
+  Reserve the description block even when no description exists.
 - Print the rendered payload and variables used.
 
 Commands:

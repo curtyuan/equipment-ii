@@ -347,7 +347,8 @@ Behavior:
 8. Print the rendered payload.
 9. Print variables used by the selected payload.
 10. Display description and keys as independent preview blocks so they stay
-    visible across payload sizes.
+    visible across payload sizes. Reserve the description block even when no
+    description exists.
 ```
 
 Categories:
@@ -372,8 +373,9 @@ Payload files may start with a metadata line:
 # description: short operator-facing description
 ```
 
-The description is shown above the preview, but is omitted from copied and
-printed payload output.
+The description is shown in a reserved description block above the preview body,
+but is omitted from copied and printed payload output. Payloads without a
+description still reserve the same block with an empty content line.
 
 First implementation supports argument-based category filtering:
 

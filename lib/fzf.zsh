@@ -23,22 +23,28 @@ ii_fzf_print_preview_blocks() {
   local description="$1"
   local footer="$2"
   local preview_lines="${FZF_PREVIEW_LINES:-0}"
-  local content shown desc_block footer_block reserved shown_count pad limit
+  local content shown desc_block footer_block reserved shown_count pad limit printed
 
   content="$(cat)"
-  desc_block=""
-  if [[ -n "$description" ]]; then
-    desc_block="[description]"$'\n'"$description"$'\n'"--------------------------------------------------------------------------------"
-  fi
+  desc_block="[description]"$'\n'"$description"$'\n'"--------------------------------------------------------------------------------"
   footer_block="[keys]"$'\n'"$footer"
 
+  if (( preview_lines <= 0 )); then
+    print -r -- "$desc_block"
+    [[ -n "$content" ]] && print -r -- "$content"
+    print -r -- "$footer_block"
+    return
+  fi
+
   reserved=0
-  [[ -n "$desc_block" ]] && reserved=$(( reserved + $(print -r -- "$desc_block" | awk 'END {print NR}') ))
+  reserved=$(( reserved + $(print -r -- "$desc_block" | awk 'END {print NR}') ))
   reserved=$(( reserved + $(print -r -- "$footer_block" | awk 'END {print NR}') ))
 
   if (( preview_lines <= reserved )); then
-    [[ -n "$desc_block" ]] && print -r -- "$desc_block"
-    print -r -- "$footer_block"
+    {
+      print -r -- "$desc_block"
+      print -r -- "$footer_block"
+    } | awk -v limit="$preview_lines" 'NR <= limit {print}'
     return
   fi
 
@@ -47,14 +53,23 @@ ii_fzf_print_preview_blocks() {
   shown_count="$(print -r -- "$shown" | awk 'END {print NR}')"
   [[ -z "$shown" ]] && shown_count=0
 
-  [[ -n "$desc_block" ]] && print -r -- "$desc_block"
+  printed=0
+  print -r -- "$desc_block"
+  printed=$(( printed + $(print -r -- "$desc_block" | awk 'END {print NR}') ))
   [[ -n "$shown" ]] && print -r -- "$shown"
+  printed=$(( printed + shown_count ))
   pad=$(( preview_lines - reserved - shown_count ))
   while (( pad > 0 )); do
     print
+    (( printed++ ))
     (( pad-- ))
   done
   print -r -- "$footer_block"
+  printed=$(( printed + $(print -r -- "$footer_block" | awk 'END {print NR}') ))
+  while (( printed < preview_lines )); do
+    print
+    (( printed++ ))
+  done
 }
 
 ii_fzf_select_one() {

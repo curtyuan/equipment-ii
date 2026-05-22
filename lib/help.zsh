@@ -20,8 +20,9 @@ usage: ii COMMAND [ARGS]
 
 Commands:
   set|s NAME VALUE       Set a variable in tmux and this shell
+  set|s -d [IFACE]       Detect LHOST from an interface, default tun0
   load|l                 Load variables into this shell
-  interactive|i          Select variables with fzf and copy values
+  interactive|i          Select, edit, delete, add, and copy variables
   variable|v [PATTERN]   Print variables, optionally filtered by name
   payload|p [CATEGORY]   Select, render, copy, and print a payload
   unset|u NAME [...]     Remove JJ_ variables

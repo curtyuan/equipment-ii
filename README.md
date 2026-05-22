@@ -28,8 +28,9 @@ sudo apt install -y zsh tmux fzf coreutils
 
 ## Kali Deployment
 
-`ii` is installed through `ii.plugin.zsh`. Put the whole project directory under
-your zsh plugin directory. Do not source internal files under `lib/` directly.
+`ii` is installed through `ii.plugin.zsh`. Build the deployment package with
+`script/make`, then put the generated `export/ii` directory under your zsh plugin
+directory. Do not source internal files under `lib/` directly.
 
 ### 1. Install Dependencies
 
@@ -38,7 +39,30 @@ sudo apt update
 sudo apt install -y zsh tmux fzf coreutils
 ```
 
-### 2. Put Plugin Code In Place
+### 2. Build The Deployment Package
+
+From the project root:
+
+```zsh
+script/make
+```
+
+This rebuilds the deployable plugin directory:
+
+```text
+export/
+  ii/
+    ii.plugin.zsh
+    lib/
+    payloads/
+    README.md
+```
+
+Use `export/ii` as the deployment unit.
+The `export/` directory is generated output; rerun `script/make` after source
+changes instead of editing files under `export/ii` by hand.
+
+### 3. Put Plugin Code In Place
 
 Recommended antidot local plugin path:
 
@@ -53,18 +77,18 @@ ii/
   ii.plugin.zsh
   lib/
   payloads/
-  doc/
   README.md
 ```
 
-From the parent directory that contains the plugin source:
+From the project root:
 
 ```zsh
 mkdir -p "$HOME/.config/zsh/plugin"
-cp -r ./ii "$HOME/.config/zsh/plugin/ii"
+rm -rf "$HOME/.config/zsh/plugin/ii"
+cp -r ./export/ii "$HOME/.config/zsh/plugin/ii"
 ```
 
-### 3. Enable The Plugin
+### 4. Enable The Plugin
 
 Use either an antidote/antidot-style plugin manager or manual `.zshrc` loading.
 
@@ -145,7 +169,7 @@ export JJ_CLIP_CMD='tmux load-buffer -'
 | Command | Short form | Purpose |
 | --- | --- | --- |
 | `ii set NAME VALUE` | `ii s NAME VALUE` | Set internal `JJ_NAME` in tmux and export `NAME` in this shell |
-| `ii set LHOST -d [INTERFACE]` | `ii s:lhost -d [INTERFACE]` | Detect an IPv4 address from an interface, defaulting to `tun0` |
+| `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect LHOST from an interface, defaulting to `tun0` |
 | `ii set` | `ii s` | Open a TUI to choose common variable names and type a value |
 | `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `JJ_` prefix |

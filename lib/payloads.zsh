@@ -8,6 +8,9 @@ usage: ii payload [CATEGORY]
 
 Open the payload selector, render the selected template with fresh JJ_
 variables from the tmux session, copy the result, and print the output.
+The selector shows a single-line rendered preview in the list and a full
+selected preview at the bottom. A first-line "# description: ..." metadata line
+is shown in preview but omitted from copied output.
 
 CATEGORY may be all, shell, script, linux, windows, sqli, or xss.
 EOF

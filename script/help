@@ -1,0 +1,25 @@
+#!/usr/bin/env zsh
+set -e
+
+repo_dir="${0:A:h:h}"
+source "${repo_dir}/ii.plugin.zsh"
+
+topics=(
+  help
+  set
+  load
+  interactive
+  variable
+  payload
+  unset
+)
+
+for topic in "${topics[@]}"; do
+  print "===== ii ${topic} ====="
+  if [[ "$topic" == "help" ]]; then
+    ii help
+  else
+    ii help "$topic"
+  fi
+  print
+done

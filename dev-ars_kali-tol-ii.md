@@ -34,7 +34,7 @@ The primary constraints:
 - The current shell should only receive variables when explicitly loaded.
 - Copy behavior must not break inside tmux or on payloads with special chars.
 - The codebase should be plugin-first and split by responsibility layers.
-- Kali deployment should work by installing the plugin directory.
+- Kali deployment should work by installing the generated `export/ii` directory.
 - Bundled payloads should work without requiring users to export JJ_PAYLOAD_DIR.
 ```
 
@@ -56,6 +56,11 @@ ii v   reads tmux session values and displays them without JJ_ prefix
 ii i   reads tmux session values, then copies selected variable values
 ii p   reads tmux session values directly while rendering
 ```
+
+`ii s` and `ii l` export both uppercase and lowercase shell names. A pane that
+has loaded values keeps a prompt-time sync hook enabled so prompt integrations
+that rewrite lowercase names such as `lhost` do not immediately override loaded
+tmux values.
 
 This distinction is required:
 
@@ -143,11 +148,23 @@ HASH2
 With one filter argument, match variable names before prompting for a value. No
 matches prints `no matched`; one match goes straight to the value prompt;
 multiple matches open a selection prompt. Single-letter shortcuts include `r`
-for `RHOST`:
+for `RHOST`, `l` for `LHOST`, and `d` for `DOMAIN`:
 
 ```zsh
 ii s r
 ii s:r
+ii s:l
+ii s:d
+```
+
+`-d` means detect. It is only supported for `LHOST` and detects the IPv4 address
+from an interface. The default interface is `tun0`.
+
+```zsh
+ii s:lhost -d
+ii s:lhost -d eth0
+ii s:l -d
+ii s -d
 ```
 
 Behavior:
@@ -158,7 +175,8 @@ Behavior:
 2. Validate the normalized variable name.
 3. Store JJ_NAME=VALUE in the current tmux session environment.
 4. Export uppercase and lowercase shell variables into the current shell.
-5. Print NAME=VALUE without the internal JJ_ prefix.
+5. Enable loaded-variable sync for the current shell.
+6. Print NAME=VALUE without the internal JJ_ prefix.
 ```
 
 Example:
@@ -208,7 +226,8 @@ Behavior:
 3. Export each variable into the current shell without the JJ_ prefix.
    Both uppercase and lowercase shell names are exported.
 4. Do not export default variable names that have not been assigned values.
-5. Print the number of loaded variables.
+5. Enable loaded-variable sync for the current shell.
+6. Print the number of loaded variables.
 ```
 
 Purpose:
@@ -237,19 +256,22 @@ Behavior:
 ```text
 1. Read configured JJ_ variables from tmux.
 2. Merge them with default variable names.
-3. Present names only in fzf.
-4. Show the selected variable value in preview.
+3. Present names in fzf with a single-line value preview.
+4. Show the selected variable value in a bottom preview pane.
 5. Support case-insensitive fuzzy search.
 6. Enter edits the selected variable value.
 7. Ctrl-A prompts for a new variable name and value.
-8. Ctrl-Y copies selected existing variable values.
-9. Show `add new variable` as the final option.
-10. If `add new variable` is selected, prompt for a variable name and value.
+8. Ctrl-X deletes the selected variable.
+9. Ctrl-Y copies selected existing variable values.
+10. Show `add new variable` as the final option.
+11. If `add new variable` is selected, prompt for a variable name and value.
    A name without a value stores an empty value.
-11. Support Tab multi-select.
-12. Copy selected existing variable values through the configured copy layer.
-13. Print the copied values.
-14. Do not export values into the current shell.
+12. Support Tab multi-select.
+13. Copy selected existing variable values through the configured copy layer.
+14. Print the copied values.
+15. Do not export values into the current shell unless loaded-variable sync was
+    already enabled by `ii s` or `ii l` in that shell.
+16. Display a nano-style shortcut hint at the bottom of the preview pane.
 ```
 
 This command is a variable copy/add layer, not a shell loading layer. Use
@@ -346,12 +368,14 @@ Behavior:
 2. Scan payload files and display path-style entries.
 3. Apply optional category filtering.
 4. Let fzf handle fuzzy search and selection with rendered payload preview.
+   The selector list includes a single-line rendered preview.
 5. Resolve the selected entry to a payload file.
 6. Render the template with fresh tmux JJ_ values.
    Missing or empty values render as lowercase shell fallbacks like $rhost.
 7. Copy the rendered payload.
 8. Print the rendered payload.
 9. Print variables used by the selected payload.
+10. Display a nano-style shortcut hint at the bottom of the preview pane.
 ```
 
 Categories:
@@ -369,6 +393,15 @@ xss      xss/*
 `script/*` is for custom script snippets. Files can use `${JJ_NAME}`
 placeholders, or literal shell variables such as `$rhost`. If no renderable
 placeholder is present, the selected script text is copied literally.
+
+Payload files may start with a metadata line:
+
+```text
+# description: short operator-facing description
+```
+
+The description is shown above the preview, but is omitted from copied and
+printed payload output.
 
 First implementation supports argument-based category filtering:
 
@@ -444,17 +477,17 @@ payloads/
       sh-tcp
       nc-mkfifo
     windows/
-      powershell-iwr
       powershell-rev
-    web/
-      php-system
-      php-proc-open
-  sqli/
-    mysql/
-    mssql/
+  script/
+    config/
+      hosts
+    tool/
+      ii/
+        detect-lhost
+      nmap/
+        nmap
   xss/
     basic-alert
-    fetch-cookie
 ```
 
 Selector display format:
@@ -464,7 +497,9 @@ shell/linux/bash-tcp
 shell/linux/sh-tcp
 shell/linux/nc-mkfifo
 shell/windows/powershell-rev
-sqli/mysql/union-basic
+script/config/hosts
+script/tool/ii/detect-lhost
+script/tool/nmap/nmap
 xss/basic-alert
 ```
 
@@ -506,6 +541,7 @@ Required behavior:
 
 ```text
 1. Read the selected payload file as plain text.
+   A first-line `# description:` metadata line is not part of the render body.
 2. Read tmux session environment at render time.
 3. Replace `${JJ_NAME}` placeholders with tmux values.
 4. Support bare `JJ_NAME` replacement for compatibility.
@@ -543,15 +579,17 @@ Responsibilities:
 
 ```text
 ii i:
-  - Input: JJ_ variable lines from tmux.
+  - Input: default variable names plus JJ_ variable lines from tmux.
   - UI: fzf with --multi.
-  - Display: strip JJ_ prefix for operator readability.
-  - Output: selected display NAME=VALUE lines mapped back to JJ_NAME=VALUE.
-  - Next layer: safe export into current shell.
+  - Display: variable name, single-line value preview, and red "more" marker
+    when the full value is longer than the displayed preview.
+  - Preview: full selected value with a bottom shortcut hint.
+  - Output: selected display lines mapped back to names and values.
+  - Next layer: edit, delete, add, or copy behavior.
 
 ii p:
   - Input: path-style payload entries.
-  - UI: fzf selector.
+  - UI: fzf selector with single-line rendered preview and bottom shortcut hint.
   - Output: one selected payload path.
   - Next layer: payload render.
 ```
@@ -586,7 +624,13 @@ ii_var_lines_from_tmux:
 
 ii_export_var_line:
   - Validate NAME before export.
-  - Export NAME=VALUE into current shell.
+  - Export NAME=VALUE and lowercase name=value into current shell.
+  - Use global exported assignment so existing shell variables are overwritten.
+
+ii_enable_loaded_var_sync:
+  - Enable prompt-time sync after `ii s` or `ii l`.
+  - Keep the sync hook last in `precmd_functions` so prompt integrations that
+    rewrite lowercase names are corrected before the next command.
 
 ii_var_display_lines_for_fzf:
   - Convert JJ_LHOST=... to LHOST=... for TUI display.
@@ -679,6 +723,7 @@ Layer files:
 ```text
 lib/tmux.zsh        tmux and external command checks
 lib/clipboard.zsh   copy backend detection and copy
+lib/fzf.zsh         shared fzf input and preview helpers
 lib/var_helpers.zsh variable helpers and candidate generation
 lib/var_interactive.zsh interactive variable selection, add, and edit flows
 lib/vars.zsh        variable command entrypoints
@@ -692,12 +737,47 @@ Load order:
 ```text
 1. tmux.zsh
 2. clipboard.zsh
-3. var_helpers.zsh
-4. var_interactive.zsh
-5. vars.zsh
-6. payloads.zsh
-7. help.zsh
-8. core.zsh
+3. fzf.zsh
+4. var_helpers.zsh
+5. var_interactive.zsh
+6. vars.zsh
+7. payloads.zsh
+8. help.zsh
+9. core.zsh
+```
+
+## Deployment Package
+
+`script/make` builds the deployable plugin directory:
+
+```text
+export/ii/
+  ii.plugin.zsh
+  lib/
+  payloads/
+  README.md
+```
+
+`export/` is generated output and should not be edited by hand. Deployment
+should copy `export/ii` as one unit.
+
+## Help Audit Script
+
+`script/help` is a development helper for comparing registered command help
+against this spec. It sources the local `ii.plugin.zsh` and prints:
+
+```text
+ii help
+ii help set
+ii help load
+ii help interactive
+ii help variable
+ii help payload
+ii help unset
+```
+
+The script must call the registered help implementations instead of duplicating
+help text. It is not part of the deployable `export/ii` package.
 ```
 
 ## Implementation Status
@@ -712,10 +792,16 @@ Implemented:
 - tmux session variable source of truth
 - argument-based payload filtering
 - fzf payload and variable selection
+- nano-style fzf bottom shortcut hints
+- interactive variable edit, add, delete, and copy flows
 - fresh tmux-based payload rendering
+- payload description metadata
 - deterministic non-interactive fzf filter behavior
 - stdin-based tmux buffer fallback for copy
 - explicit OSC52 backend for SSH/local-terminal clipboard copy
+- `ii s:lhost -d [INTERFACE]` interface IPv4 detection
+- generated `export/ii` deployment package through `script/make`
+- `script/help` registered-help audit script
 ```
 
 Not implemented yet:

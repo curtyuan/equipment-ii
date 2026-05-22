@@ -16,6 +16,7 @@ ii.plugin.zsh
 lib/
   tmux.zsh
   clipboard.zsh
+  fzf.zsh
   var_helpers.zsh
   var_interactive.zsh
   vars.zsh
@@ -24,10 +25,16 @@ lib/
   core.zsh
 payloads/
   shell/
+  script/
   xss/
 doc/
   architecture.md
   testing.md
+script/
+  make
+  help
+export/
+  ii/
 ```
 
 ## Load Order
@@ -37,12 +44,13 @@ doc/
 ```text
 1. lib/tmux.zsh
 2. lib/clipboard.zsh
-3. lib/var_helpers.zsh
-4. lib/var_interactive.zsh
-5. lib/vars.zsh
-6. lib/payloads.zsh
-7. lib/help.zsh
-8. lib/core.zsh
+3. lib/fzf.zsh
+4. lib/var_helpers.zsh
+5. lib/var_interactive.zsh
+6. lib/vars.zsh
+7. lib/payloads.zsh
+8. lib/help.zsh
+9. lib/core.zsh
 ```
 
 `core.zsh` is loaded last because it exposes the public dispatcher. The
@@ -83,6 +91,26 @@ ii_tmux_session_name
 ii_require_cmd
 ```
 
+### `lib/fzf.zsh`
+
+Shared fzf helpers.
+
+Responsibilities:
+
+- Create single-line previews for list display.
+- Read free-form fzf input values.
+- Print preview text with a shortcut hint pinned to the bottom of the preview
+  pane.
+
+Functions:
+
+```text
+ii_one_line_preview
+ii_fzf_print_preview_with_footer
+ii_fzf_select_one
+ii_fzf_input_value
+```
+
 ### `lib/var_helpers.zsh`
 
 Variable data helpers.
@@ -92,6 +120,7 @@ Responsibilities:
 - Normalize user names like `LHOST` into `JJ_LHOST`.
 - List, filter, and format `JJ_` variables.
 - Export safe `NAME=VALUE` lines into the current shell.
+- Enable loaded-variable prompt sync after `ii s` or `ii l`.
 - Build default variable candidates for interactive commands.
 
 ### `lib/var_interactive.zsh`
@@ -101,7 +130,7 @@ Interactive variable UI.
 Responsibilities:
 
 - Open fzf flows for variable selection, add, and edit.
-- Keep Enter/Ctrl-A/Ctrl-Y behavior isolated from command dispatch.
+- Keep Enter/Ctrl-A/Ctrl-X/Ctrl-Y behavior isolated from command dispatch.
 - Store interactive edits in tmux without implicitly loading shell variables.
 
 ### `lib/vars.zsh`
@@ -141,6 +170,7 @@ Responsibilities:
 - List payload files as path-style selector entries.
 - Filter payloads by category or fuzzy prefilter.
 - Render `${JJ_NAME}` placeholders using fresh tmux session values.
+- Display first-line `# description:` metadata in preview without copying it.
 - Print the rendered payload and variables used.
 
 Commands:
@@ -274,7 +304,9 @@ current shell environment = local state for one pane
 `ii s` writes to both tmux and the current shell.
 
 `ii l` copies tmux `JJ_` values into the current shell without the internal
-prefix.
+prefix. It exports both uppercase and lowercase shell variables and enables a
+prompt-time sync hook so prompt integrations do not immediately overwrite loaded
+lowercase values.
 
 `ii i` copies selected variable values through the copy layer. It does not load
 variables into the current shell.
@@ -293,10 +325,12 @@ variable loading layer:
   - validate names
   - strip JJ_ only for variable TUI display
   - export all values into current shell through ii l
+  - keep loaded values synchronized after prompt hooks run
 
 fuzzy search layer:
   - present candidate lines
   - return selected lines
+  - provide bottom preview hints
   - avoid mutating state
 
 payload render layer:
@@ -310,3 +344,25 @@ copy layer:
   - copy via configured or detected backend
   - avoid breaking inside tmux
 ```
+
+## Deployment Boundary
+
+`script/make` rebuilds `export/ii`, which is the deployable plugin package:
+
+```text
+export/ii/
+  ii.plugin.zsh
+  lib/
+  payloads/
+  README.md
+```
+
+`export/` is generated output. Source changes should be made in the project root
+and then copied into `export/ii` by rerunning `script/make`.
+
+## Development Helpers
+
+`script/help` is a repo-only audit helper. It sources the local plugin entrypoint
+and calls the registered `ii help` implementations for every public command.
+This keeps command help as the single source of truth while making spec/help
+comparison easy.

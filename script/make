@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export_dir="${repo_dir}/export/ii"
+
+rm -rf "${export_dir}"
+mkdir -p "${export_dir}"
+
+cp "${repo_dir}/ii.plugin.zsh" "${export_dir}/"
+cp "${repo_dir}/README.md" "${export_dir}/"
+cp -R "${repo_dir}/lib" "${export_dir}/"
+cp -R "${repo_dir}/payloads" "${export_dir}/"
+
+find "${export_dir}" -type f -name '.gitkeep' -delete
+
+printf 'exported ii deployment package to %s\n' "${export_dir}"

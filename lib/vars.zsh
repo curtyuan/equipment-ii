@@ -6,6 +6,7 @@ ii_cmd_set() {
 usage: ii set NAME VALUE
        ii s NAME VALUE
        ii s NAME -d [INTERFACE]
+       ii s -d [INTERFACE]
        ii s:lhost -d [INTERFACE]
        ii set
        ii s
@@ -21,7 +22,8 @@ No matches prints "no matched"; multiple matches prompt for variable selection.
 Single-letter shortcuts include r for RHOST, l for LHOST, and d for DOMAIN.
 
 -d means detect. It is only supported for LHOST and detects the IPv4 address
-from INTERFACE. The default INTERFACE is tun0.
+from INTERFACE. The default INTERFACE is tun0. Loaded values overwrite both
+uppercase and lowercase shell variables.
 EOF
     return 0
   fi
@@ -45,6 +47,7 @@ EOF
 usage: ii set NAME VALUE
        ii s NAME VALUE
        ii s NAME -d [INTERFACE]
+       ii s -d [INTERFACE]
        ii s:lhost -d [INTERFACE]
        ii set
        ii s
@@ -85,6 +88,7 @@ usage: ii load
 
 Load non-empty variables from the current tmux session into this shell.
 The current shell exports use names without the internal JJ_ prefix.
+Both uppercase and lowercase shell names are overwritten.
 EOF
     return 0
   fi

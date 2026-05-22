@@ -345,7 +345,7 @@ Behavior:
 1. Resolve the payload library directory.
 2. Scan payload files and display path-style entries.
 3. Apply optional category filtering.
-4. Let fzf handle fuzzy search and selection.
+4. Let fzf handle fuzzy search and selection with rendered payload preview.
 5. Resolve the selected entry to a payload file.
 6. Render the template with fresh tmux JJ_ values.
    Missing or empty values render as lowercase shell fallbacks like $rhost.

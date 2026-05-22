@@ -76,7 +76,13 @@ ii_payload_filter() {
 
 ii_payload_select_fzf() {
   local filter="${1:-all}"
-  fzf --prompt="ii payload:${filter}> " --height=80% --border
+  local plugin_file payload_dir
+  plugin_file="${JJ_PLUGIN_DIR%/}/ii.plugin.zsh"
+  payload_dir="$(ii_payload_dir)"
+
+  fzf --prompt="ii payload:${filter}> " --height=80% --border \
+    --preview="zsh -fc 'source \"\$1\"; export JJ_PAYLOAD_DIR=\"\$2\"; ii_payload_preview \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {}" \
+    --preview-window='right:60%:wrap'
 }
 
 ii_payload_path_for() {
@@ -114,6 +120,13 @@ ii_payload_render() {
   done < <(ii_payload_required_vars "$payload_path")
 
   print -r -- "$rendered"
+}
+
+ii_payload_preview() {
+  local selected="$1"
+  local payload
+  payload="$(ii_payload_path_for "$selected")" || return
+  ii_payload_render "$payload"
 }
 
 ii_payload_required_vars() {

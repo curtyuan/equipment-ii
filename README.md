@@ -268,6 +268,7 @@ Use `${JJ_NAME}` placeholders:
 Files under `payloads/script/` are for custom scripts. They may use `${JJ_NAME}`
 placeholders, or they may use literal shell variables such as `$rhost`; when no
 renderable `${JJ_*}` placeholder is present, `ii p` copies the script text as-is.
+The payload selector previews the rendered text before copying.
 
 Filter payloads by category:
 

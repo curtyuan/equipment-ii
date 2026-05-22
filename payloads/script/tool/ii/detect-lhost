@@ -1,0 +1,1 @@
+ii s:l "$(ip -4 addr show dev tun0 | sed -n 's/.*inet \([0-9.]*\)\/.*/\1/p')"

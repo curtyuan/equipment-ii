@@ -25,7 +25,7 @@ EOF
     return 1
   fi
 
-  selected="$(print -r -- "$payloads" | ii_payload_filter "$filter" | ii_payload_select_fzf "$filter" | awk 'NF {print; exit}')" || return
+  selected="$(print -r -- "$payloads" | ii_payload_filter "$filter" | ii_payload_entries_for_fzf | ii_payload_select_fzf "$filter" | awk -F '\t' 'NF {print $1; exit}')" || return
   [[ -n "$selected" ]] || return
 
   payload="$(ii_payload_path_for "$selected")" || return
@@ -80,9 +80,23 @@ ii_payload_select_fzf() {
   plugin_file="${JJ_PLUGIN_DIR%/}/ii.plugin.zsh"
   payload_dir="$(ii_payload_dir)"
 
-  fzf --prompt="ii payload:${filter}> " --height=80% --border \
-    --preview="zsh -fc 'source \"\$1\"; export JJ_PAYLOAD_DIR=\"\$2\"; ii_payload_preview \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {}" \
-    --preview-window='right:60%:wrap'
+  fzf --ansi --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1,2,3 \
+    --preview="zsh -fc 'source \"\$1\"; export JJ_PAYLOAD_DIR=\"\$2\"; ii_payload_preview \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}" \
+    --preview-window='down:50%:wrap' \
+    --footer=$' Enter Render/Copy     Type Filter\n Esc Abort'
+}
+
+ii_payload_entries_for_fzf() {
+  local selected payload rendered preview overflow
+  while IFS= read -r selected; do
+    [[ -n "$selected" ]] || continue
+    payload="$(ii_payload_path_for "$selected")" || return
+    rendered="$(ii_payload_render "$payload")" || return
+    preview="$(ii_one_line_preview "$rendered" 96)"
+    overflow=""
+    [[ "$preview" != "$rendered" ]] && overflow=$'\033[31mmore\033[0m'
+    print -r -- "$selected"$'\t'"$preview"$'\t'"$overflow"
+  done
 }
 
 ii_payload_path_for() {
@@ -102,7 +116,7 @@ ii_payload_path_for() {
 ii_payload_render() {
   local payload_path="$1"
   local rendered
-  rendered="$(<"$payload_path")"
+  rendered="$(ii_payload_body "$payload_path")"
 
   local var line value label fallback
   while IFS= read -r var; do
@@ -124,9 +138,33 @@ ii_payload_render() {
 
 ii_payload_preview() {
   local selected="$1"
-  local payload
+  local payload description
   payload="$(ii_payload_path_for "$selected")" || return
+  description="$(ii_payload_description "$payload")"
+  if [[ -n "$description" ]]; then
+    print -r -- "description: $description"
+    print -r -- "--------------------------------------------------------------------------------"
+  fi
   ii_payload_render "$payload"
+}
+
+ii_payload_description() {
+  local payload_path="$1"
+  awk '
+    NR == 1 && $0 ~ /^# description:[[:space:]]*/ {
+      sub(/^# description:[[:space:]]*/, "")
+      print
+      exit
+    }
+  ' "$payload_path"
+}
+
+ii_payload_body() {
+  local payload_path="$1"
+  awk '
+    NR == 1 && $0 ~ /^# description:[[:space:]]*/ { next }
+    { print }
+  ' "$payload_path"
 }
 
 ii_payload_required_vars() {

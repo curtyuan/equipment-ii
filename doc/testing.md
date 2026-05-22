@@ -40,8 +40,8 @@ keep empty directories are not shown as payload entries.
 cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali
 zsh -fc 'source ./ii.plugin.zsh; ii_payload_list | grep -q "^script/.gitkeep$" && print bad || print ok'
 zsh -fc 'source ./ii.plugin.zsh; print script/custom | ii_payload_filter script'
-zsh -fc 'source ./ii.plugin.zsh; rendered="$(ii_payload_render payloads/script/nmap-example)"; print -r -- "$rendered" | grep -Fq "sudo nmap -p- -Pn -T4 \$rhost" && print ok'
-zsh -fc 'source ./ii.plugin.zsh; ii_payload_preview script/nmap-example | grep -Fq "sudo nmap -p- -Pn -T4 \$rhost" && print ok'
+zsh -fc 'source ./ii.plugin.zsh; rendered="$(ii_payload_render payloads/script/tool/nmap/nmap)"; print -r -- "$rendered" | grep -Fq "sudo nmap -p- -Pn -T4 \$rhost" && print ok'
+zsh -fc 'source ./ii.plugin.zsh; ii_payload_preview script/tool/nmap/nmap | grep -Fq "sudo nmap -p- -Pn -T4 \$rhost" && print ok'
 ```
 
 Expected result:

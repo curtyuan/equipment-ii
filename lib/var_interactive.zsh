@@ -31,6 +31,7 @@ Select variables with fzf, edit values, and copy values.
 Default variable names are shown even before they have values.
 Select "add new variable" to create or update a variable.
 Enter edits the selected variable. Ctrl-A adds a new variable.
+Ctrl-X deletes the selected variable.
 Ctrl-Y copies selected existing values. Esc or Ctrl-C aborts.
 Use Tab to select multiple variables. Use ii load to load variables into this shell.
 EOF
@@ -43,13 +44,14 @@ EOF
   local key selected copied line name value count=0
   selected="$(
     ii_var_entries_for_fzf \
-      | fzf -i --multi --expect=ctrl-a,ctrl-y --prompt='ii vars> ' --delimiter=$'\t' --with-nth=1 \
-          --preview='printf "%s" {2..}' --preview-window='down:3:wrap'
+      | fzf -i --ansi --multi --expect=enter,ctrl-a,ctrl-x,ctrl-y --prompt='ii vars> ' --delimiter=$'\t' --with-nth=1,2,3 \
+          --preview='printf "%s" {4..}' --preview-window='down:50%:wrap' \
+          --footer=$' ^A Add          Enter Edit      Tab Mark        ^Y Copy\n ^X Delete       Esc Abort       Type Filter'
   )" || return
   [[ -n "$selected" ]] || return
 
   key="${selected%%$'\n'*}"
-  if [[ "$key" == "ctrl-a" || "$key" == "ctrl-y" ]]; then
+  if [[ "$key" == "enter" || "$key" == "ctrl-a" || "$key" == "ctrl-x" || "$key" == "ctrl-y" ]]; then
     selected="${selected#*$'\n'}"
   else
     key="enter"
@@ -59,6 +61,14 @@ EOF
   case "$key" in
     ctrl-a)
       ii_cmd_interactive_add_variable
+      return
+      ;;
+    ctrl-x)
+      line="${selected%%$'\n'*}"
+      [[ -n "$line" ]] || return
+      name="${line%%$'\t'*}"
+      [[ "$name" == "add new variable" ]] && return
+      ii_cmd_interactive_delete_variable "$name"
       return
       ;;
     enter)
@@ -83,7 +93,7 @@ EOF
       ii_cmd_interactive_add_variable || return
       continue
     fi
-    value="${line#*$'\t'}"
+    value="${line##*$'\t'}"
     if [[ $count -eq 0 ]]; then
       copied="$value"
     else
@@ -140,6 +150,19 @@ ii_cmd_interactive_edit_variable() {
   fi
 
   ii_var_set_tmux_only "$name" "$value" || return
+}
+
+ii_cmd_interactive_delete_variable() {
+  local raw name shell_name
+
+  raw="$1"
+  name="$(ii_var_normalize_name "$raw")" || return
+  shell_name="$(ii_var_shell_name "$name")"
+  tmux set-environment -u "$name" 2>/dev/null
+  unset "$name"
+  unset "$shell_name"
+  unset "${(L)shell_name}"
+  print "unset $shell_name"
 }
 
 ii_var_set_tmux_only() {

@@ -129,16 +129,47 @@ ii_var_shortcut_filter() {
   esac
 }
 
+ii_var_detect_interface_ipv4() {
+  local interface="${1:-tun0}"
+  local value
+
+  ii_require_cmd ip || return
+  value="$(ip -4 addr show dev "$interface" 2>/dev/null | awk '/ inet / { sub(/\/.*/, "", $2); print $2; exit }')"
+  if [[ -z "$value" ]]; then
+    print -u2 "ii: no IPv4 address detected on interface: $interface"
+    return 1
+  fi
+
+  print -r -- "$value"
+}
+
 ii_var_entries_for_fzf() {
-  local name line value
+  local name line value preview overflow
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
     line="$(ii_var_line_by_name "JJ_${name}")"
     value=""
     [[ -n "$line" ]] && value="${line#*=}"
-    print -r -- "${name}"$'\t'"${value}"
+    preview="$(ii_one_line_preview "$value" 72)"
+    overflow=""
+    [[ "$preview" != "$value" ]] && overflow=$'\033[31mmore\033[0m'
+    print -r -- "${name}"$'\t'"${preview}"$'\t'"${overflow}"$'\t'"${value}"
   done < <(ii_var_set_candidates)
-  print -r -- "add new variable"$'\t'"Create or update a variable. Empty values are stored but skipped by ii load."
+  print -r -- "add new variable"$'\t'"Create or update a variable. Empty values are stored but skipped by ii load."$'\t\t'"Create or update a variable. Empty values are stored but skipped by ii load."
+}
+
+ii_one_line_preview() {
+  local value="$1"
+  local limit="${2:-96}"
+  local one_line
+  one_line="${value//$'\r'/ }"
+  one_line="${one_line//$'\n'/ }"
+  one_line="${one_line//$'\t'/ }"
+  if (( ${#one_line} > limit )); then
+    print -r -- "${one_line[1,limit]}"
+  else
+    print -r -- "$one_line"
+  fi
 }
 
 ii_fzf_select_one() {

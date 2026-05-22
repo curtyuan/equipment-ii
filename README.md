@@ -145,6 +145,7 @@ export JJ_CLIP_CMD='tmux load-buffer -'
 | Command | Short form | Purpose |
 | --- | --- | --- |
 | `ii set NAME VALUE` | `ii s NAME VALUE` | Set internal `JJ_NAME` in tmux and export `NAME` in this shell |
+| `ii set LHOST -d [INTERFACE]` | `ii s:lhost -d [INTERFACE]` | Detect an IPv4 address from an interface, defaulting to `tun0` |
 | `ii set` | `ii s` | Open a TUI to choose common variable names and type a value |
 | `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `JJ_` prefix |
@@ -193,9 +194,10 @@ still be expanded by the shell that runs it.
 a variable selection prompt.
 
 `ii i` shows common variable names even when they do not have values yet. The
-fzf list shows names only, value text appears in preview, and search is
-case-insensitive. Press Enter on a variable to edit its value, Ctrl-A to add a
-variable immediately, and Ctrl-Y to copy selected existing values. The last
+fzf list shows names with a one-line value preview, the selected value appears
+in the bottom preview, and search is case-insensitive. Press Enter on a variable
+to edit its value, Ctrl-A to add a variable immediately, Ctrl-X to delete a
+variable, and Ctrl-Y to copy selected existing values. The last
 option is `add new variable`; selecting it also opens prompts for a variable
 name and value. If a name is provided without a value, the variable is stored
 with an empty value. `ii i` does not load variables into the shell. Use `ii l`
@@ -254,7 +256,13 @@ payloads/
     windows/
       powershell-rev
   script/
-    nmap-example
+    config/
+      hosts
+    tool/
+      ii/
+        detect-lhost
+      nmap/
+        nmap
   xss/
     basic-alert
 ```
@@ -268,7 +276,9 @@ Use `${JJ_NAME}` placeholders:
 Files under `payloads/script/` are for custom scripts. They may use `${JJ_NAME}`
 placeholders, or they may use literal shell variables such as `$rhost`; when no
 renderable `${JJ_*}` placeholder is present, `ii p` copies the script text as-is.
-The payload selector previews the rendered text before copying.
+The payload selector shows a one-line rendered preview in the list and previews
+the selected rendered text before copying. A first-line `# description: ...`
+metadata line is shown in preview but omitted from copied output.
 
 Filter payloads by category:
 

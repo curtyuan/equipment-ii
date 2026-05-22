@@ -5,6 +5,8 @@ ii_cmd_set() {
     cat <<'EOF'
 usage: ii set NAME VALUE
        ii s NAME VALUE
+       ii s NAME -d [INTERFACE]
+       ii s:lhost -d [INTERFACE]
        ii set
        ii s
        ii s FILTER
@@ -16,7 +18,10 @@ The current shell export uses NAME without the internal JJ_ prefix.
 With no arguments, open a TUI to choose a variable and type its value.
 With one FILTER argument, match variable names before prompting for a value.
 No matches prints "no matched"; multiple matches prompt for variable selection.
-Single-letter shortcuts include r for RHOST.
+Single-letter shortcuts include r for RHOST, l for LHOST, and d for DOMAIN.
+
+-d means detect. It is only supported for LHOST and detects the IPv4 address
+from INTERFACE. The default INTERFACE is tun0.
 EOF
     return 0
   fi
@@ -24,6 +29,10 @@ EOF
   if [[ $# -eq 0 ]]; then
     ii_cmd_set_interactive
     return
+  fi
+
+  if [[ "$1" == "-d" ]]; then
+    set -- LHOST "$@"
   fi
 
   if [[ $# -eq 1 ]]; then
@@ -35,6 +44,8 @@ EOF
     cat <<'EOF'
 usage: ii set NAME VALUE
        ii s NAME VALUE
+       ii s NAME -d [INTERFACE]
+       ii s:lhost -d [INTERFACE]
        ii set
        ii s
        ii s FILTER
@@ -45,10 +56,20 @@ EOF
 
   ii_tmux_available || return
 
-  local name value
+  local name value interface
   name="$(ii_var_normalize_name "$(ii_var_shortcut_filter "$1")")" || return
   shift
-  value="$*"
+  if [[ "${1:-}" == "-d" ]]; then
+    if [[ "$name" != "JJ_LHOST" ]]; then
+      print -u2 "ii: -d is only supported for LHOST"
+      return 2
+    fi
+    shift
+    interface="${1:-tun0}"
+    value="$(ii_var_detect_interface_ipv4 "$interface")" || return
+  else
+    value="$*"
+  fi
 
   tmux set-environment "$name" "$value" || return
   ii_export_var_line "${name}=${value}" || return

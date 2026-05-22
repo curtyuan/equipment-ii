@@ -1,9 +1,9 @@
 # Architecture
 
-`jj` is plugin-first. The only public loading entrypoint is:
+`ii` is plugin-first. The preferred public loading entrypoint is:
 
 ```text
-jj.plugin.zsh
+ii.plugin.zsh
 ```
 
 Do not source files under `lib/` directly. They are implementation layers loaded
@@ -12,7 +12,7 @@ by the plugin entrypoint in dependency order.
 ## File Layout
 
 ```text
-jj.plugin.zsh
+ii.plugin.zsh
 lib/
   tmux.zsh
   clipboard.zsh
@@ -30,7 +30,7 @@ doc/
 
 ## Load Order
 
-`jj.plugin.zsh` loads layers in this order:
+`ii.plugin.zsh` loads layers in this order:
 
 ```text
 1. lib/tmux.zsh
@@ -41,13 +41,12 @@ doc/
 6. lib/core.zsh
 ```
 
-`core.zsh` is loaded last because it exposes the public dispatcher and wrapper
-functions. The functions it dispatches to are already defined by the earlier
-layers.
+`core.zsh` is loaded last because it exposes the public dispatcher. The
+functions it dispatches to are already defined by the earlier layers.
 
 ## Layers
 
-### `jj.plugin.zsh`
+### `ii.plugin.zsh`
 
 Plugin entrypoint.
 
@@ -75,9 +74,9 @@ Responsibilities:
 Functions:
 
 ```text
-jj_tmux_available
-jj_tmux_session_name
-jj_require_cmd
+ii_tmux_available
+ii_tmux_session_name
+ii_require_cmd
 ```
 
 ### `lib/vars.zsh`
@@ -93,20 +92,20 @@ Responsibilities:
 Commands:
 
 ```text
-jj_cmd_set
-jj_cmd_load
-jj_cmd_interactive
-jj_cmd_variable
-jj_cmd_unset
+ii_cmd_set
+ii_cmd_load
+ii_cmd_interactive
+ii_cmd_variable
+ii_cmd_unset
 ```
 
 Helpers:
 
 ```text
-jj_var_normalize_name
-jj_var_lines_from_tmux
-jj_var_filter_by_name
-jj_export_var_line
+ii_var_normalize_name
+ii_var_lines_from_tmux
+ii_var_filter_by_name
+ii_export_var_line
 ```
 
 ### `lib/payloads.zsh`
@@ -124,20 +123,20 @@ Responsibilities:
 Commands:
 
 ```text
-jj_cmd_payload
+ii_cmd_payload
 ```
 
 Helpers:
 
 ```text
-jj_payload_dir
-jj_payload_list
-jj_payload_filter
-jj_payload_select_fzf
-jj_payload_path_for
-jj_payload_render
-jj_payload_required_vars
-jj_payload_print_used_vars
+ii_payload_dir
+ii_payload_list
+ii_payload_filter
+ii_payload_select_fzf
+ii_payload_path_for
+ii_payload_render
+ii_payload_required_vars
+ii_payload_print_used_vars
 ```
 
 Render boundary:
@@ -153,7 +152,7 @@ Output:
 ```
 
 The render layer must not depend on the current pane's shell environment. This
-keeps cross-pane rendering correct when pane 2 has not run `jjl` yet.
+keeps cross-pane rendering correct when pane 2 has not run `ii l` yet.
 
 Fuzzy boundary:
 
@@ -186,8 +185,8 @@ Responsibilities:
 Functions:
 
 ```text
-jj_clip_copy
-jj_clip_backend_detect
+ii_clip_copy
+ii_clip_backend_detect
 ```
 
 Current tmux fallback:
@@ -207,7 +206,7 @@ export JJ_CLIP_BACKEND=osc52
 
 OSC52 base64-encodes the rendered payload and emits an escape sequence. This is
 useful over SSH when the local terminal supports OSC52 clipboard writes. Inside
-tmux, `jj` wraps the OSC52 sequence in tmux passthrough framing; tmux and the
+tmux, `ii` wraps the OSC52 sequence in tmux passthrough framing; tmux and the
 terminal still need to allow it.
 
 ### `lib/help.zsh`
@@ -216,13 +215,13 @@ Help routing.
 
 Responsibilities:
 
-- Route `jj help COMMAND` to each command's own `--help` implementation.
+- Route `ii help COMMAND` to each command's own `--help` implementation.
 - Print the top-level command summary.
 
 Functions:
 
 ```text
-jj_cmd_help
+ii_cmd_help
 ```
 
 ### `lib/core.zsh`
@@ -231,40 +230,34 @@ Public command interface.
 
 Responsibilities:
 
-- Dispatch `jj COMMAND` to layer command functions.
-- Define wrapper functions.
+- Dispatch `ii COMMAND` to layer command functions.
+- Define the `ii` dispatcher.
 
 Public functions:
 
 ```text
-jj
-jjs
-jjl
-jji
-jjv
-jjp
-jjh
+ii
 ```
 
 ## State Model
 
-`jj` deliberately keeps two states separate:
+`ii` deliberately keeps two states separate:
 
 ```text
 tmux session environment = shared state across panes
 current shell environment = local state for one pane
 ```
 
-`jjs` writes to both tmux and the current shell.
+`ii s` writes to both tmux and the current shell.
 
-`jjl` copies tmux `JJ_` values into the current shell without the internal
+`ii l` copies tmux `JJ_` values into the current shell without the internal
 prefix.
 
-`jji` copies selected variable values through the copy layer. It does not load
+`ii i` copies selected variable values through the copy layer. It does not load
 variables into the current shell.
 
-`jjp` does not depend on current shell values. It reads tmux session values
-directly at render time, so another pane can render immediately after `jjs`
+`ii p` does not depend on current shell values. It reads tmux session values
+directly at render time, so another pane can render immediately after `ii s`
 runs elsewhere.
 
 ## Layer Boundaries
@@ -276,7 +269,7 @@ variable loading layer:
   - read tmux JJ_ values
   - validate names
   - strip JJ_ only for variable TUI display
-  - export all values into current shell through jjl
+  - export all values into current shell through ii l
 
 fuzzy search layer:
   - present candidate lines
@@ -289,7 +282,7 @@ payload render layer:
   - return rendered text
 
 copy layer:
-  - receive selected variable values from jji
+  - receive selected variable values from ii i
   - receive rendered text
   - copy via configured or detected backend
   - avoid breaking inside tmux

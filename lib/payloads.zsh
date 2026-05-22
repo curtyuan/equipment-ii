@@ -1,10 +1,10 @@
 # Payload selection, filtering, rendering, and reporting.
 
-jj_cmd_payload() {
+ii_cmd_payload() {
   if [[ "${1:-}" == "--help" ]]; then
     cat <<'EOF'
-usage: jj payload [CATEGORY]
-       jjp [CATEGORY]
+usage: ii payload [CATEGORY]
+       ii p [CATEGORY]
 
 Open the payload selector, render the selected template with fresh JJ_
 variables from the tmux session, copy the result, and print the output.
@@ -14,24 +14,24 @@ EOF
     return 0
   fi
 
-  jj_tmux_available || return
-  jj_require_cmd fzf || return
+  ii_tmux_available || return
+  ii_require_cmd fzf || return
 
   local filter="${1:-all}"
   local payloads payload selected rendered
-  payloads="$(jj_payload_list)" || return
+  payloads="$(ii_payload_list)" || return
   if [[ -z "$payloads" ]]; then
-    print -u2 "jj: no payloads found"
+    print -u2 "ii: no payloads found"
     return 1
   fi
 
-  selected="$(print -r -- "$payloads" | jj_payload_filter "$filter" | jj_payload_select_fzf "$filter" | awk 'NF {print; exit}')" || return
+  selected="$(print -r -- "$payloads" | ii_payload_filter "$filter" | ii_payload_select_fzf "$filter" | awk 'NF {print; exit}')" || return
   [[ -n "$selected" ]] || return
 
-  payload="$(jj_payload_path_for "$selected")" || return
-  rendered="$(jj_payload_render "$payload")" || return
+  payload="$(ii_payload_path_for "$selected")" || return
+  rendered="$(ii_payload_render "$payload")" || return
 
-  if jj_clip_copy "$rendered"; then
+  if ii_clip_copy "$rendered"; then
     print "payload copied successfully"
   else
     print "payload rendered; clipboard copy failed"
@@ -40,26 +40,26 @@ EOF
   print
   print -r -- "$rendered"
   print
-  jj_payload_print_used_vars "$payload"
+  ii_payload_print_used_vars "$payload"
 }
 
-jj_payload_dir() {
-  print -r -- "${JJ_PAYLOAD_DIR:-${HOME}/.config/jj/payloads}"
+ii_payload_dir() {
+  print -r -- "${JJ_PAYLOAD_DIR:-${HOME}/.config/ii/payloads}"
 }
 
-jj_payload_list() {
+ii_payload_list() {
   local dir
-  dir="$(jj_payload_dir)"
+  dir="$(ii_payload_dir)"
   if [[ ! -d "$dir" ]]; then
-    print -u2 "jj: payload directory not found: $dir"
-    print -u2 "jj: set JJ_PAYLOAD_DIR or create ~/.config/jj/payloads"
+    print -u2 "ii: payload directory not found: $dir"
+    print -u2 "ii: set JJ_PAYLOAD_DIR or create ~/.config/ii/payloads"
     return 1
   fi
 
   ( cd "$dir" && find . -type f | sed 's#^\./##' | sort )
 }
 
-jj_payload_filter() {
+ii_payload_filter() {
   local filter="${1:-all}"
 
   case "$filter" in
@@ -73,59 +73,67 @@ jj_payload_filter() {
   esac
 }
 
-jj_payload_select_fzf() {
+ii_payload_select_fzf() {
   local filter="${1:-all}"
-  fzf --prompt="jj payload:${filter}> " --height=80% --border
+  fzf --prompt="ii payload:${filter}> " --height=80% --border
 }
 
-jj_payload_path_for() {
+ii_payload_path_for() {
   local selected="$1"
   local dir
-  dir="$(jj_payload_dir)"
+  dir="$(ii_payload_dir)"
   local payload_path="${dir%/}/${selected}"
 
   if [[ ! -f "$payload_path" ]]; then
-    print -u2 "jj: payload not found: $selected"
+    print -u2 "ii: payload not found: $selected"
     return 1
   fi
 
   print -r -- "$payload_path"
 }
 
-jj_payload_render() {
+ii_payload_render() {
   local payload_path="$1"
   local rendered
   rendered="$(<"$payload_path")"
 
-  local line name value
-  while IFS= read -r line; do
-    [[ -n "$line" ]] || continue
-    name="${line%%=*}"
+  local var line value label fallback
+  while IFS= read -r var; do
+    [[ -n "$var" ]] || continue
+    line="$(ii_var_lines_from_tmux | awk -F= -v name="$var" '$1 == name {print; exit}')"
     value="${line#*=}"
-    rendered="${rendered//\$\{$name\}/$value}"
-    rendered="${rendered//$name/$value}"
-  done < <(jj_var_lines_from_tmux)
+    if [[ -n "$line" && -n "$value" ]]; then
+      fallback="$value"
+    else
+      label="${var#JJ_}"
+      fallback="\$${(L)label}"
+    fi
+    rendered="${rendered//\$\{$var\}/$fallback}"
+    rendered="${rendered//$var/$fallback}"
+  done < <(ii_payload_required_vars "$payload_path")
 
   print -r -- "$rendered"
 }
 
-jj_payload_required_vars() {
+ii_payload_required_vars() {
   local payload_path="$1"
   grep -Eoh '\$\{JJ_[A-Za-z_][A-Za-z0-9_]*\}|JJ_[A-Za-z_][A-Za-z0-9_]*' "$payload_path" \
     | sed -E 's/^\$\{//; s/\}$//' \
     | sort -u
 }
 
-jj_payload_print_used_vars() {
+ii_payload_print_used_vars() {
   local payload_path="$1"
   local var line value label
 
   while IFS= read -r var; do
     [[ -n "$var" ]] || continue
-    line="$(jj_var_lines_from_tmux | awk -F= -v name="$var" '$1 == name {print; exit}')"
-    [[ -n "$line" ]] || continue
-    value="${line#*=}"
     label="${var#JJ_}"
+    line="$(ii_var_lines_from_tmux | awk -F= -v name="$var" '$1 == name {print; exit}')"
+    value="${line#*=}"
+    if [[ -z "$line" || -z "$value" ]]; then
+      value="\$${(L)label}"
+    fi
     print "${(L)label} used: ${value}"
-  done < <(jj_payload_required_vars "$payload_path")
+  done < <(ii_payload_required_vars "$payload_path")
 }

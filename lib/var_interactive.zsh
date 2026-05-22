@@ -41,12 +41,13 @@ EOF
   ii_tmux_available || return
   ii_require_cmd fzf || return
 
-  local key selected copied line name value count=0
+  local key selected copied line name value count=0 plugin_file
+  plugin_file="${JJ_PLUGIN_DIR%/}/ii.plugin.zsh"
   selected="$(
     ii_var_entries_for_fzf \
       | fzf -i --ansi --multi --expect=enter,ctrl-a,ctrl-x,ctrl-y --prompt='ii vars> ' --delimiter=$'\t' --with-nth=1,2,3 \
-          --preview='printf "%s" {4..}' --preview-window='down:50%:wrap' \
-          --footer=$' ^A Add          Enter Edit      Tab Mark        ^Y Copy\n ^X Delete       Esc Abort       Type Filter'
+          --preview="zsh -fc 'source \"\$1\"; printf \"%s\" \"\$2\" | ii_fzf_print_preview_with_footer \$'\'' ^A Add          Enter Edit      Tab Mark        ^Y Copy\n ^X Delete       Esc Abort       Type Filter'\''' -- ${(q)plugin_file} {4..}" \
+          --preview-window='down:50%:wrap'
   )" || return
   [[ -n "$selected" ]] || return
 
@@ -169,5 +170,9 @@ ii_var_set_tmux_only() {
   local name="$1"
   local value="$2"
   tmux set-environment "$name" "$value" || return
+  if [[ "${II_SYNC_LOADED_VARS:-}" == "1" ]]; then
+    ii_export_var_line "${name}=${value}" || return
+    ii_enable_loaded_var_sync
+  fi
   print "$(ii_var_display_line "${name}=${value}")"
 }

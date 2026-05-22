@@ -143,6 +143,23 @@ ii_var_detect_interface_ipv4() {
   print -r -- "$value"
 }
 
+ii_enable_loaded_var_sync() {
+  typeset -g II_SYNC_LOADED_VARS=1
+  precmd_functions=(${precmd_functions:#ii_sync_loaded_vars_precmd} ii_sync_loaded_vars_precmd)
+}
+
+ii_sync_loaded_vars_precmd() {
+  [[ "${II_SYNC_LOADED_VARS:-}" == "1" ]] || return
+  ii_tmux_available >/dev/null 2>&1 || return
+
+  local line
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    [[ -n "${line#*=}" ]] || continue
+    ii_export_var_line "$line" >/dev/null || return
+  done < <(ii_var_lines_from_tmux)
+}
+
 ii_var_entries_for_fzf() {
   local name line value preview overflow
   while IFS= read -r name; do
@@ -170,6 +187,32 @@ ii_one_line_preview() {
   else
     print -r -- "$one_line"
   fi
+}
+
+ii_fzf_print_preview_with_footer() {
+  local footer="$1"
+  local preview_lines="${FZF_PREVIEW_LINES:-0}"
+  local content shown footer_count shown_count pad limit
+
+  content="$(cat)"
+  footer_count="$(print -r -- "$footer" | awk 'END {print NR}')"
+  if (( preview_lines <= footer_count )); then
+    print -r -- "$footer"
+    return
+  fi
+
+  limit=$(( preview_lines - footer_count ))
+  shown="$(print -r -- "$content" | awk -v limit="$limit" 'NR <= limit {print}')"
+  shown_count="$(print -r -- "$shown" | awk 'END {print NR}')"
+  [[ -z "$shown" ]] && shown_count=0
+
+  [[ -n "$shown" ]] && print -r -- "$shown"
+  pad=$(( preview_lines - footer_count - shown_count ))
+  while (( pad > 0 )); do
+    print
+    (( pad-- ))
+  done
+  print -r -- "$footer"
 }
 
 ii_fzf_select_one() {
@@ -226,6 +269,6 @@ ii_export_var_line() {
   fi
 
   shell_name="$(ii_var_shell_name "$name")"
-  export "${shell_name}=${value}"
-  export "${(L)shell_name}=${value}"
+  typeset -gx "${shell_name}=${value}"
+  typeset -gx "${(L)shell_name}=${value}"
 }

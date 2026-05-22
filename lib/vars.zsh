@@ -73,6 +73,7 @@ EOF
 
   tmux set-environment "$name" "$value" || return
   ii_export_var_line "${name}=${value}" || return
+  ii_enable_loaded_var_sync
   print "$(ii_var_display_line "${name}=${value}")"
 }
 
@@ -98,6 +99,7 @@ EOF
     (( count++ ))
   done < <(ii_var_lines_from_tmux)
 
+  ii_enable_loaded_var_sync
   print "loaded ${count} variable(s)"
 }
 

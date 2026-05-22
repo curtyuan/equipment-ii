@@ -259,11 +259,11 @@ Primary SSH/Kali backend:
 export JJ_CLIP_BACKEND=osc52
 ```
 
-OSC52 is auto-detected inside tmux or SSH when base64 is available. It
-base64-encodes the rendered payload and emits an escape sequence. This is useful
-over SSH when the local terminal supports OSC52 clipboard writes. Inside tmux,
-`ii` wraps the OSC52 sequence in tmux passthrough framing; tmux and the terminal
-still need to allow it.
+OSC52 is auto-detected inside tmux or SSH when base64 is available. Inside tmux,
+the OSC52 backend first tries `tmux load-buffer -w -` so tmux handles clipboard
+integration. If that fails, `ii` base64-encodes the rendered payload and emits
+an OSC52 escape sequence. Inside tmux, `ii` wraps the OSC52 sequence in tmux
+passthrough framing; tmux and the terminal still need to allow it.
 
 ### `lib/help.zsh`
 

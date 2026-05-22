@@ -666,9 +666,10 @@ osc52
 ```
 
 OSC52 is intended for tmux or SSH sessions where the remote Kali shell should
-copy text to the local terminal clipboard. The payload is base64 encoded before
-being wrapped in the OSC52 escape sequence. Inside tmux, the sequence is wrapped
-in tmux passthrough escape framing.
+copy text to the local terminal clipboard. Inside tmux, the OSC52 backend first
+tries `tmux load-buffer -w -` so tmux handles clipboard integration. If that
+fails, the payload is base64 encoded and wrapped in OSC52; inside tmux, that
+sequence is wrapped in tmux passthrough escape framing.
 
 Kali over SSH or tmux deployment uses OSC52 by default when possible. To force
 OSC52 explicitly, set:

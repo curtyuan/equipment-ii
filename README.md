@@ -158,8 +158,10 @@ X server or Wayland clipboard tools. To force OSC52 explicitly:
 export JJ_CLIP_BACKEND=osc52
 ```
 
-Inside tmux, OSC52 also depends on your terminal and tmux clipboard/passthrough
-settings. If it does not copy out, keep using the tmux buffer backend:
+Inside tmux, `ii` first tries tmux-native clipboard copy through
+`tmux load-buffer -w -`, then falls back to OSC52 passthrough. OSC52 still
+depends on your terminal and tmux clipboard/passthrough settings. If it does not
+copy out, keep using the tmux buffer backend:
 
 ```zsh
 export JJ_CLIP_CMD='tmux load-buffer -'

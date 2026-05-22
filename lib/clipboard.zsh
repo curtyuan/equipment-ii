@@ -63,6 +63,13 @@ ii_clip_backend_detect() {
 ii_clip_copy_osc52() {
   local text="$1"
   local sequence
+
+  if [[ -n "${TMUX:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    if print -rn -- "$text" | tmux load-buffer -w - 2>/dev/null; then
+      return 0
+    fi
+  fi
+
   sequence="$(ii_clip_osc52_sequence "$text")" || return
 
   if [[ -w /dev/tty ]]; then

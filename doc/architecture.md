@@ -99,8 +99,8 @@ Responsibilities:
 
 - Create single-line previews for list display.
 - Read free-form fzf input values.
-- Print preview text with a shortcut hint pinned to the bottom of the preview
-  pane.
+- Print preview text with independent description and keys blocks pinned around
+  the body content.
 
 Functions:
 
@@ -130,7 +130,7 @@ Interactive variable UI.
 Responsibilities:
 
 - Open fzf flows for variable selection, add, and edit.
-- Keep Enter/Ctrl-A/Ctrl-X/Ctrl-Y behavior isolated from command dispatch.
+- Keep Enter/Ctrl-S/Ctrl-X/Ctrl-Y behavior isolated from command dispatch.
 - Store interactive edits in tmux without implicitly loading shell variables.
 
 ### `lib/vars.zsh`
@@ -171,6 +171,7 @@ Responsibilities:
 - Filter payloads by category or fuzzy prefilter.
 - Render `${JJ_NAME}` placeholders using fresh tmux session values.
 - Display first-line `# description:` metadata in preview without copying it.
+- Keep description and keys independent from the payload body in fzf preview.
 - Print the rendered payload and variables used.
 
 Commands:
@@ -230,6 +231,7 @@ Responsibilities:
 
 - Prefer `JJ_CLIP_BACKEND` when configured.
 - Prefer `JJ_CLIP_CMD` when configured.
+- Prefer OSC52 inside tmux or SSH when base64 is available.
 - Auto-detect common clipboard tools.
 - Fall back to tmux buffer when available.
 - Copy through stdin when possible so payload content is not passed as a tmux
@@ -257,10 +259,11 @@ Primary SSH/Kali backend:
 export JJ_CLIP_BACKEND=osc52
 ```
 
-OSC52 base64-encodes the rendered payload and emits an escape sequence. This is
-useful over SSH when the local terminal supports OSC52 clipboard writes. Inside
-tmux, `ii` wraps the OSC52 sequence in tmux passthrough framing; tmux and the
-terminal still need to allow it.
+OSC52 is auto-detected inside tmux or SSH when base64 is available. It
+base64-encodes the rendered payload and emits an escape sequence. This is useful
+over SSH when the local terminal supports OSC52 clipboard writes. Inside tmux,
+`ii` wraps the OSC52 sequence in tmux passthrough framing; tmux and the terminal
+still need to allow it.
 
 ### `lib/help.zsh`
 

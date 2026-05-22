@@ -85,7 +85,7 @@ ii_payload_select_fzf() {
 
   fzf --ansi --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1,2,3 \
     --bind='enter:accept' \
-    --preview="zsh -fc 'source \"\$1\"; export JJ_PAYLOAD_DIR=\"\$2\"; ii_payload_preview \"\$3\" | ii_fzf_print_preview_with_footer \$'\'' Enter Render/Copy     Type Filter\n Esc Abort'\''' -- ${(q)plugin_file} ${(q)payload_dir} {1}" \
+    --preview="zsh -fc 'source \"\$1\"; export JJ_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \$'\'' Enter Render/Copy     Type Filter\n Esc Abort'\''' -- ${(q)plugin_file} ${(q)payload_dir} {1}" \
     --preview-window='down:50%:wrap'
 }
 
@@ -149,6 +149,15 @@ ii_payload_preview() {
     print -r -- "--------------------------------------------------------------------------------"
   fi
   ii_payload_render "$payload"
+}
+
+ii_payload_preview_fzf() {
+  local selected="$1"
+  local footer="$2"
+  local payload description
+  payload="$(ii_payload_path_for "$selected")" || return
+  description="$(ii_payload_description "$payload")"
+  ii_payload_render "$payload" | ii_fzf_print_preview_blocks "$description" "$footer"
 }
 
 ii_payload_description() {

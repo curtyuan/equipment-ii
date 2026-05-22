@@ -16,28 +16,45 @@ ii_one_line_preview() {
 
 ii_fzf_print_preview_with_footer() {
   local footer="$1"
+  ii_fzf_print_preview_blocks "" "$footer"
+}
+
+ii_fzf_print_preview_blocks() {
+  local description="$1"
+  local footer="$2"
   local preview_lines="${FZF_PREVIEW_LINES:-0}"
-  local content shown footer_count shown_count pad limit
+  local content shown desc_block footer_block reserved shown_count pad limit
 
   content="$(cat)"
-  footer_count="$(print -r -- "$footer" | awk 'END {print NR}')"
-  if (( preview_lines <= footer_count )); then
-    print -r -- "$footer"
+  desc_block=""
+  if [[ -n "$description" ]]; then
+    desc_block="[description]"$'\n'"$description"$'\n'"--------------------------------------------------------------------------------"
+  fi
+  footer_block="[keys]"$'\n'"$footer"
+
+  reserved=0
+  [[ -n "$desc_block" ]] && reserved=$(( reserved + $(print -r -- "$desc_block" | awk 'END {print NR}') ))
+  reserved=$(( reserved + $(print -r -- "$footer_block" | awk 'END {print NR}') ))
+
+  if (( preview_lines <= reserved )); then
+    [[ -n "$desc_block" ]] && print -r -- "$desc_block"
+    print -r -- "$footer_block"
     return
   fi
 
-  limit=$(( preview_lines - footer_count ))
+  limit=$(( preview_lines - reserved ))
   shown="$(print -r -- "$content" | awk -v limit="$limit" 'NR <= limit {print}')"
   shown_count="$(print -r -- "$shown" | awk 'END {print NR}')"
   [[ -z "$shown" ]] && shown_count=0
 
+  [[ -n "$desc_block" ]] && print -r -- "$desc_block"
   [[ -n "$shown" ]] && print -r -- "$shown"
-  pad=$(( preview_lines - footer_count - shown_count ))
+  pad=$(( preview_lines - reserved - shown_count ))
   while (( pad > 0 )); do
     print
     (( pad-- ))
   done
-  print -r -- "$footer"
+  print -r -- "$footer_block"
 }
 
 ii_fzf_select_one() {

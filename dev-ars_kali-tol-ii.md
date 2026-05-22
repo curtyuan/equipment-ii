@@ -260,7 +260,7 @@ Behavior:
 4. Show the selected variable value in a bottom preview pane.
 5. Support case-insensitive fuzzy search.
 6. Enter edits the selected variable value.
-7. Ctrl-A prompts for a new variable name and value.
+7. Ctrl-S prompts for a new variable name and value.
 8. Ctrl-X deletes the selected variable.
 9. Ctrl-Y copies selected existing variable values.
 10. Show `add new variable` as the final option.
@@ -271,7 +271,7 @@ Behavior:
 14. Print the copied values.
 15. Do not export values into the current shell unless loaded-variable sync was
     already enabled by `ii s` or `ii l` in that shell.
-16. Display a nano-style shortcut hint at the bottom of the preview pane.
+16. Display a nano-style keys block at the bottom of the preview pane.
 ```
 
 This command is a variable copy/add layer, not a shell loading layer. Use
@@ -375,7 +375,8 @@ Behavior:
 7. Copy the rendered payload.
 8. Print the rendered payload.
 9. Print variables used by the selected payload.
-10. Display a nano-style shortcut hint at the bottom of the preview pane.
+10. Display description and keys as independent preview blocks so they stay
+    visible across payload sizes.
 ```
 
 Categories:
@@ -583,13 +584,14 @@ ii i:
   - UI: fzf with --multi.
   - Display: variable name, single-line value preview, and red "more" marker
     when the full value is longer than the displayed preview.
-  - Preview: full selected value with a bottom shortcut hint.
+  - Preview: full selected value with a bottom keys block.
   - Output: selected display lines mapped back to names and values.
   - Next layer: edit, delete, add, or copy behavior.
 
 ii p:
   - Input: path-style payload entries.
-  - UI: fzf selector with single-line rendered preview and bottom shortcut hint.
+  - UI: fzf selector with single-line rendered preview plus independent
+    description and keys blocks in the bottom preview.
   - Output: one selected payload path.
   - Next layer: payload render.
 ```
@@ -652,8 +654,9 @@ Current strategy:
 ```text
 1. If JJ_CLIP_BACKEND is set, use that named backend.
 2. If JJ_CLIP_CMD is set, pipe rendered payload to that command.
-3. Otherwise auto-detect clip.exe, wl-copy, xclip, xsel, pbcopy.
-4. If no clipboard tool is found inside tmux, pipe to tmux load-buffer -.
+3. Otherwise prefer OSC52 inside tmux or SSH when base64 is available.
+4. Otherwise auto-detect clip.exe, wl-copy, xclip, xsel, pbcopy.
+5. If no clipboard tool is found inside tmux, pipe to tmux load-buffer -.
 ```
 
 Supported named backend:
@@ -662,12 +665,13 @@ Supported named backend:
 osc52
 ```
 
-OSC52 is intended for SSH sessions where the remote Kali shell should copy text
-to the local terminal clipboard. The payload is base64 encoded before being
-wrapped in the OSC52 escape sequence. Inside tmux, the sequence is wrapped in
-tmux passthrough escape framing.
+OSC52 is intended for tmux or SSH sessions where the remote Kali shell should
+copy text to the local terminal clipboard. The payload is base64 encoded before
+being wrapped in the OSC52 escape sequence. Inside tmux, the sequence is wrapped
+in tmux passthrough escape framing.
 
-Kali over SSH deployment should set:
+Kali over SSH or tmux deployment uses OSC52 by default when possible. To force
+OSC52 explicitly, set:
 
 ```zsh
 export JJ_CLIP_BACKEND=osc52
@@ -688,15 +692,8 @@ stdin-based copy avoids passing payload content as a tmux command argument.
 This is safer for special characters and less likely to break inside tmux.
 ```
 
-Open design topic:
-
-```text
-Should OSC52 be auto-detected in SSH sessions, or stay explicit through
-JJ_CLIP_BACKEND=osc52?
-```
-
-Current decision: OSC52 is explicit so unsupported terminal/tmux combinations do
-not print confusing escape artifacts.
+If OSC52 is unsupported by the terminal, users can override the backend with
+`JJ_CLIP_CMD` or `JJ_CLIP_BACKEND`.
 
 ## Plugin Architecture
 
@@ -798,7 +795,7 @@ Implemented:
 - payload description metadata
 - deterministic non-interactive fzf filter behavior
 - stdin-based tmux buffer fallback for copy
-- explicit OSC52 backend for SSH/local-terminal clipboard copy
+- default OSC52 backend for tmux/SSH clipboard copy
 - `ii s:lhost -d [INTERFACE]` interface IPv4 detection
 - generated `export/ii` deployment package through `script/make`
 - `script/help` registered-help audit script

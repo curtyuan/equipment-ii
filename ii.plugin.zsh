@@ -8,6 +8,8 @@ typeset -g JJ_PAYLOAD_DIR="${JJ_PAYLOAD_DIR:-${JJ_PLUGIN_DIR}/payloads}"
 
 source "${ii_plugin_dir}/lib/tmux.zsh"
 source "${ii_plugin_dir}/lib/clipboard.zsh"
+source "${ii_plugin_dir}/lib/var_helpers.zsh"
+source "${ii_plugin_dir}/lib/var_interactive.zsh"
 source "${ii_plugin_dir}/lib/vars.zsh"
 source "${ii_plugin_dir}/lib/payloads.zsh"
 source "${ii_plugin_dir}/lib/help.zsh"

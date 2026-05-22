@@ -140,8 +140,10 @@ PASSWD2
 HASH2
 ```
 
-With one filter argument, opens the set TUI focused on matching variable names.
-Single-letter shortcuts include `r` for `RHOST`:
+With one filter argument, match variable names before prompting for a value. No
+matches prints `no matched`; one match goes straight to the value prompt;
+multiple matches open a selection prompt. Single-letter shortcuts include `r`
+for `RHOST`:
 
 ```zsh
 ii s r
@@ -671,7 +673,9 @@ Layer files:
 ```text
 lib/tmux.zsh        tmux and external command checks
 lib/clipboard.zsh   copy backend detection and copy
-lib/vars.zsh        variable commands and helpers
+lib/var_helpers.zsh variable helpers and candidate generation
+lib/var_interactive.zsh interactive variable selection, add, and edit flows
+lib/vars.zsh        variable command entrypoints
 lib/payloads.zsh    payload list, fuzzy selection, render, reports
 lib/help.zsh        help routing
 lib/core.zsh        dispatcher and command functions
@@ -682,10 +686,12 @@ Load order:
 ```text
 1. tmux.zsh
 2. clipboard.zsh
-3. vars.zsh
-4. payloads.zsh
-5. help.zsh
-6. core.zsh
+3. var_helpers.zsh
+4. var_interactive.zsh
+5. vars.zsh
+6. payloads.zsh
+7. help.zsh
+8. core.zsh
 ```
 
 ## Implementation Status

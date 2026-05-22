@@ -146,7 +146,7 @@ export JJ_CLIP_CMD='tmux load-buffer -'
 | --- | --- | --- |
 | `ii set NAME VALUE` | `ii s NAME VALUE` | Set internal `JJ_NAME` in tmux and export `NAME` in this shell |
 | `ii set` | `ii s` | Open a TUI to choose common variable names and type a value |
-| `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Filter the set TUI; `ii s r` jumps to `RHOST` |
+| `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `JJ_` prefix |
 | `ii interactive` | `ii i` | Select variable names with fzf, preview values, and copy selected values |
 | `ii variable [PATTERN]` | `ii v [PATTERN]` | Print tmux variables without the internal `JJ_` prefix, filtered by name |
@@ -187,6 +187,10 @@ without running `ii l` first, even though `echo $LHOST` still needs `ii l`.
 If a payload variable has not been assigned a non-empty tmux value, `ii p`
 renders a lowercase shell fallback such as `$rhost` so the copied command can
 still be expanded by the shell that runs it.
+
+`ii s FILTER` resolves matches before asking for a value. No matches prints
+`no matched`; one match goes straight to the value prompt; multiple matches open
+a variable selection prompt.
 
 `ii i` shows common variable names even when they do not have values yet. The
 fzf list shows names only, value text appears in preview, and search is

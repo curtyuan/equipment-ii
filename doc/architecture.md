@@ -16,6 +16,8 @@ ii.plugin.zsh
 lib/
   tmux.zsh
   clipboard.zsh
+  var_helpers.zsh
+  var_interactive.zsh
   vars.zsh
   payloads.zsh
   help.zsh
@@ -35,10 +37,12 @@ doc/
 ```text
 1. lib/tmux.zsh
 2. lib/clipboard.zsh
-3. lib/vars.zsh
-4. lib/payloads.zsh
-5. lib/help.zsh
-6. lib/core.zsh
+3. lib/var_helpers.zsh
+4. lib/var_interactive.zsh
+5. lib/vars.zsh
+6. lib/payloads.zsh
+7. lib/help.zsh
+8. lib/core.zsh
 ```
 
 `core.zsh` is loaded last because it exposes the public dispatcher. The
@@ -79,22 +83,41 @@ ii_tmux_session_name
 ii_require_cmd
 ```
 
-### `lib/vars.zsh`
+### `lib/var_helpers.zsh`
 
-Tmux session variable management.
+Variable data helpers.
 
 Responsibilities:
 
 - Normalize user names like `LHOST` into `JJ_LHOST`.
-- Set, load, list, filter, and unset `JJ_` variables.
+- List, filter, and format `JJ_` variables.
 - Export safe `NAME=VALUE` lines into the current shell.
+- Build default variable candidates for interactive commands.
+
+### `lib/var_interactive.zsh`
+
+Interactive variable UI.
+
+Responsibilities:
+
+- Open fzf flows for variable selection, add, and edit.
+- Keep Enter/Ctrl-A/Ctrl-Y behavior isolated from command dispatch.
+- Store interactive edits in tmux without implicitly loading shell variables.
+
+### `lib/vars.zsh`
+
+Tmux session variable commands.
+
+Responsibilities:
+
+- Set, load, print, and unset `JJ_` variables.
+- Keep command help and argument validation close to command entrypoints.
 
 Commands:
 
 ```text
 ii_cmd_set
 ii_cmd_load
-ii_cmd_interactive
 ii_cmd_variable
 ii_cmd_unset
 ```

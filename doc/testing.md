@@ -312,6 +312,32 @@ RHOST=10.0.0.7
 RHOST=10.0.0.8
 ```
 
+## Set Filter Match Test
+
+This verifies `ii s FILTER` handling for one match, no matches, and multiple
+matches.
+
+```zsh
+tmux kill-session -t codex-ii-set-match 2>/dev/null || true
+tmux new-session -d -s codex-ii-set-match -x 120 -y 35 zsh
+tmux send-keys -t codex-ii-set-match "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-set-match "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-set-match "JJ_SET_VALUE_FILTER=10.0.0.9 ii s r" Enter
+tmux send-keys -t codex-ii-set-match "ii s nope" Enter
+tmux send-keys -t codex-ii-set-match "FZF_DEFAULT_OPTS='--filter=LPORT' JJ_SET_VALUE_FILTER=443 ii s port" Enter
+sleep 2
+tmux capture-pane -t codex-ii-set-match -p -S -140
+tmux kill-session -t codex-ii-set-match
+```
+
+Expected signs:
+
+```text
+RHOST=10.0.0.9
+no matched
+LPORT=443
+```
+
 ## Interactive Variable Copy Test
 
 This uses fzf filter mode to verify that `ii i` copies selected variable values

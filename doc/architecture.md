@@ -29,7 +29,11 @@ payloads/
   xss/
 doc/
   architecture.md
+  clipboard.md
+  usage.md
   testing.md
+  conf/
+    tmux.conf
 script/
   make
   help
@@ -140,12 +144,14 @@ Tmux session variable commands.
 Responsibilities:
 
 - Set, load, print, and unset `II_` variables.
+- Get one tmux variable value without copying or shell loading.
 - Keep command help and argument validation close to command entrypoints.
 
 Commands:
 
 ```text
 ii_cmd_set
+ii_cmd_get
 ii_cmd_load
 ii_cmd_list
 ii_cmd_unset
@@ -232,7 +238,11 @@ Responsibilities:
 
 - Prefer `II_CLIP_BACKEND` when configured.
 - Prefer `II_CLIP_CMD` when configured.
-- Prefer OSC52 inside tmux or SSH when base64 is available.
+- Read clipboard settings from the shell first, then the tmux session
+  environment.
+- Prefer OSC52 in SSH sessions when base64 is available.
+- Prefer `xclip-both` in local tmux sessions with `DISPLAY` and `xclip`.
+- Prefer OSC52 in other tmux sessions when base64 is available.
 - Auto-detect common clipboard tools.
 - Fall back to tmux buffer when available.
 - Copy through stdin when possible so payload content is not passed as a tmux
@@ -245,6 +255,7 @@ Functions:
 ```text
 ii_clip_copy
 ii_clip_backend_detect
+ii_cmd_clip
 ```
 
 Current tmux fallback:

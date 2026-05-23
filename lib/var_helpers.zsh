@@ -140,6 +140,41 @@ ii_var_match_candidate() {
   esac
 }
 
+ii_var_get_matches() {
+  local filter="$1"
+  local pattern
+  pattern="${(L)filter}"
+
+  ii_var_lines_from_tmux \
+    | awk -F= -v pat="$pattern" '
+        index(tolower($1), pat) > 0 {
+          print
+        }
+      ' \
+    | sort
+}
+
+ii_var_get_entries_for_fzf() {
+  local line name value preview
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    name="${line%%=*}"
+    value="${line#*=}"
+    name="${name#II_}"
+    preview="$(ii_one_line_preview "$value" 72)"
+    print -r -- "$name"$'\t'"$preview"$'\t'"$line"
+  done
+}
+
+ii_var_get_select_fzf() {
+  fzf -i --ansi --prompt='ii get var> ' --height=40% --border \
+    --bind='space:accept,q:abort,esc:abort' \
+    --delimiter=$'\t' --with-nth=1,2 \
+    --preview='printf "%s" {2}' \
+    --preview-window='down:50%:wrap'
+}
+
 ii_var_shortcut_filter() {
   case "${(L)1}" in
     r) print RHOST ;;

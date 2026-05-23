@@ -9,6 +9,9 @@ ii() {
   case "$cmd" in
     set|s) ii_cmd_set "$@" ;;
     s:*) ii_cmd_set "${cmd#s:}" "$@" ;;
+    get|g) ii_cmd_get "$@" ;;
+    g:*) ii_cmd_get "${cmd#g:}" "$@" ;;
+    clip|clipboard) ii_cmd_clip "$@" ;;
     load|l) ii_cmd_load "$@" ;;
     interactive|i) ii_cmd_interactive "$@" ;;
     ls|list|variable|vars|var|v) ii_cmd_list "$@" ;;

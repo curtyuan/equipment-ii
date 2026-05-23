@@ -368,6 +368,61 @@ no matched
 LPORT=443
 ```
 
+## Get Filter Match Test
+
+This verifies `ii g FILTER` handling for one match, multiple matches, and abort.
+It should print values only; it should not load variables into the shell or copy
+anything.
+
+```zsh
+tmux kill-session -t codex-ii-get 2>/dev/null || true
+tmux new-session -d -s codex-ii-get -x 120 -y 35 zsh
+tmux send-keys -t codex-ii-get "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-get "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-get "ii s LHOST 10.10.10.10" Enter
+tmux send-keys -t codex-ii-get "ii s RHOST 10.10.10.20" Enter
+tmux send-keys -t codex-ii-get "print one:\$(ii g l)" Enter
+tmux send-keys -t codex-ii-get "FZF_DEFAULT_OPTS='--filter=RHOST' ii g host" Enter
+tmux send-keys -t codex-ii-get "FZF_DEFAULT_OPTS='--filter=nomatch' ii g host; print abort:\$?" Enter
+sleep 2
+tmux capture-pane -t codex-ii-get -p -S -120
+tmux kill-session -t codex-ii-get
+```
+
+Expected signs:
+
+```text
+one:10.10.10.10
+10.10.10.20
+abort:1
+```
+
+## Clipboard Backend Command Test
+
+This verifies clipboard backend inspection and tmux-session scoped backend
+settings.
+
+```zsh
+tmux kill-session -t codex-ii-clip 2>/dev/null || true
+tmux new-session -d -s codex-ii-clip -x 120 -y 30 zsh
+tmux send-keys -t codex-ii-clip "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-clip "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-clip "ii clip backend xclip-both" Enter
+tmux send-keys -t codex-ii-clip "unset II_CLIP_BACKEND II_CLIP_CMD; ii clip backend" Enter
+tmux send-keys -t codex-ii-clip "ii clip backend auto" Enter
+sleep 2
+tmux capture-pane -t codex-ii-clip -p -S -100
+tmux kill-session -t codex-ii-clip
+```
+
+Expected signs:
+
+```text
+clipboard backend: xclip-both
+backend: xclip-both
+clipboard backend: auto
+```
+
 ## Interactive Variable Copy Test
 
 This uses fzf filter mode to verify that `ii i` copies selected variable values

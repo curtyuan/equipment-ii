@@ -51,6 +51,7 @@ Command behavior follows this model:
 
 ```text
 ii s   writes internal II_ names to tmux and unprefixed names to current shell
+ii g   reads one internal II_ value from tmux and prints it
 ii l   loads tmux session values into current shell without II_ prefix
 ii ls  reads non-empty tmux session values and displays them without II_ prefix
 ii i   reads tmux session values, then copies selected variable values
@@ -627,15 +628,18 @@ Current strategy:
 ```text
 1. If II_CLIP_BACKEND is set, use that named backend.
 2. If II_CLIP_CMD is set, pipe rendered payload to that command.
-3. Otherwise prefer OSC52 inside tmux or SSH when base64 is available.
-4. Otherwise auto-detect clip.exe, wl-copy, xclip, xsel, pbcopy.
-5. If no clipboard tool is found inside tmux, pipe to tmux load-buffer -.
+3. Otherwise prefer OSC52 in SSH sessions when base64 is available.
+4. Otherwise prefer xclip-both in local tmux sessions with DISPLAY and xclip.
+5. Otherwise prefer OSC52 inside tmux when base64 is available.
+6. Otherwise auto-detect clip.exe, wl-copy, xclip, xsel, pbcopy.
+7. If no clipboard tool is found inside tmux, pipe to tmux load-buffer -.
 ```
 
 Supported named backend:
 
 ```text
 osc52
+xclip-both
 ```
 
 OSC52 is intended for tmux or SSH sessions where the remote Kali shell should
@@ -668,6 +672,19 @@ This is safer for special characters and less likely to break inside tmux.
 
 If OSC52 is unsupported by the terminal, users can override the backend with
 `II_CLIP_CMD` or `II_CLIP_BACKEND`.
+
+For VMware/Kali console sessions where tmux copy-mode reaches the host
+clipboard through X selections, users can mirror that path with:
+
+```zsh
+export II_CLIP_BACKEND=xclip-both
+```
+
+This pipes text through:
+
+```zsh
+xclip -i -f -selection primary | xclip -i -selection clipboard
+```
 
 ## Plugin Architecture
 

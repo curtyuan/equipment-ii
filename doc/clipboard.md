@@ -17,6 +17,21 @@ export II_CLIP_CMD='tmux load-buffer -'
 
 If neither variable is set, `ii` auto-detects a backend.
 
+`ii` reads these settings from the current shell first, then from the current
+tmux session environment. This lets `ii clip backend BACKEND` set a backend for
+the tmux session without requiring a global `.zshrc` export.
+
+Auto-detection is runtime-only. It does not export `II_CLIP_BACKEND`, so
+`env | grep BACK` only shows a value when you set one manually.
+
+Detection order:
+
+1. SSH sessions use `osc52` when `base64` is available.
+2. Local tmux sessions with `DISPLAY` and `xclip` use `xclip-both`.
+3. Other tmux sessions use `osc52` when `base64` is available.
+4. Non-tmux fallback checks common clipboard tools.
+5. tmux fallback writes only to the tmux buffer.
+
 ## Backends
 
 `osc52`
@@ -91,3 +106,34 @@ printf 'xclip-both-test' | xclip -i -f -selection primary | xclip -i -selection 
 If `tmux show-buffer` updates but the host clipboard does not, `ii` has handed
 the text to tmux successfully and the remaining issue is the tmux-to-terminal or
 terminal-to-host clipboard path.
+
+## Clipboard Commands
+
+Show the current context and effective backend:
+
+```zsh
+ii clip backend
+```
+
+Set a backend for this shell and the current tmux session:
+
+```zsh
+ii clip backend osc52
+ii clip backend xclip-both
+```
+
+Return to auto-detection:
+
+```zsh
+ii clip backend auto
+```
+
+Run an interactive diagnostic:
+
+```zsh
+ii clip doctor
+```
+
+The doctor command copies a test token, asks whether it reached the desired
+clipboard, and can set a context-appropriate backend for the current tmux
+session.

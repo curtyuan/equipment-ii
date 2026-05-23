@@ -80,6 +80,58 @@ EOF
   print "$(ii_var_display_line "${name}=${value}")"
 }
 
+ii_cmd_get() {
+  if [[ "${1:-}" == "--help" ]]; then
+    cat <<'EOF'
+usage: ii get FILTER
+       ii g FILTER
+       ii g:FILTER
+
+Print a variable value from the current tmux session.
+FILTER matches variable names case-insensitively, with the same shortcut
+handling as ii set. No matches prints "no matched". One match prints the value.
+Multiple matches open a prompt; Enter or Space selects one value. q, Esc, or
+Ctrl-C aborts without changing variables or copying anything.
+EOF
+    return 0
+  fi
+
+  ii_tmux_available || return
+  ii_require_cmd fzf || return
+
+  if [[ $# -lt 1 || -z "${1:-}" ]]; then
+    cat <<'EOF'
+usage: ii get FILTER
+       ii g FILTER
+       ii g:FILTER
+EOF
+    return 2
+  fi
+
+  local filter matches count selected line
+  filter="$(ii_var_shortcut_filter "$1")"
+  matches="$(ii_var_get_matches "$filter")"
+  count="$(print -r -- "$matches" | awk 'NF {count++} END {print count + 0}')"
+
+  case "$count" in
+    0)
+      print -u2 "no matched"
+      return 1
+      ;;
+    1)
+      line="$(print -r -- "$matches" | awk 'NF {print; exit}')"
+      ;;
+    *)
+      selected="$(print -r -- "$matches" | ii_var_get_entries_for_fzf | ii_var_get_select_fzf)" || return
+      [[ -n "$selected" ]] || return
+      line="${selected##*$'\t'}"
+      ;;
+  esac
+
+  [[ -n "$line" ]] || return
+  print -r -- "${line#*=}"
+}
+
 ii_cmd_load() {
   if [[ "${1:-}" == "--help" ]]; then
     cat <<'EOF'

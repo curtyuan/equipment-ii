@@ -5,7 +5,7 @@ ii_cmd_set_interactive() {
   ii_require_cmd fzf || return
 
   local filter selected value
-  filter="${1:-${JJ_SET_VAR_FILTER:-}}"
+  filter="${1:-${II_SET_VAR_FILTER:-}}"
   filter="$(ii_var_shortcut_filter "$filter")"
 
   if [[ -n "$filter" ]]; then
@@ -15,7 +15,7 @@ ii_cmd_set_interactive() {
   fi
   [[ -n "$selected" ]] || return
 
-  value="$(ii_fzf_input_value "${JJ_SET_VALUE_FILTER:-}" --prompt="${selected} value> " --height=40% --border)"
+  value="$(ii_fzf_input_value "${II_SET_VALUE_FILTER:-}" --prompt="${selected} value> " --height=40% --border)"
   [[ -n "$value" ]] || return
 
   ii_cmd_set "$selected" "$value"
@@ -42,7 +42,7 @@ EOF
   ii_require_cmd fzf || return
 
   local key selected copied line name value count plugin_file
-  plugin_file="${JJ_PLUGIN_DIR%/}/ii.plugin.zsh"
+  plugin_file="${II_PLUGIN_DIR%/}/ii.plugin.zsh"
   [[ -t 0 ]] && stty -ixon 2>/dev/null
   while true; do
     count=0
@@ -61,7 +61,7 @@ EOF
     else
       key="enter"
     fi
-    [[ -n "${JJ_INTERACTIVE_KEY:-}" ]] && key="$JJ_INTERACTIVE_KEY"
+    [[ -n "${II_INTERACTIVE_KEY:-}" ]] && key="$II_INTERACTIVE_KEY"
 
     case "$key" in
       ctrl-s)
@@ -74,7 +74,7 @@ EOF
         name="${line%%$'\t'*}"
         [[ "$name" == "add new variable" ]] && return
         ii_cmd_interactive_delete_variable "$name"
-        [[ -n "${JJ_INTERACTIVE_KEY:-}" ]] && return
+        [[ -n "${II_INTERACTIVE_KEY:-}" ]] && return
         continue
         ;;
       enter)
@@ -127,18 +127,18 @@ ii_cmd_interactive_add_variable() {
 
   if [[ -n "${1:-}" ]]; then
     raw="$1"
-  elif [[ -v JJ_ADD_VAR_FILTER ]]; then
-    raw="$JJ_ADD_VAR_FILTER"
+  elif [[ -v II_ADD_VAR_FILTER ]]; then
+    raw="$II_ADD_VAR_FILTER"
   else
     raw="$(ii_fzf_input_value "" --prompt='ii add name> ' --height=40% --border)" || return
   fi
   [[ -n "$raw" ]] || return
 
   name="$(ii_var_normalize_name "$raw")" || return
-  if [[ -v JJ_ADD_VALUE_FILTER ]]; then
-    value="$JJ_ADD_VALUE_FILTER"
+  if [[ -v II_ADD_VALUE_FILTER ]]; then
+    value="$II_ADD_VALUE_FILTER"
   else
-    value="$(ii_fzf_input_value "" --prompt="${name#JJ_} value> " --height=40% --border)" || return
+    value="$(ii_fzf_input_value "" --prompt="${name#II_} value> " --height=40% --border)" || return
   fi
 
   ii_var_set_tmux_only "$name" "$value" || return
@@ -151,10 +151,10 @@ ii_cmd_interactive_edit_variable() {
   name="$(ii_var_normalize_name "$raw")" || return
   current="$(ii_var_value_by_name "$name")"
 
-  if [[ -v JJ_EDIT_VALUE_FILTER ]]; then
-    value="$JJ_EDIT_VALUE_FILTER"
+  if [[ -v II_EDIT_VALUE_FILTER ]]; then
+    value="$II_EDIT_VALUE_FILTER"
   else
-    edited="$(print -r -- "$current" | fzf -i --print-query --phony --query="$current" --prompt="${name#JJ_} value> " --height=40% --border)" || return
+    edited="$(print -r -- "$current" | fzf -i --print-query --phony --query="$current" --prompt="${name#II_} value> " --height=40% --border)" || return
     value="$(print -r -- "$edited" | awk 'NR == 1 {print; exit}')"
   fi
 

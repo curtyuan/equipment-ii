@@ -21,7 +21,7 @@ This does not require tmux:
 
 ```zsh
 cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali
-zsh -fc 'source ./ii.plugin.zsh && type ii && ii p --help >/dev/null && print $JJ_PAYLOAD_DIR'
+zsh -fc 'source ./ii.plugin.zsh && type ii && ii p --help >/dev/null && print $II_PAYLOAD_DIR'
 ```
 
 Expected result:
@@ -75,7 +75,7 @@ tmux send-keys -t codex-jj-test "ii s DOMAIN example.test" Enter
 tmux send-keys -t codex-jj-test "ii ls" Enter
 tmux send-keys -t codex-jj-test "ii ls host" Enter
 tmux send-keys -t codex-jj-test "ii l" Enter
-tmux send-keys -t codex-jj-test "FZF_DEFAULT_OPTS='--filter=sh-tcp' JJ_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
+tmux send-keys -t codex-jj-test "FZF_DEFAULT_OPTS='--filter=sh-tcp' II_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
 sleep 2
 tmux capture-pane -t codex-jj-test -p -S -200
 tmux show-buffer
@@ -111,7 +111,7 @@ tmux send-keys -t codex-jj-crosspane:0.0 "ii s LPORT 9001" Enter
 tmux send-keys -t codex-jj-crosspane:0.1 "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-jj-crosspane:0.1 "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-jj-crosspane:0.1 "echo pane2-shell-before:\$LHOST" Enter
-tmux send-keys -t codex-jj-crosspane:0.1 "FZF_DEFAULT_OPTS='--filter=sh-tcp' JJ_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
+tmux send-keys -t codex-jj-crosspane:0.1 "FZF_DEFAULT_OPTS='--filter=sh-tcp' II_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
 sleep 2
 tmux capture-pane -t codex-jj-crosspane:0.1 -p -S -120
 tmux kill-session -t codex-jj-crosspane
@@ -138,7 +138,7 @@ tmux send-keys -t codex-ii-payload-fallback "cd /mnt/d/4_L-Repo/0_Developing/dev
 tmux send-keys -t codex-ii-payload-fallback "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-payload-fallback "printf 'y\n' | ii unset -a" Enter
 tmux send-keys -t codex-ii-payload-fallback "ii s LHOST 127.0.0.1" Enter
-tmux send-keys -t codex-ii-payload-fallback "FZF_DEFAULT_OPTS='--filter=sh-tcp' JJ_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
+tmux send-keys -t codex-ii-payload-fallback "FZF_DEFAULT_OPTS='--filter=sh-tcp' II_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
 sleep 2
 tmux capture-pane -t codex-ii-payload-fallback -p -S -140
 tmux show-buffer
@@ -164,7 +164,7 @@ tmux new-session -d -s codex-jj-special -x 120 -y 40 zsh
 tmux send-keys -t codex-jj-special "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-jj-special "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-jj-special "ii s DOMAIN \"a b/c;whoami & test\"" Enter
-tmux send-keys -t codex-jj-special "FZF_DEFAULT_OPTS='--filter=basic-alert' JJ_CLIP_CMD='tmux load-buffer -' ii p xss" Enter
+tmux send-keys -t codex-jj-special "FZF_DEFAULT_OPTS='--filter=basic-alert' II_CLIP_CMD='tmux load-buffer -' ii p xss" Enter
 sleep 2
 tmux capture-pane -t codex-jj-special -p -S -120
 tmux show-buffer
@@ -324,8 +324,8 @@ tmux send-keys -t codex-ii-keys "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali
 tmux send-keys -t codex-ii-keys "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-keys "ii s r 10.0.0.5" Enter
 tmux send-keys -t codex-ii-keys "ii s:r 10.0.0.6" Enter
-tmux send-keys -t codex-ii-keys "JJ_SET_VALUE_FILTER=10.0.0.7 ii s r" Enter
-tmux send-keys -t codex-ii-keys "JJ_EDIT_VALUE_FILTER=10.0.0.8 ii_cmd_interactive_edit_variable RHOST" Enter
+tmux send-keys -t codex-ii-keys "II_SET_VALUE_FILTER=10.0.0.7 ii s r" Enter
+tmux send-keys -t codex-ii-keys "II_EDIT_VALUE_FILTER=10.0.0.8 ii_cmd_interactive_edit_variable RHOST" Enter
 tmux send-keys -t codex-ii-keys "ii ls host" Enter
 sleep 3
 tmux capture-pane -t codex-ii-keys -p -S -200
@@ -352,9 +352,9 @@ tmux kill-session -t codex-ii-set-match 2>/dev/null || true
 tmux new-session -d -s codex-ii-set-match -x 120 -y 35 zsh
 tmux send-keys -t codex-ii-set-match "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-set-match "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-ii-set-match "JJ_SET_VALUE_FILTER=10.0.0.9 ii s r" Enter
+tmux send-keys -t codex-ii-set-match "II_SET_VALUE_FILTER=10.0.0.9 ii s r" Enter
 tmux send-keys -t codex-ii-set-match "ii s nope" Enter
-tmux send-keys -t codex-ii-set-match "FZF_DEFAULT_OPTS='--filter=LPORT' JJ_SET_VALUE_FILTER=443 ii s port" Enter
+tmux send-keys -t codex-ii-set-match "FZF_DEFAULT_OPTS='--filter=LPORT' II_SET_VALUE_FILTER=443 ii s port" Enter
 sleep 2
 tmux capture-pane -t codex-ii-set-match -p -S -140
 tmux kill-session -t codex-ii-set-match
@@ -379,8 +379,8 @@ tmux new-session -d -s codex-ii-i -x 120 -y 30 zsh
 tmux send-keys -t codex-ii-i "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-i "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-i "ii s LHOST 172.16.1.10" Enter
-tmux send-keys -t codex-ii-i "unset LHOST lhost JJ_LHOST" Enter
-tmux send-keys -t codex-ii-i "FZF_DEFAULT_OPTS='--filter=lhost' JJ_INTERACTIVE_KEY=ctrl-y JJ_CLIP_CMD='tmux load-buffer -' ii i" Enter
+tmux send-keys -t codex-ii-i "unset LHOST lhost II_LHOST" Enter
+tmux send-keys -t codex-ii-i "FZF_DEFAULT_OPTS='--filter=lhost' II_INTERACTIVE_KEY=ctrl-y II_CLIP_CMD='tmux load-buffer -' ii i" Enter
 tmux send-keys -t codex-ii-i "echo loaded:\$LHOST/\$lhost" Enter
 sleep 2
 tmux capture-pane -t codex-ii-i -p -S -100
@@ -406,8 +406,8 @@ tmux kill-session -t codex-ii-add 2>/dev/null || true
 tmux new-session -d -s codex-ii-add -x 120 -y 35 zsh
 tmux send-keys -t codex-ii-add "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-add "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-ii-add "FZF_DEFAULT_OPTS='--filter=add' JJ_ADD_VAR_FILTER=token JJ_ADD_VALUE_FILTER=abc123 ii i" Enter
-tmux send-keys -t codex-ii-add "FZF_DEFAULT_OPTS='--filter=add' JJ_ADD_VAR_FILTER=emptytest JJ_ADD_VALUE_FILTER= ii i" Enter
+tmux send-keys -t codex-ii-add "FZF_DEFAULT_OPTS='--filter=add' II_ADD_VAR_FILTER=token II_ADD_VALUE_FILTER=abc123 ii i" Enter
+tmux send-keys -t codex-ii-add "FZF_DEFAULT_OPTS='--filter=add' II_ADD_VAR_FILTER=emptytest II_ADD_VALUE_FILTER= ii i" Enter
 tmux send-keys -t codex-ii-add "unset TOKEN token EMPTYTEST emptytest" Enter
 tmux send-keys -t codex-ii-add "ii l" Enter
 tmux send-keys -t codex-ii-add "echo token:\$TOKEN/\$token empty:\${EMPTYTEST-unset}/\${emptytest-unset}" Enter
@@ -427,18 +427,18 @@ token:abc123/abc123 empty:unset/unset
 
 ## Interactive Set Test
 
-This verifies `ii s` with no arguments. `JJ_SET_VAR_FILTER` and
-`JJ_SET_VALUE_FILTER` make the two fzf steps deterministic for testing.
+This verifies `ii s` with no arguments. `II_SET_VAR_FILTER` and
+`II_SET_VALUE_FILTER` make the two fzf steps deterministic for testing.
 
 ```zsh
 tmux kill-session -t codex-ii-s-filter 2>/dev/null || true
 tmux new-session -d -s codex-ii-s-filter -x 120 -y 35 zsh
 tmux send-keys -t codex-ii-s-filter "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-s-filter "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-ii-s-filter "JJ_SET_VAR_FILTER=LHOST JJ_SET_VALUE_FILTER=192.0.2.10 ii s" Enter
+tmux send-keys -t codex-ii-s-filter "II_SET_VAR_FILTER=LHOST II_SET_VALUE_FILTER=192.0.2.10 ii s" Enter
 tmux send-keys -t codex-ii-s-filter "ii ls host" Enter
 tmux send-keys -t codex-ii-s-filter "echo loaded:\$LHOST/\$lhost" Enter
-tmux send-keys -t codex-ii-s-filter "echo hidden:\$JJ_LHOST" Enter
+tmux send-keys -t codex-ii-s-filter "echo hidden:\$II_LHOST" Enter
 sleep 2
 tmux capture-pane -t codex-ii-s-filter -p -S -120
 tmux kill-session -t codex-ii-s-filter

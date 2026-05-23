@@ -3,17 +3,17 @@
 ii_clip_copy() {
   local text="$1"
 
-  if [[ -n "${JJ_CLIP_BACKEND:-}" ]]; then
-    ii_clip_copy_with_backend "$JJ_CLIP_BACKEND" "$text"
+  if [[ -n "${II_CLIP_BACKEND:-}" ]]; then
+    ii_clip_copy_with_backend "$II_CLIP_BACKEND" "$text"
     return $?
   fi
 
-  if [[ -n "${JJ_CLIP_CMD:-}" ]]; then
-    if [[ "$JJ_CLIP_CMD" == "osc52" ]]; then
+  if [[ -n "${II_CLIP_CMD:-}" ]]; then
+    if [[ "$II_CLIP_CMD" == "osc52" ]]; then
       ii_clip_copy_osc52 "$text"
       return $?
     fi
-    print -rn -- "$text" | eval "$JJ_CLIP_CMD"
+    print -rn -- "$text" | eval "$II_CLIP_CMD"
     return $?
   fi
 
@@ -30,6 +30,7 @@ ii_clip_copy_with_backend() {
     clip.exe) print -rn -- "$text" | clip.exe ;;
     wl-copy) print -rn -- "$text" | wl-copy ;;
     xclip) print -rn -- "$text" | xclip -selection clipboard ;;
+    xclip-both) print -rn -- "$text" | xclip -i -f -selection primary | xclip -i -selection clipboard ;;
     xsel) print -rn -- "$text" | xsel --clipboard --input ;;
     pbcopy) print -rn -- "$text" | pbcopy ;;
     osc52) ii_clip_copy_osc52 "$text" ;;

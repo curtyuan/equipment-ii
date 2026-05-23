@@ -6,7 +6,7 @@ ii_cmd_payload() {
 usage: ii payload [CATEGORY]
        ii p [CATEGORY]
 
-Open the payload selector, render the selected template with fresh JJ_
+Open the payload selector, render the selected template with fresh II_
 variables from the tmux session, copy the result, and print the output.
 The selector shows a single-line rendered preview in the list and a full
 selected preview at the bottom. A first-line "# description: ..." metadata line
@@ -47,7 +47,7 @@ EOF
 }
 
 ii_payload_dir() {
-  print -r -- "${JJ_PAYLOAD_DIR:-${HOME}/.config/ii/payloads}"
+  print -r -- "${II_PAYLOAD_DIR:-${HOME}/.config/ii/payloads}"
 }
 
 ii_payload_list() {
@@ -55,7 +55,7 @@ ii_payload_list() {
   dir="$(ii_payload_dir)"
   if [[ ! -d "$dir" ]]; then
     print -u2 "ii: payload directory not found: $dir"
-    print -u2 "ii: set JJ_PAYLOAD_DIR or create ~/.config/ii/payloads"
+    print -u2 "ii: set II_PAYLOAD_DIR or create ~/.config/ii/payloads"
     return 1
   fi
 
@@ -80,12 +80,12 @@ ii_payload_filter() {
 ii_payload_select_fzf() {
   local filter="${1:-all}"
   local plugin_file payload_dir
-  plugin_file="${JJ_PLUGIN_DIR%/}/ii.plugin.zsh"
+  plugin_file="${II_PLUGIN_DIR%/}/ii.plugin.zsh"
   payload_dir="$(ii_payload_dir)"
 
   fzf --ansi --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1,2,3 \
     --bind='enter:accept' \
-    --preview="zsh -fc 'source \"\$1\"; export JJ_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \$'\'' Enter Render/Copy     Type Filter\n Esc Abort'\''' -- ${(q)plugin_file} ${(q)payload_dir} {1}" \
+    --preview="zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \$'\'' Enter Render/Copy     Type Filter\n Esc Abort'\''' -- ${(q)plugin_file} ${(q)payload_dir} {1}" \
     --preview-window='down:50%:nowrap:noinfo'
 }
 
@@ -129,7 +129,7 @@ ii_payload_render() {
     if [[ -n "$line" && -n "$value" ]]; then
       fallback="$value"
     else
-      label="${var#JJ_}"
+      label="${var#II_}"
       fallback="\$${(L)label}"
     fi
     rendered="${rendered//\$\{$var\}/$fallback}"
@@ -181,7 +181,7 @@ ii_payload_body() {
 
 ii_payload_required_vars() {
   local payload_path="$1"
-  grep -Eoh '\$\{JJ_[A-Za-z_][A-Za-z0-9_]*\}|JJ_[A-Za-z_][A-Za-z0-9_]*' "$payload_path" \
+  grep -Eoh '\$\{II_[A-Za-z_][A-Za-z0-9_]*\}|II_[A-Za-z_][A-Za-z0-9_]*' "$payload_path" \
     | sed -E 's/^\$\{//; s/\}$//' \
     | sort -u
 }
@@ -192,7 +192,7 @@ ii_payload_print_used_vars() {
 
   while IFS= read -r var; do
     [[ -n "$var" ]] || continue
-    label="${var#JJ_}"
+    label="${var#II_}"
     line="$(ii_var_lines_from_tmux | awk -F= -v name="$var" '$1 == name {print; exit}')"
     value="${line#*=}"
     if [[ -z "$line" || -z "$value" ]]; then

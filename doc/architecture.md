@@ -65,13 +65,13 @@ Plugin entrypoint.
 Responsibilities:
 
 - Resolve the plugin root path.
-- Set `JJ_PLUGIN_DIR` to the plugin root when unset.
-- Set `JJ_PAYLOAD_DIR` to `${JJ_PLUGIN_DIR}/payloads` when unset.
+- Set `II_PLUGIN_DIR` to the plugin root when unset.
+- Set `II_PAYLOAD_DIR` to `${II_PLUGIN_DIR}/payloads` when unset.
 - Source each implementation layer.
 - Avoid exposing path setup variables after loading.
 
 This lets Kali deployments use bundled payloads without adding a separate
-`export JJ_PAYLOAD_DIR=...` line to `~/.zshrc`.
+`export II_PAYLOAD_DIR=...` line to `~/.zshrc`.
 
 ### `lib/tmux.zsh`
 
@@ -117,8 +117,8 @@ Variable data helpers.
 
 Responsibilities:
 
-- Normalize user names like `LHOST` into `JJ_LHOST`.
-- List, filter, and format `JJ_` variables.
+- Normalize user names like `LHOST` into `II_LHOST`.
+- List, filter, and format `II_` variables.
 - Export safe `NAME=VALUE` lines into the current shell.
 - Enable loaded-variable prompt sync after `ii s` or `ii l`.
 - Build default variable candidates for interactive commands.
@@ -139,7 +139,7 @@ Tmux session variable commands.
 
 Responsibilities:
 
-- Set, load, print, and unset `JJ_` variables.
+- Set, load, print, and unset `II_` variables.
 - Keep command help and argument validation close to command entrypoints.
 
 Commands:
@@ -166,10 +166,10 @@ Payload library scanning and rendering.
 
 Responsibilities:
 
-- Resolve `JJ_PAYLOAD_DIR`.
+- Resolve `II_PAYLOAD_DIR`.
 - List payload files as path-style selector entries.
 - Filter payloads by category or fuzzy prefilter.
-- Render `${JJ_NAME}` placeholders using fresh tmux session values.
+- Render `${II_NAME}` placeholders using fresh tmux session values.
 - Display first-line `# description:` metadata in preview without copying it.
 - Keep description and keys independent from the payload body in fzf preview.
   Reserve the description block even when no description exists.
@@ -199,7 +199,7 @@ Render boundary:
 ```text
 Input:
   - selected payload file
-  - tmux session JJ_ variables
+  - tmux session II_ variables
 
 Output:
   - rendered payload text
@@ -230,13 +230,15 @@ Clipboard backend handling.
 
 Responsibilities:
 
-- Prefer `JJ_CLIP_BACKEND` when configured.
-- Prefer `JJ_CLIP_CMD` when configured.
+- Prefer `II_CLIP_BACKEND` when configured.
+- Prefer `II_CLIP_CMD` when configured.
 - Prefer OSC52 inside tmux or SSH when base64 is available.
 - Auto-detect common clipboard tools.
 - Fall back to tmux buffer when available.
 - Copy through stdin when possible so payload content is not passed as a tmux
   command argument.
+- Provide `xclip-both` for environments where tmux copy-mode succeeds by
+  writing both X primary and clipboard selections.
 
 Functions:
 
@@ -257,7 +259,7 @@ spaces, quotes, shell metacharacters, and HTML-like text.
 Primary SSH/Kali backend:
 
 ```zsh
-export JJ_CLIP_BACKEND=osc52
+export II_CLIP_BACKEND=osc52
 ```
 
 OSC52 is auto-detected inside tmux or SSH when base64 is available. Inside tmux,
@@ -265,6 +267,21 @@ the OSC52 backend first tries `tmux load-buffer -w -` so tmux handles clipboard
 integration. If that fails, `ii` base64-encodes the rendered payload and emits
 an OSC52 escape sequence. Inside tmux, `ii` wraps the OSC52 sequence in tmux
 passthrough framing; tmux and the terminal still need to allow it.
+
+VMware/Kali X clipboard backend:
+
+```zsh
+export II_CLIP_BACKEND=xclip-both
+```
+
+This uses:
+
+```zsh
+xclip -i -f -selection primary | xclip -i -selection clipboard
+```
+
+It intentionally mirrors tmux copy-mode configurations that copy through both X
+selections.
 
 ### `lib/help.zsh`
 
@@ -307,7 +324,7 @@ current shell environment = local state for one pane
 
 `ii s` writes to both tmux and the current shell.
 
-`ii l` copies tmux `JJ_` values into the current shell without the internal
+`ii l` copies tmux `II_` values into the current shell without the internal
 prefix. It exports both uppercase and lowercase shell variables and enables a
 prompt-time sync hook so prompt integrations do not immediately overwrite loaded
 lowercase values.
@@ -325,9 +342,9 @@ Keep these responsibilities separate:
 
 ```text
 variable loading layer:
-  - read tmux JJ_ values
+  - read tmux II_ values
   - validate names
-  - strip JJ_ only for variable TUI display
+  - strip II_ only for variable TUI display
   - export all values into current shell through ii l
   - keep loaded values synchronized after prompt hooks run
 
@@ -339,7 +356,7 @@ fuzzy search layer:
 
 payload render layer:
   - read selected template
-  - read tmux JJ_ values fresh
+  - read tmux II_ values fresh
   - return rendered text
 
 copy layer:

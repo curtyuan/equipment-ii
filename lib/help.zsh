@@ -25,7 +25,7 @@ Commands:
   interactive|i          Select, edit, delete, add, and copy variables
   ls [PATTERN]           List non-empty variables, optionally filtered by key
   payload|p [CATEGORY]   Select, render, copy, and print a payload
-  unset|u NAME [...]     Remove JJ_ variables
+  unset|u NAME [...]     Remove II_ variables
   help|h [COMMAND]       Show help
 EOF
 }

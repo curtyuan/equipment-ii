@@ -1,13 +1,13 @@
-# JJ_ variable helper functions.
+# II_ variable helper functions.
 
 ii_var_normalize_name() {
   local name="$1"
   name="${name#export }"
   name="${name%%=*}"
   name="${(U)name}"
-  [[ "$name" == JJ_* ]] || name="JJ_${name}"
+  [[ "$name" == II_* ]] || name="II_${name}"
 
-  if [[ ! "$name" =~ '^JJ_[A-Z_][A-Z0-9_]*$' ]]; then
+  if [[ ! "$name" =~ '^II_[A-Z_][A-Z0-9_]*$' ]]; then
     print -u2 "ii: invalid variable name: $1"
     return 1
   fi
@@ -16,7 +16,7 @@ ii_var_normalize_name() {
 }
 
 ii_var_lines_from_tmux() {
-  tmux show-environment | awk -F= '/^JJ_[A-Za-z0-9_]*=/{print}'
+  tmux show-environment | awk -F= '/^II_[A-Za-z0-9_]*=/{print}'
 }
 
 ii_var_filter_by_name() {
@@ -38,9 +38,9 @@ ii_var_print_named_view() {
 ii_var_print_cred_view() {
   ii_var_lines_from_tmux \
     | awk -F= '
-        /^JJ_(USER|PASSWD|HASH)[0-9]*=/ {
+        /^II_(USER|PASSWD|HASH)[0-9]*=/ {
           name = $1
-          sub(/^JJ_/, "", name)
+          sub(/^II_/, "", name)
           rank = 0
           if (name ~ /^PASSWD/) rank = 1
           if (name ~ /^HASH/) rank = 2
@@ -115,7 +115,7 @@ ii_var_default_names() {
 ii_var_set_candidates() {
   {
     ii_var_default_names
-    ii_var_lines_from_tmux | awk -F= '{sub(/^JJ_/, "", $1); print toupper($1)}'
+    ii_var_lines_from_tmux | awk -F= '{sub(/^II_/, "", $1); print toupper($1)}'
   } | awk 'NF && !seen[toupper($0)]++ {print toupper($0)}'
 }
 
@@ -184,7 +184,7 @@ ii_var_entries_for_fzf() {
   local name line value preview overflow
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
-    line="$(ii_var_line_by_name "JJ_${name}")"
+    line="$(ii_var_line_by_name "II_${name}")"
     value=""
     [[ -n "$line" ]] && value="${line#*=}"
     preview="$(ii_one_line_preview "$value" 72)"
@@ -196,23 +196,23 @@ ii_var_entries_for_fzf() {
 }
 
 ii_var_display_lines_for_fzf() {
-  sed 's/^JJ_//'
+  sed 's/^II_//'
 }
 
 ii_var_display_line() {
   local line="$1"
-  print -r -- "${line#JJ_}"
+  print -r -- "${line#II_}"
 }
 
 ii_var_line_from_display() {
   local line="$1"
-  [[ "$line" == JJ_* ]] || line="JJ_${line}"
+  [[ "$line" == II_* ]] || line="II_${line}"
   print -r -- "$line"
 }
 
 ii_var_shell_name() {
   local name="$1"
-  print -r -- "${name#JJ_}"
+  print -r -- "${name#II_}"
 }
 
 ii_export_var_line() {
@@ -221,7 +221,7 @@ ii_export_var_line() {
   local value="${line#*=}"
   local shell_name
 
-  if [[ ! "$name" =~ '^JJ_[A-Z_][A-Z0-9_]*$' ]]; then
+  if [[ ! "$name" =~ '^II_[A-Z_][A-Z0-9_]*$' ]]; then
     print -u2 "ii: refusing to export invalid variable line: $line"
     return 1
   fi

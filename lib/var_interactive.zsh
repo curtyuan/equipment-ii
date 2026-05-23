@@ -145,7 +145,7 @@ ii_cmd_interactive_add_variable() {
 }
 
 ii_cmd_interactive_edit_variable() {
-  local raw name value current
+  local raw name value current edited
 
   raw="$1"
   name="$(ii_var_normalize_name "$raw")" || return
@@ -154,7 +154,8 @@ ii_cmd_interactive_edit_variable() {
   if [[ -v JJ_EDIT_VALUE_FILTER ]]; then
     value="$JJ_EDIT_VALUE_FILTER"
   else
-    value="$(print -r -- "$current" | fzf -i --print-query --phony --query="$current" --prompt="${name#JJ_} value> " --height=40% --border | awk 'NR == 1 {print; exit}')" || return
+    edited="$(print -r -- "$current" | fzf -i --print-query --phony --query="$current" --prompt="${name#JJ_} value> " --height=40% --border)" || return
+    value="$(print -r -- "$edited" | awk 'NR == 1 {print; exit}')"
   fi
 
   ii_var_set_tmux_only "$name" "$value" || return

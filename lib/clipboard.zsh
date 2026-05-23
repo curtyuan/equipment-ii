@@ -65,7 +65,7 @@ ii_clip_copy_with_backend() {
 
 ii_clip_backend_detect() {
   local cmd
-  if [[ -n "${SSH_TTY:-}${SSH_CONNECTION:-}${SSH_CLIENT:-}" ]] && command -v base64 >/dev/null 2>&1; then
+  if ii_clip_ssh_active && command -v base64 >/dev/null 2>&1; then
     print -r -- osc52
     return
   fi
@@ -76,6 +76,11 @@ ii_clip_backend_detect() {
   fi
 
   if [[ -n "${TMUX:-}" ]] && command -v base64 >/dev/null 2>&1; then
+    print -r -- osc52
+    return
+  fi
+
+  if [[ -n "${SSH_TTY:-}" ]] && command -v base64 >/dev/null 2>&1; then
     print -r -- osc52
     return
   fi
@@ -113,8 +118,12 @@ ii_clip_backend_effective() {
   ii_clip_backend_detect
 }
 
+ii_clip_ssh_active() {
+  [[ -n "${SSH_CONNECTION:-}" || ( -n "${SSH_CLIENT:-}" && -z "${DISPLAY:-}" ) ]]
+}
+
 ii_clip_context() {
-  if [[ -n "${SSH_TTY:-}${SSH_CONNECTION:-}${SSH_CLIENT:-}" ]]; then
+  if ii_clip_ssh_active; then
     print -r -- ssh
   else
     print -r -- local
@@ -192,6 +201,8 @@ ii_cmd_clip_doctor() {
   print "tmux: ${TMUX:-}"
   print "display: ${DISPLAY:-}"
   print "ssh_connection: ${SSH_CONNECTION:-}"
+  print "ssh_client: ${SSH_CLIENT:-}"
+  print "ssh_tty: ${SSH_TTY:-}"
   print "configured_backend: ${II_CLIP_BACKEND:-}"
   print "configured_cmd: ${II_CLIP_CMD:-}"
   print "effective_backend: $backend"
@@ -207,10 +218,10 @@ ii_cmd_clip_doctor() {
   read -r answer
   [[ "$answer" == "y" || "$answer" == "Y" ]] && return 0
 
-  if [[ "$context" == "ssh" ]]; then
-    suggested="osc52"
-  elif [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+  if [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1 && ! ii_clip_ssh_active; then
     suggested="xclip-both"
+  elif [[ "$context" == "ssh" ]]; then
+    suggested="osc52"
   else
     suggested="tmux"
   fi

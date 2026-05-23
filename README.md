@@ -135,10 +135,11 @@ export II_CLIP_CMD='tmux load-buffer -'
 export II_CLIP_BACKEND=xclip-both
 ```
 
-Without an override, SSH sessions prefer OSC52. Local tmux sessions with
-`DISPLAY` and `xclip` prefer `xclip-both`, which mirrors a tmux copy-mode
-binding that writes both X primary and clipboard selections. Auto-detection is
-runtime-only and does not export `II_CLIP_BACKEND`.
+Without an override, active SSH sessions prefer OSC52. Local tmux sessions with
+`DISPLAY` and `xclip` prefer `xclip-both`, even when tmux still has stale SSH
+environment variables. This mirrors a tmux copy-mode binding that writes both X
+primary and clipboard selections. Auto-detection is runtime-only and does not
+export `II_CLIP_BACKEND`.
 
 ## Documentation
 

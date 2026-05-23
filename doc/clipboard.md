@@ -26,8 +26,9 @@ Auto-detection is runtime-only. It does not export `II_CLIP_BACKEND`, so
 
 Detection order:
 
-1. SSH sessions use `osc52` when `base64` is available.
-2. Local tmux sessions with `DISPLAY` and `xclip` use `xclip-both`.
+1. Active SSH sessions use `osc52` when `base64` is available.
+2. Local tmux sessions with `DISPLAY` and `xclip` use `xclip-both`, even when
+   tmux still has stale SSH environment variables.
 3. Other tmux sessions use `osc52` when `base64` is available.
 4. Non-tmux fallback checks common clipboard tools.
 5. tmux fallback writes only to the tmux buffer.
@@ -136,4 +137,5 @@ ii clip doctor
 
 The doctor command copies a test token, asks whether it reached the desired
 clipboard, and can set a context-appropriate backend for the current tmux
-session.
+session. When `SSH_CONNECTION` is empty and `DISPLAY` plus `xclip` are
+available, doctor suggests `xclip-both`.

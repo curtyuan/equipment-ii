@@ -1,7 +1,7 @@
 # Usage
 
 `ii` stores workflow variables in the current tmux session using the internal
-`II_` namespace. User-facing commands use names without that prefix.
+`ii_` namespace. User-facing commands use names without that prefix.
 
 ## State Model
 
@@ -19,19 +19,19 @@ another pane can render payloads without running `ii l`.
 
 | Command | Short form | Purpose |
 | --- | --- | --- |
-| `ii set NAME VALUE` | `ii s NAME VALUE` | Set internal `II_NAME` in tmux and export `NAME` in this shell |
-| `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect LHOST from an interface, defaulting to `tun0` |
+| `ii set NAME VALUE` | `ii s NAME VALUE` | Set internal `ii_name` in tmux and export the configured shell name in this shell |
+| `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface, defaulting to `tun0` |
 | `ii set` | `ii s` | Open a TUI to choose common variable names and type a value |
 | `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
-| `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Print one tmux variable value without loading or copying |
-| `ii load` | `ii l` | Load tmux variables into this shell without the internal `II_` prefix |
+| `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value without loading |
+| `ii load` | `ii l` | Load tmux variables into this shell without the internal `ii_` prefix |
 | `ii clip backend` | | Show or set clipboard backend |
 | `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
 | `ii interactive` | `ii i` | Select variable names with fzf, preview values, edit, delete, add, and copy values |
 | `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, and print a payload |
-| `ii unset NAME [...]` | `ii u NAME [...]` | Remove `II_` variables from tmux and this shell |
-| `ii unset -a` | `ii u -a` | Prompt, then remove all `II_` variables from the current tmux session |
+| `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
+| `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
 | `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
 
 ## Basic Workflow
@@ -40,11 +40,11 @@ Run inside tmux:
 
 ```zsh
 ii s
-ii s LHOST 192.168.45.192
-ii s LPORT 443
-ii s DOMAIN example.test
-ii s USER1 alice
-ii s PASSWD1 secret
+ii s lhost 192.168.45.192
+ii s lport 443
+ii s domain example.test
+ii s user alice
+ii s passwd secret
 
 ii ls
 ii ls host
@@ -52,31 +52,64 @@ ii ls user
 ii p linux
 ```
 
-`II_` is only an internal tmux namespace. User input is normalized to uppercase,
-so `user2` and `USER2` refer to the same tmux variable, `II_USER2`. Shell
-exports use names without the prefix, such as `$LHOST` and `$DOMAIN`. `ii set`
-and `ii load` export both uppercase and lowercase shell names, such as `$LHOST`
-and `$lhost`.
+`ii_` is only an internal tmux namespace. User input is normalized to lowercase,
+so `user2` and `USER2` refer to the same tmux variable, `ii_user2`. Shell
+exports use names without the prefix. By default, `ii set` and `ii load` export
+lowercase shell names such as `$lhost` and `$domain`.
+
+Set `II_EXPORT_CASE` to change shell export behavior:
+
+```zsh
+export II_EXPORT_CASE=lower  # default: lhost
+export II_EXPORT_CASE=upper  # LHOST
+export II_EXPORT_CASE=both   # lhost and LHOST
+```
+
+## Configuration
+
+`ii` reads this config file automatically when it exists:
+
+```text
+~/.config/ii/ii.conf
+```
+
+Use it for stable preferences such as shell export case:
+
+```zsh
+export II_EXPORT_CASE=lower
+```
+
+To use a different config path, set `II_CONFIG_FILE` in `.zshrc` before loading
+the plugin:
+
+```zsh
+export II_CONFIG_FILE="$HOME/.config/ii/work.conf"
+source "$HOME/.config/zsh/plugin/ii/ii.plugin.zsh"
+```
+
+See [doc/conf/ii.conf](conf/ii.conf) for a complete example.
+
+## Variables
 
 Default names that have not been assigned values are not exported into the
 shell.
 
-## Variables
-
 Default variable names:
 
 ```text
-DOMAIN
-LHOST
-RHOST
-LPORT
-RPORT
-USER1
-PASSWD1
-HASH1
-USER2
-PASSWD2
-HASH2
+domain
+lhost
+rhost
+lport
+rport
+user
+passwd
+user1
+passwd1
+hash1
+user2
+passwd2
+hash2
 ```
 
 `ii s FILTER` resolves matches before asking for a value:
@@ -86,17 +119,18 @@ HASH2
 - Multiple matches open a variable selection prompt.
 
 `ii g FILTER` uses the same case-insensitive name matching and shortcuts as
-`ii s FILTER`, but it only prints a value. It does not modify variables, load
-values into the shell, or copy anything. Multiple matches open a prompt; Enter
-or Space selects one value, while `q`, Esc, or Ctrl-C aborts.
+`ii s FILTER`. It copies the selected value through the clipboard layer and
+prints it, but it does not modify variables or load values into the shell.
+Multiple matches open a prompt; Enter or Space selects and copies one value,
+while `q`, Esc, or Ctrl-C aborts without changing variables or copying anything.
 
 `ii ls` prints non-empty variables as key/value blocks:
 
 ```text
-LHOST
+lhost
 192.168.45.192
 
-LPORT
+lport
 443
 ```
 

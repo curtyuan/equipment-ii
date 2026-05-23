@@ -240,10 +240,10 @@ Expected signs:
 
 ```text
 aborted
-LHOST=192.0.2.10
-USER1=alice
-unset LHOST
-unset USER1
+lhost=192.0.2.10
+user1=alice
+unset lhost
+unset user1
 unset 2 variable(s)
 ```
 
@@ -272,17 +272,17 @@ tmux kill-session -t codex-jj-views
 Expected signs:
 
 ```text
-LHOST
+lhost
 192.0.2.10
-RHOST
+rhost
 198.51.100.20
-LPORT
+lport
 4444
-USER1
+user1
 alice
-PASSWD1
+passwd1
 secret
-HASH2
+hash2
 deadbeef
 ```
 
@@ -308,9 +308,9 @@ tmux kill-session -t codex-ii-case
 Expected signs:
 
 ```text
-USER2=bob
+user2=bob
 loaded 1 variable(s)
-user2:bob/bob passwd2:unset/unset
+user2:/bob passwd2:unset/unset
 ```
 
 ## Set Shortcut And Edit Test
@@ -336,10 +336,10 @@ tmux kill-session -t codex-ii-keys
 Expected signs:
 
 ```text
-RHOST=10.0.0.5
-RHOST=10.0.0.6
-RHOST=10.0.0.7
-RHOST=10.0.0.8
+rhost=10.0.0.5
+rhost=10.0.0.6
+rhost=10.0.0.7
+rhost=10.0.0.8
 ```
 
 ## Set Filter Match Test
@@ -363,16 +363,15 @@ tmux kill-session -t codex-ii-set-match
 Expected signs:
 
 ```text
-RHOST=10.0.0.9
+rhost=10.0.0.9
 no matched
-LPORT=443
+lport=443
 ```
 
 ## Get Filter Match Test
 
 This verifies `ii g FILTER` handling for one match, multiple matches, and abort.
-It should print values only; it should not load variables into the shell or copy
-anything.
+It should copy and print selected values; abort should not copy anything.
 
 ```zsh
 tmux kill-session -t codex-ii-get 2>/dev/null || true
@@ -381,18 +380,20 @@ tmux send-keys -t codex-ii-get "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali"
 tmux send-keys -t codex-ii-get "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-get "ii s LHOST 10.10.10.10" Enter
 tmux send-keys -t codex-ii-get "ii s RHOST 10.10.10.20" Enter
-tmux send-keys -t codex-ii-get "print one:\$(ii g l)" Enter
-tmux send-keys -t codex-ii-get "FZF_DEFAULT_OPTS='--filter=RHOST' ii g host" Enter
+tmux send-keys -t codex-ii-get "II_CLIP_CMD='tmux load-buffer -' ii g l" Enter
+tmux send-keys -t codex-ii-get "FZF_DEFAULT_OPTS='--filter=RHOST' II_CLIP_CMD='tmux load-buffer -' ii g host" Enter
 tmux send-keys -t codex-ii-get "FZF_DEFAULT_OPTS='--filter=nomatch' ii g host; print abort:\$?" Enter
 sleep 2
 tmux capture-pane -t codex-ii-get -p -S -120
+tmux show-buffer
 tmux kill-session -t codex-ii-get
 ```
 
 Expected signs:
 
 ```text
-one:10.10.10.10
+value copied successfully
+10.10.10.10
 10.10.10.20
 abort:1
 ```
@@ -434,7 +435,7 @@ tmux new-session -d -s codex-ii-i -x 120 -y 30 zsh
 tmux send-keys -t codex-ii-i "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-i "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-i "ii s LHOST 172.16.1.10" Enter
-tmux send-keys -t codex-ii-i "unset LHOST lhost II_LHOST" Enter
+tmux send-keys -t codex-ii-i "unset LHOST lhost ii_lhost" Enter
 tmux send-keys -t codex-ii-i "FZF_DEFAULT_OPTS='--filter=lhost' II_INTERACTIVE_KEY=ctrl-y II_CLIP_CMD='tmux load-buffer -' ii i" Enter
 tmux send-keys -t codex-ii-i "echo loaded:\$LHOST/\$lhost" Enter
 sleep 2
@@ -493,7 +494,7 @@ tmux send-keys -t codex-ii-s-filter "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-s-filter "II_SET_VAR_FILTER=LHOST II_SET_VALUE_FILTER=192.0.2.10 ii s" Enter
 tmux send-keys -t codex-ii-s-filter "ii ls host" Enter
 tmux send-keys -t codex-ii-s-filter "echo loaded:\$LHOST/\$lhost" Enter
-tmux send-keys -t codex-ii-s-filter "echo hidden:\$II_LHOST" Enter
+tmux send-keys -t codex-ii-s-filter "echo hidden:\$ii_lhost" Enter
 sleep 2
 tmux capture-pane -t codex-ii-s-filter -p -S -120
 tmux kill-session -t codex-ii-s-filter
@@ -502,8 +503,8 @@ tmux kill-session -t codex-ii-s-filter
 Expected signs:
 
 ```text
-LHOST=192.0.2.10
-loaded:192.0.2.10/192.0.2.10
+lhost=192.0.2.10
+loaded:/192.0.2.10
 hidden:
 ```
 

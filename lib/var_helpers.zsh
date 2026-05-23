@@ -1,13 +1,13 @@
-# II_ variable helper functions.
+# ii_ variable helper functions.
 
 ii_var_normalize_name() {
   local name="$1"
   name="${name#export }"
   name="${name%%=*}"
-  name="${(U)name}"
-  [[ "$name" == II_* ]] || name="II_${name}"
+  name="${(L)name}"
+  [[ "$name" == ii_* ]] || name="ii_${name}"
 
-  if [[ ! "$name" =~ '^II_[A-Z_][A-Z0-9_]*$' ]]; then
+  if [[ ! "$name" =~ '^ii_[a-z_][a-z0-9_]*$' ]]; then
     print -u2 "ii: invalid variable name: $1"
     return 1
   fi
@@ -15,8 +15,14 @@ ii_var_normalize_name() {
   print -r -- "$name"
 }
 
+ii_var_name_from_payload_var() {
+  local name="$1"
+  name="${name#II_}"
+  ii_var_normalize_name "$name"
+}
+
 ii_var_lines_from_tmux() {
-  tmux show-environment | awk -F= '/^II_[A-Za-z0-9_]*=/{print}'
+  tmux show-environment | awk -F= '/^ii_[a-z0-9_]*=/{print}'
 }
 
 ii_var_filter_by_name() {
@@ -38,14 +44,14 @@ ii_var_print_named_view() {
 ii_var_print_cred_view() {
   ii_var_lines_from_tmux \
     | awk -F= '
-        /^II_(USER|PASSWD|HASH)[0-9]*=/ {
+        /^ii_(user|passwd|hash)[0-9]*=/ {
           name = $1
-          sub(/^II_/, "", name)
+          sub(/^ii_/, "", name)
           rank = 0
-          if (name ~ /^PASSWD/) rank = 1
-          if (name ~ /^HASH/) rank = 2
+          if (name ~ /^passwd/) rank = 1
+          if (name ~ /^hash/) rank = 2
           suffix = name
-          sub(/^(USER|PASSWD|HASH)/, "", suffix)
+          sub(/^(user|passwd|hash)/, "", suffix)
           if (suffix == "") suffix = 0
           print suffix "\t" rank "\t" $0
         }
@@ -99,24 +105,26 @@ ii_var_print_list() {
 }
 
 ii_var_default_names() {
-  print DOMAIN
-  print LHOST
-  print RHOST
-  print LPORT
-  print RPORT
-  print USER1
-  print PASSWD1
-  print HASH1
-  print USER2
-  print PASSWD2
-  print HASH2
+  print domain
+  print lhost
+  print rhost
+  print lport
+  print rport
+  print user
+  print passwd
+  print user1
+  print passwd1
+  print hash1
+  print user2
+  print passwd2
+  print hash2
 }
 
 ii_var_set_candidates() {
   {
     ii_var_default_names
-    ii_var_lines_from_tmux | awk -F= '{sub(/^II_/, "", $1); print toupper($1)}'
-  } | awk 'NF && !seen[toupper($0)]++ {print toupper($0)}'
+    ii_var_lines_from_tmux | awk -F= '{sub(/^ii_/, "", $1); print tolower($1)}'
+  } | awk 'NF && !seen[tolower($0)]++ {print tolower($0)}'
 }
 
 ii_var_match_candidate() {
@@ -161,7 +169,7 @@ ii_var_get_entries_for_fzf() {
     [[ -n "$line" ]] || continue
     name="${line%%=*}"
     value="${line#*=}"
-    name="${name#II_}"
+    name="${name#ii_}"
     preview="$(ii_one_line_preview "$value" 72)"
     print -r -- "$name"$'\t'"$preview"$'\t'"$line"
   done
@@ -219,7 +227,7 @@ ii_var_entries_for_fzf() {
   local name line value preview overflow
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
-    line="$(ii_var_line_by_name "II_${name}")"
+    line="$(ii_var_line_by_name "ii_${name}")"
     value=""
     [[ -n "$line" ]] && value="${line#*=}"
     preview="$(ii_one_line_preview "$value" 72)"
@@ -231,37 +239,60 @@ ii_var_entries_for_fzf() {
 }
 
 ii_var_display_lines_for_fzf() {
-  sed 's/^II_//'
+  sed 's/^ii_//'
 }
 
 ii_var_display_line() {
   local line="$1"
-  print -r -- "${line#II_}"
+  print -r -- "${line#ii_}"
 }
 
 ii_var_line_from_display() {
   local line="$1"
-  [[ "$line" == II_* ]] || line="II_${line}"
+  [[ "$line" == ii_* ]] || line="ii_${line}"
   print -r -- "$line"
 }
 
 ii_var_shell_name() {
   local name="$1"
-  print -r -- "${name#II_}"
+  print -r -- "${name#ii_}"
+}
+
+ii_var_export_case() {
+  local export_case="${II_EXPORT_CASE:-lower}"
+  case "${(L)export_case}" in
+    lower|upper|both) print -r -- "${(L)export_case}" ;;
+    *)
+      print -u2 "ii: invalid II_EXPORT_CASE: $export_case"
+      print -u2 "ii: valid values are lower, upper, both"
+      return 1
+      ;;
+  esac
 }
 
 ii_export_var_line() {
   local line="$1"
   local name="${line%%=*}"
   local value="${line#*=}"
-  local shell_name
+  local shell_name export_case
 
-  if [[ ! "$name" =~ '^II_[A-Z_][A-Z0-9_]*$' ]]; then
+  if [[ ! "$name" =~ '^ii_[a-z_][a-z0-9_]*$' ]]; then
     print -u2 "ii: refusing to export invalid variable line: $line"
     return 1
   fi
 
   shell_name="$(ii_var_shell_name "$name")"
-  typeset -gx "${shell_name}=${value}"
-  typeset -gx "${(L)shell_name}=${value}"
+  export_case="$(ii_var_export_case)" || return
+  case "$export_case" in
+    lower)
+      typeset -gx "${shell_name}=${value}"
+      ;;
+    upper)
+      typeset -gx "${(U)shell_name}=${value}"
+      ;;
+    both)
+      typeset -gx "${shell_name}=${value}"
+      typeset -gx "${(U)shell_name}=${value}"
+      ;;
+  esac
 }

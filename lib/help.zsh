@@ -22,10 +22,10 @@ usage: ii COMMAND [ARGS]
 
 Commands:
   set|s NAME VALUE       Set a variable in tmux and this shell
-  set|s -d [IFACE]       Detect LHOST from an interface, default tun0
+  set|s -d [IFACE]       Detect lhost from an interface, default tun0
   set|s [FILTER]         Select a variable and set its value
   s:FILTER               Shortcut form of ii s FILTER
-  get|g FILTER           Print one tmux variable value
+  get|g FILTER           Copy and print one tmux variable value
   g:FILTER               Shortcut form of ii g FILTER
   load|l                 Load variables into this shell
   clip backend           Show or set clipboard backend
@@ -33,8 +33,8 @@ Commands:
   interactive|i          Select, edit, delete, add, and copy variables
   ls [PATTERN]           List non-empty variables, optionally filtered by key
   payload|p [CATEGORY]   Select, render, copy, and print a payload
-  unset|u NAME [...]     Remove II_ variables
-  unset|u -a             Prompt, then remove all II_ variables
+  unset|u NAME [...]     Remove ii_ variables
+  unset|u -a             Prompt, then remove all ii_ variables
   help|h [COMMAND]       Show help
 EOF
 }

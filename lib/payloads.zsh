@@ -6,8 +6,8 @@ ii_cmd_payload() {
 usage: ii payload [CATEGORY]
        ii p [CATEGORY]
 
-Open the payload selector, render the selected template with fresh II_
-variables from the tmux session, copy the result, and print the output.
+Open the payload selector, render the selected template with fresh tmux
+variables, copy the result, and print the output.
 The selector shows a single-line rendered preview in the list and a full
 selected preview at the bottom. A first-line "# description: ..." metadata line
 is shown in preview but omitted from copied output.
@@ -121,10 +121,11 @@ ii_payload_render() {
   local rendered
   rendered="$(ii_payload_body "$payload_path")"
 
-  local var line value label fallback
+  local var name line value label fallback
   while IFS= read -r var; do
     [[ -n "$var" ]] || continue
-    line="$(ii_var_lines_from_tmux | awk -F= -v name="$var" '$1 == name {print; exit}')"
+    name="$(ii_var_name_from_payload_var "$var")" || return
+    line="$(ii_var_lines_from_tmux | awk -F= -v name="$name" '$1 == name {print; exit}')"
     value="${line#*=}"
     if [[ -n "$line" && -n "$value" ]]; then
       fallback="$value"
@@ -188,12 +189,13 @@ ii_payload_required_vars() {
 
 ii_payload_print_used_vars() {
   local payload_path="$1"
-  local var line value label
+  local var name line value label
 
   while IFS= read -r var; do
     [[ -n "$var" ]] || continue
     label="${var#II_}"
-    line="$(ii_var_lines_from_tmux | awk -F= -v name="$var" '$1 == name {print; exit}')"
+    name="$(ii_var_name_from_payload_var "$var")" || return
+    line="$(ii_var_lines_from_tmux | awk -F= -v name="$name" '$1 == name {print; exit}')"
     value="${line#*=}"
     if [[ -z "$line" || -z "$value" ]]; then
       value="\$${(L)label}"

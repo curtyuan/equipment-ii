@@ -43,25 +43,25 @@ The primary constraints:
 There are two separate variable states:
 
 ```text
-tmux session environment = source of truth shared by all panes, internally II_ prefixed
-current shell environment = local state for the current pane, without II_ prefix
+tmux session environment = source of truth shared by all panes, internally ii_ prefixed
+current shell environment = local state for the current pane, without ii_ prefix
 ```
 
 Command behavior follows this model:
 
 ```text
-ii s   writes internal II_ names to tmux and unprefixed names to current shell
-ii g   reads one internal II_ value from tmux and prints it
-ii l   loads tmux session values into current shell without II_ prefix
-ii ls  reads non-empty tmux session values and displays them without II_ prefix
+ii s   writes internal ii_ names to tmux and unprefixed names to current shell
+ii g   reads one internal ii_ value from tmux, copies it, and prints it
+ii l   loads tmux session values into current shell without ii_ prefix
+ii ls  reads non-empty tmux session values and displays them without ii_ prefix
 ii i   reads tmux session values, then copies selected variable values
 ii p   reads tmux session values directly while rendering
 ```
 
-`ii s` and `ii l` export both uppercase and lowercase shell names. A pane that
-has loaded values keeps a prompt-time sync hook enabled so prompt integrations
-that rewrite lowercase names such as `lhost` do not immediately override loaded
-tmux values.
+`ii s` and `ii l` export lowercase shell names by default. `II_EXPORT_CASE`
+can be set to `lower`, `upper`, or `both`. A pane that has loaded values keeps
+a prompt-time sync hook enabled so prompt integrations do not immediately
+override loaded tmux values.
 
 This distinction is required:
 
@@ -171,13 +171,13 @@ ii s -d
 Behavior:
 
 ```text
-1. Normalize NAME into II_NAME.
-   Names are canonicalized to uppercase, so user2 and USER2 both become II_USER2.
+1. Normalize NAME into ii_name.
+   Names are canonicalized to lowercase, so user2 and USER2 both become ii_user2.
 2. Validate the normalized variable name.
-3. Store II_NAME=VALUE in the current tmux session environment.
-4. Export uppercase and lowercase shell variables into the current shell.
+3. Store ii_name=VALUE in the current tmux session environment.
+4. Export shell variables into the current shell according to II_EXPORT_CASE.
 5. Enable loaded-variable sync for the current shell.
-6. Print NAME=VALUE without the internal II_ prefix.
+6. Print name=VALUE without the internal ii_ prefix.
 ```
 
 Example:
@@ -192,22 +192,18 @@ ii s RPORT 80
 Stored values:
 
 ```text
-II_LHOST=192.168.45.192
-II_LPORT=443
-II_RHOST=192.168.201.175
-II_RPORT=80
+ii_lhost=192.168.45.192
+ii_lport=443
+ii_rhost=192.168.201.175
+ii_rport=80
 ```
 
 User-facing shell values:
 
 ```text
-LHOST=192.168.45.192
 lhost=192.168.45.192
-LPORT=443
 lport=443
-RHOST=192.168.201.175
 rhost=192.168.201.175
-RPORT=80
 rport=80
 ```
 
@@ -222,10 +218,10 @@ ii l
 Behavior:
 
 ```text
-1. Read all II_ variables from the current tmux session.
+1. Read all ii_ variables from the current tmux session.
 2. Validate each variable name before export.
-3. Export each variable into the current shell without the II_ prefix.
-   Both uppercase and lowercase shell names are exported.
+3. Export each variable into the current shell without the ii_ prefix.
+   II_EXPORT_CASE controls whether lower, upper, or both names are exported.
 4. Do not export default variable names that have not been assigned values.
 5. Enable loaded-variable sync for the current shell.
 6. Print the number of loaded variables.
@@ -255,7 +251,7 @@ ii i
 Behavior:
 
 ```text
-1. Read configured II_ variables from tmux.
+1. Read configured ii_ variables from tmux.
 2. Merge them with default variable names.
 3. Present names in fzf with a single-line value preview.
 4. Show the selected variable value in a bottom preview pane.
@@ -283,7 +279,7 @@ This command is a variable copy/add layer, not a shell loading layer. Use
 Behavior:
 
 ```text
-1. Read all II_ variables from tmux.
+1. Read all ii_ variables from tmux.
 2. Skip empty values.
 3. If PATTERN is omitted, print every non-empty variable.
 4. If PATTERN is present, filter by key name only, case-insensitively.
@@ -322,7 +318,7 @@ Expected fallback filtering:
 
 ```text
 ii ls port   matches LPORT and RPORT
-ii ls 443    does not match LPORT=443 unless the variable name contains 443
+ii ls 443    does not match lport=443 unless the variable name contains 443
 ```
 
 ### `ii payload [CATEGORY]`
@@ -405,7 +401,7 @@ ctrl-q  quit
 Behavior:
 
 ```text
-1. Normalize each NAME into II_NAME.
+1. Normalize each NAME into ii_name.
 2. Remove the variable from the current tmux session.
 3. Unset the variable in the current shell.
 4. Print each unset variable.
@@ -416,10 +412,10 @@ Behavior:
 Behavior:
 
 ```text
-1. Prompt before deleting all II_ variables in the current tmux session.
+1. Prompt before deleting all ii_ variables in the current tmux session.
 2. Continue only when the answer is exactly y.
-3. Remove every II_ variable from the current tmux session.
-4. Unset matching uppercase and lowercase shell variables.
+3. Remove every ii_ variable from the current tmux session.
+4. Unset matching lowercase and uppercase shell variables.
 5. Print the number of removed variables.
 ```
 
@@ -502,7 +498,7 @@ Input:
 
 ```text
 selected payload file
-current tmux session II_ variables
+current tmux session ii_ variables
 ```
 
 Output:
@@ -590,17 +586,17 @@ Responsibilities:
 ii_var_normalize_name:
   - Strip leading "export ".
   - Strip anything after "=".
-  - Uppercase the name.
-  - Add II_ prefix when missing.
-  - Validate against II_[A-Z_][A-Z0-9_]*.
+  - Lowercase the name.
+  - Add ii_ prefix when missing.
+  - Validate against ii_[a-z_][a-z0-9_]*.
 
 ii_var_lines_from_tmux:
   - Read tmux show-environment.
-  - Return only II_ assignments.
+  - Return only ii_ assignments.
 
 ii_export_var_line:
   - Validate NAME before export.
-  - Export NAME=VALUE and lowercase name=value into current shell.
+  - Export lowercase, uppercase, or both names according to II_EXPORT_CASE.
   - Use global exported assignment so existing shell variables are overwritten.
 
 ii_enable_loaded_var_sync:
@@ -609,11 +605,11 @@ ii_enable_loaded_var_sync:
     rewrite lowercase names are corrected before the next command.
 
 ii_var_display_lines_for_fzf:
-  - Convert II_LHOST=... to LHOST=... for TUI display.
+  - Convert ii_lhost=... to lhost=... for TUI display.
   - Do not change tmux storage format.
 
 ii_var_line_from_display:
-  - Convert selected LHOST=... back to II_LHOST=... before export.
+  - Convert selected lhost=... back to ii_lhost=... before export.
 ```
 
 Do not export arbitrary tmux environment lines.

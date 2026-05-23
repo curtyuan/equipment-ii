@@ -71,6 +71,8 @@ Responsibilities:
 - Resolve the plugin root path.
 - Set `II_PLUGIN_DIR` to the plugin root when unset.
 - Set `II_PAYLOAD_DIR` to `${II_PLUGIN_DIR}/payloads` when unset.
+- Set `II_CONFIG_FILE` to `~/.config/ii/ii.conf` when unset, and source it
+  when readable.
 - Source each implementation layer.
 - Avoid exposing path setup variables after loading.
 
@@ -121,8 +123,8 @@ Variable data helpers.
 
 Responsibilities:
 
-- Normalize user names like `LHOST` into `II_LHOST`.
-- List, filter, and format `II_` variables.
+- Normalize user names like `LHOST` into `ii_lhost`.
+- List, filter, and format `ii_` variables.
 - Export safe `NAME=VALUE` lines into the current shell.
 - Enable loaded-variable prompt sync after `ii s` or `ii l`.
 - Build default variable candidates for interactive commands.
@@ -143,8 +145,8 @@ Tmux session variable commands.
 
 Responsibilities:
 
-- Set, load, print, and unset `II_` variables.
-- Get one tmux variable value without copying or shell loading.
+- Set, load, print, and unset `ii_` variables.
+- Get one tmux variable value through the copy layer without shell loading.
 - Keep command help and argument validation close to command entrypoints.
 
 Commands:
@@ -205,7 +207,7 @@ Render boundary:
 ```text
 Input:
   - selected payload file
-  - tmux session II_ variables
+  - tmux session `ii_` variables
 
 Output:
   - rendered payload text
@@ -335,10 +337,10 @@ current shell environment = local state for one pane
 
 `ii s` writes to both tmux and the current shell.
 
-`ii l` copies tmux `II_` values into the current shell without the internal
-prefix. It exports both uppercase and lowercase shell variables and enables a
-prompt-time sync hook so prompt integrations do not immediately overwrite loaded
-lowercase values.
+`ii l` copies tmux `ii_` values into the current shell without the internal
+prefix. `II_EXPORT_CASE` controls whether exported shell variables are lower,
+upper, or both; the default is lower. It enables a prompt-time sync hook so
+prompt integrations do not immediately overwrite loaded values.
 
 `ii i` copies selected variable values through the copy layer. It does not load
 variables into the current shell.
@@ -353,9 +355,9 @@ Keep these responsibilities separate:
 
 ```text
 variable loading layer:
-  - read tmux II_ values
+  - read tmux ii_ values
   - validate names
-  - strip II_ only for variable TUI display
+  - strip ii_ only for variable TUI display
   - export all values into current shell through ii l
   - keep loaded values synchronized after prompt hooks run
 
@@ -367,11 +369,12 @@ fuzzy search layer:
 
 payload render layer:
   - read selected template
-  - read tmux II_ values fresh
+  - read tmux ii_ values fresh
   - return rendered text
 
 copy layer:
   - receive selected variable values from ii i
+  - receive selected variable values from ii g
   - receive rendered text
   - copy via configured or detected backend
   - avoid breaking inside tmux

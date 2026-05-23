@@ -1,4 +1,4 @@
-# II_ variable commands.
+# ii_ variable commands.
 
 ii_cmd_set() {
   if [[ "${1:-}" == "--help" ]]; then
@@ -14,16 +14,16 @@ usage: ii set NAME VALUE
        ii s:FILTER
 
 Set NAME in the current tmux session and export it into this shell.
-The current shell export uses NAME without the internal II_ prefix.
+The current shell export uses NAME without the internal ii_ prefix.
 
 With no arguments, open a TUI to choose a variable and type its value.
 With one FILTER argument, match variable names before prompting for a value.
 No matches prints "no matched"; multiple matches prompt for variable selection.
-Single-letter shortcuts include r for RHOST, l for LHOST, and d for DOMAIN.
+Single-letter shortcuts include r for rhost, l for lhost, and d for domain.
 
--d means detect. It is only supported for LHOST and detects the IPv4 address
-from INTERFACE. The default INTERFACE is tun0. Loaded values overwrite both
-uppercase and lowercase shell variables.
+-d means detect. It is only supported for lhost and detects the IPv4 address
+from INTERFACE. The default INTERFACE is tun0. II_EXPORT_CASE controls whether
+exported shell variables use lower, upper, or both cases.
 EOF
     return 0
   fi
@@ -34,7 +34,7 @@ EOF
   fi
 
   if [[ "$1" == "-d" ]]; then
-    set -- LHOST "$@"
+    set -- lhost "$@"
   fi
 
   if [[ $# -eq 1 ]]; then
@@ -63,8 +63,8 @@ EOF
   name="$(ii_var_normalize_name "$(ii_var_shortcut_filter "$1")")" || return
   shift
   if [[ "${1:-}" == "-d" ]]; then
-    if [[ "$name" != "II_LHOST" ]]; then
-      print -u2 "ii: -d is only supported for LHOST"
+    if [[ "$name" != "ii_lhost" ]]; then
+      print -u2 "ii: -d is only supported for lhost"
       return 2
     fi
     shift
@@ -87,9 +87,9 @@ usage: ii get FILTER
        ii g FILTER
        ii g:FILTER
 
-Print a variable value from the current tmux session.
+Get a variable value from the current tmux session, copy it, and print it.
 FILTER matches variable names case-insensitively, with the same shortcut
-handling as ii set. No matches prints "no matched". One match prints the value.
+handling as ii set. No matches prints "no matched". One match copies the value.
 Multiple matches open a prompt; Enter or Space selects one value. q, Esc, or
 Ctrl-C aborts without changing variables or copying anything.
 EOF
@@ -108,7 +108,7 @@ EOF
     return 2
   fi
 
-  local filter matches count selected line
+  local filter matches count selected line value
   filter="$(ii_var_shortcut_filter "$1")"
   matches="$(ii_var_get_matches "$filter")"
   count="$(print -r -- "$matches" | awk 'NF {count++} END {print count + 0}')"
@@ -129,7 +129,16 @@ EOF
   esac
 
   [[ -n "$line" ]] || return
-  print -r -- "${line#*=}"
+  value="${line#*=}"
+
+  if ii_clip_copy "$value"; then
+    print "value copied successfully"
+  else
+    print "value selected; clipboard copy failed"
+  fi
+
+  print
+  print -r -- "$value"
 }
 
 ii_cmd_load() {
@@ -139,8 +148,9 @@ usage: ii load
        ii l
 
 Load non-empty variables from the current tmux session into this shell.
-The current shell exports use names without the internal II_ prefix.
-Both uppercase and lowercase shell names are overwritten.
+The current shell exports use names without the internal ii_ prefix.
+II_EXPORT_CASE controls exported shell names: lower, upper, or both.
+The default is lower.
 EOF
     return 0
   fi
@@ -183,8 +193,8 @@ ii_cmd_unset() {
 usage: ii unset NAME [NAME...]
        ii unset -a
 
-Remove II_NAME from the current tmux session and unset it in this shell.
-With -a, remove all II_ variables after confirmation.
+Remove ii_name from the current tmux session and unset it in this shell.
+With -a, remove all ii_ variables after confirmation.
 EOF
     [[ "${1:-}" == "--help" ]] && return 0
     return 2
@@ -204,7 +214,7 @@ EOF
     tmux set-environment -u "$name" 2>/dev/null
     unset "$name"
     unset "$shell_name"
-    unset "${(L)shell_name}"
+    unset "${(U)shell_name}"
     print "unset $shell_name"
   done
 }
@@ -212,7 +222,7 @@ EOF
 ii_cmd_unset_all() {
   local answer line name shell_name count=0
 
-  printf 'unset all II_ variables in this tmux session? [y/N] '
+  printf 'unset all ii_ variables in this tmux session? [y/N] '
   read -r answer
   [[ "$answer" == "y" ]] || { print "aborted"; return 1; }
 
@@ -223,7 +233,7 @@ ii_cmd_unset_all() {
     tmux set-environment -u "$name" 2>/dev/null
     unset "$name"
     unset "$shell_name"
-    unset "${(L)shell_name}"
+    unset "${(U)shell_name}"
     print "unset $shell_name"
     (( count++ ))
   done < <(ii_var_lines_from_tmux)

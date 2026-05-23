@@ -1,7 +1,7 @@
 # ii
 
 `ii` is a zsh plugin for tmux-scoped workflow variables and payload rendering.
-It stores shared variables in the current tmux session with an internal `II_`
+It stores shared variables in the current tmux session with an internal `ii_`
 prefix, lets each pane load values when needed, and renders payload templates
 from fresh tmux values.
 
@@ -70,9 +70,9 @@ echo $II_PAYLOAD_DIR
 Run inside tmux:
 
 ```zsh
-ii s LHOST 192.168.45.192
-ii s LPORT 443
-ii s DOMAIN example.test
+ii s lhost 192.168.45.192
+ii s lport 443
+ii s domain example.test
 
 ii ls
 ii i
@@ -84,9 +84,9 @@ ii p linux
 | Command | Short form | Purpose |
 | --- | --- | --- |
 | `ii set NAME VALUE` | `ii s NAME VALUE` | Set a tmux variable and export it into this shell |
-| `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect LHOST from an interface |
+| `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface |
 | `ii set [FILTER]` | `ii s [FILTER]`, `ii s:FILTER` | Select or match a variable before setting it |
-| `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Print one tmux variable value |
+| `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value |
 | `ii load` | `ii l` | Load non-empty tmux variables into this shell |
 | `ii clip backend` | | Show or set clipboard backend |
 | `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
@@ -94,16 +94,37 @@ ii p linux
 | `ii ls [PATTERN]` | | List non-empty tmux variables, optionally filtered by key |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, and print a payload |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove variables from tmux and this shell |
-| `ii unset -a` | `ii u -a` | Prompt, then remove all `II_` variables |
+| `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables |
 | `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
 
 ## Common Configuration
+
+`ii` reads this config file automatically when it exists:
+
+```text
+~/.config/ii/ii.conf
+```
+
+To use another path, set it in `.zshrc` before sourcing `ii.plugin.zsh`:
+
+```zsh
+export II_CONFIG_FILE="$HOME/.config/ii/work.conf"
+source "$HOME/.config/zsh/plugin/ii/ii.plugin.zsh"
+```
 
 Bundled payloads work without extra configuration. Override the payload
 directory only if you keep payloads somewhere else:
 
 ```zsh
 export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
+```
+
+Shell export case for `ii set` and `ii load` defaults to lowercase:
+
+```zsh
+export II_EXPORT_CASE=lower
+export II_EXPORT_CASE=upper
+export II_EXPORT_CASE=both
 ```
 
 Clipboard overrides:
@@ -125,6 +146,7 @@ runtime-only and does not export `II_CLIP_BACKEND`.
 | --- | --- | --- |
 | Usage guide | [doc/usage.md](doc/usage.md) | Command behavior, variables, `ii i`, payload templates, and payload categories |
 | Clipboard behavior | [doc/clipboard.md](doc/clipboard.md) | OSC52, tmux buffer copy, `xclip-both`, VMware/Kali notes, and troubleshooting |
+| ii config example | [doc/conf/ii.conf](doc/conf/ii.conf) | Shell export case values for loaded variables |
 | tmux clipboard example | [doc/conf/tmux.conf](doc/conf/tmux.conf) | Minimal tmux settings related to `ii` clipboard behavior |
 | Architecture | [doc/architecture.md](doc/architecture.md) | Entrypoint, layer responsibilities, state model, and development boundaries |
 | Testing | [doc/testing.md](doc/testing.md) | Syntax checks, tmux smoke tests, cross-pane tests, and regression scenarios |

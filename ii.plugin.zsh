@@ -5,6 +5,11 @@ ii_plugin_dir="${${(%):-%x}:A:h}"
 
 typeset -g II_PLUGIN_DIR="${II_PLUGIN_DIR:-$ii_plugin_dir}"
 typeset -g II_PAYLOAD_DIR="${II_PAYLOAD_DIR:-${II_PLUGIN_DIR}/payloads}"
+typeset -g II_CONFIG_FILE="${II_CONFIG_FILE:-${HOME}/.config/ii/ii.conf}"
+
+if [[ -r "$II_CONFIG_FILE" ]]; then
+  source "$II_CONFIG_FILE"
+fi
 
 source "${ii_plugin_dir}/lib/tmux.zsh"
 source "${ii_plugin_dir}/lib/clipboard.zsh"

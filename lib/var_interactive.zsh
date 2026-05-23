@@ -138,7 +138,7 @@ ii_cmd_interactive_add_variable() {
   if [[ -v II_ADD_VALUE_FILTER ]]; then
     value="$II_ADD_VALUE_FILTER"
   else
-    value="$(ii_fzf_input_value "" --prompt="${name#II_} value> " --height=40% --border)" || return
+    value="$(ii_fzf_input_value "" --prompt="${name#ii_} value> " --height=40% --border)" || return
   fi
 
   ii_var_set_tmux_only "$name" "$value" || return
@@ -154,7 +154,7 @@ ii_cmd_interactive_edit_variable() {
   if [[ -v II_EDIT_VALUE_FILTER ]]; then
     value="$II_EDIT_VALUE_FILTER"
   else
-    edited="$(print -r -- "$current" | fzf -i --print-query --phony --query="$current" --prompt="${name#II_} value> " --height=40% --border)" || return
+    edited="$(print -r -- "$current" | fzf -i --print-query --phony --query="$current" --prompt="${name#ii_} value> " --height=40% --border)" || return
     value="$(print -r -- "$edited" | awk 'NR == 1 {print; exit}')"
   fi
 
@@ -170,7 +170,7 @@ ii_cmd_interactive_delete_variable() {
   tmux set-environment -u "$name" 2>/dev/null
   unset "$name"
   unset "$shell_name"
-  unset "${(L)shell_name}"
+  unset "${(U)shell_name}"
   print "unset $shell_name"
 }
 

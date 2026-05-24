@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate version tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(<VERSION)"
+          tag="${GITHUB_REF_NAME#v}"
+          if [[ "$version" != "$tag" ]]; then
+            printf 'VERSION (%s) must match tag (%s)\n' "$version" "$tag" >&2
+            exit 1
+          fi
+
+      - name: Build deployment package
+        run: ./script/make
+
+      - name: Create archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(<VERSION)"
+          mkdir -p dist
+          tar -C export -czf "dist/ii-${version}.tar.gz" ii
+          (cd export && zip -qr "../dist/ii-${version}.zip" ii)
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

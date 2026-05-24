@@ -136,6 +136,7 @@ Interactive variable UI.
 Responsibilities:
 
 - Open fzf flows for variable selection, add, and edit.
+- Keep populated variables before empty default names in the selector.
 - Keep Enter/Ctrl-S/Ctrl-X/Ctrl-Y behavior isolated from command dispatch.
 - Store interactive edits in tmux without implicitly loading shell variables.
 
@@ -242,8 +243,9 @@ Responsibilities:
 - Prefer `II_CLIP_CMD` when configured.
 - Read clipboard settings from the shell first, then the tmux session
   environment.
-- Prefer OSC52 in SSH sessions when base64 is available.
-- Prefer `xclip-both` in local tmux sessions with `DISPLAY` and `xclip`.
+- Prefer OSC52 in active SSH sessions when base64 is available.
+- Prefer `xclip-both` in local tmux sessions with `DISPLAY` and `xclip`, even
+  when tmux still has stale SSH environment variables.
 - Prefer OSC52 in other tmux sessions when base64 is available.
 - Auto-detect common clipboard tools.
 - Fall back to tmux buffer when available.
@@ -363,6 +365,7 @@ variable loading layer:
 
 fuzzy search layer:
   - present candidate lines
+  - keep active variable entries near the initial cursor position
   - return selected lines
   - provide bottom preview hints
   - avoid mutating state

@@ -17,6 +17,7 @@ ii() {
     ls|list|variable|vars|var|v) ii_cmd_list "$@" ;;
     payload|p) ii_cmd_payload "$@" ;;
     unset|u) ii_cmd_unset "$@" ;;
+    version|-v|--version) ii_cmd_version "$@" ;;
     help|h|-h|--help) ii_cmd_help "$@" ;;
     *) print -u2 "ii: unknown command: $cmd"; ii_cmd_help; return 2 ;;
   esac

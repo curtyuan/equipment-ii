@@ -41,6 +41,8 @@ export/ii/
   lib/
   payloads/
   README.md
+  VERSION
+  RELEASE
 ```
 
 Copy it into your zsh plugin directory:
@@ -62,8 +64,38 @@ Reload and verify:
 ```zsh
 source ~/.zshrc
 type ii
+ii version
 echo $II_PAYLOAD_DIR
 ```
+
+## Versioning
+
+`VERSION` is the source of truth for releases and follows SemVer:
+
+```text
+MAJOR.MINOR.PATCH
+```
+
+Update the version with the dedicated version script:
+
+```zsh
+./script/version patch  # 0.1.0 -> 0.1.1
+./script/version minor  # 0.1.0 -> 0.2.0
+./script/version major  # 0.1.0 -> 1.0.0
+```
+
+Create a release by committing `VERSION` and pushing a matching tag:
+
+```zsh
+./script/version minor
+git add VERSION
+git commit -m "Release v0.2.0"
+git tag v0.2.0
+git push origin main --tags
+```
+
+The release workflow checks that the tag matches `VERSION`, builds `export/ii`,
+and publishes `ii-VERSION.tar.gz` plus `ii-VERSION.zip`.
 
 ## Quick Start
 
@@ -95,6 +127,7 @@ ii p linux
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, and print a payload |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables |
+| `ii version` | `ii -v`, `ii --version` | Show installed version |
 | `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
 
 ## Common Configuration
@@ -146,6 +179,7 @@ export `II_CLIP_BACKEND`.
 | Topic | File | Covers |
 | --- | --- | --- |
 | Usage guide | [doc/usage.md](doc/usage.md) | Command behavior, variables, `ii i`, payload templates, and payload categories |
+| Payload schema | [doc/payload-schema.md](doc/payload-schema.md) | Plain-text payload format, logical `$schema`, metadata, and renderable variables |
 | Clipboard behavior | [doc/clipboard.md](doc/clipboard.md) | OSC52, tmux buffer copy, `xclip-both`, VMware/Kali notes, and troubleshooting |
 | ii config example | [doc/conf/ii.conf](doc/conf/ii.conf) | Shell export case values for loaded variables |
 | tmux clipboard example | [doc/conf/tmux.conf](doc/conf/tmux.conf) | Minimal tmux settings related to `ii` clipboard behavior |

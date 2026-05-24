@@ -29,6 +29,7 @@ usage: ii interactive
 
 Select variables with fzf, edit values, and copy values.
 Default variable names are shown even before they have values.
+Variables with values are listed before empty default names.
 Select "add new variable" to create or update a variable.
 Enter edits the selected variable. Ctrl-S adds a new variable.
 Ctrl-X deletes the selected variable.
@@ -51,7 +52,7 @@ EOF
       ii_var_entries_for_fzf \
         | fzf -i --ansi --multi --expect=enter,ctrl-s,ctrl-x,ctrl-y --prompt='ii vars> ' --delimiter=$'\t' --with-nth=1,2,3 \
             --preview="zsh -fc 'source \"\$1\"; printf \"%s\" \"\$2\" | ii_fzf_print_preview_with_footer \$'\'' ^S Add          Enter Edit      Tab Mark        ^Y Copy\n ^X Delete       Esc Abort       Type Filter'\''' -- ${(q)plugin_file} {4..}" \
-            --preview-window='down:50%:wrap'
+            --preview-window='down,5,wrap,noinfo'
     )" || return
     [[ -n "$selected" ]] || return
 

@@ -108,8 +108,10 @@ ii_var_default_names() {
   print domain
   print lhost
   print rhost
+  print file
   print lport
   print rport
+  print mm
   print user
   print passwd
   print user1
@@ -224,7 +226,7 @@ ii_sync_loaded_vars_precmd() {
 }
 
 ii_var_entries_for_fzf() {
-  local name line value preview overflow
+  local name line value preview overflow entry populated_entries empty_entries
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
     line="$(ii_var_line_by_name "ii_${name}")"
@@ -233,8 +235,15 @@ ii_var_entries_for_fzf() {
     preview="$(ii_one_line_preview "$value" 72)"
     overflow=""
     [[ "$preview" != "$value" ]] && overflow=$'\033[31mmore\033[0m'
-    print -r -- "${name}"$'\t'"${preview}"$'\t'"${overflow}"$'\t'"${value}"
+    entry="${name}"$'\t'"${preview}"$'\t'"${overflow}"$'\t'"${value}"
+    if [[ -n "$value" ]]; then
+      populated_entries+="${entry}"$'\n'
+    else
+      empty_entries+="${entry}"$'\n'
+    fi
   done < <(ii_var_set_candidates)
+  [[ -n "$populated_entries" ]] && print -rn -- "$populated_entries"
+  [[ -n "$empty_entries" ]] && print -rn -- "$empty_entries"
   print -r -- "add new variable"$'\t'"Create or update a variable. Empty values are stored but skipped by ii load."$'\t\t'"Create or update a variable. Empty values are stored but skipped by ii load."
 }
 

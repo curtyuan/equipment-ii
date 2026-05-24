@@ -452,6 +452,32 @@ copied 1 variable value(s)
 loaded:/
 ```
 
+## Interactive Ordering Test
+
+This verifies that populated variables are listed before empty default names in
+the `ii i` selector source.
+
+```zsh
+tmux kill-session -t codex-ii-i-order 2>/dev/null || true
+tmux new-session -d -s codex-ii-i-order -x 120 -y 30 zsh
+tmux send-keys -t codex-ii-i-order "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-i-order "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-i-order "ii s rhost 10.0.0.8" Enter
+tmux send-keys -t codex-ii-i-order "ii s user alice" Enter
+tmux send-keys -t codex-ii-i-order "ii_var_entries_for_fzf | head -n 5" Enter
+sleep 2
+tmux capture-pane -t codex-ii-i-order -p -S -100
+tmux kill-session -t codex-ii-i-order
+```
+
+Expected signs:
+
+```text
+rhost
+user
+domain
+```
+
 ## Interactive Add Variable Test
 
 This verifies that `ii i` can create a new variable through the final add

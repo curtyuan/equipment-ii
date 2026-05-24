@@ -3,15 +3,34 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export_dir="${repo_dir}/export/ii"
+version_file="${repo_dir}/VERSION"
+
+if [[ ! -r "$version_file" ]]; then
+  printf 'missing VERSION file\n' >&2
+  exit 1
+fi
+
+version="$(<"$version_file")"
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+  printf 'invalid VERSION: %s\n' "$version" >&2
+  exit 1
+fi
 
 rm -rf "${export_dir}"
 mkdir -p "${export_dir}"
 
 cp "${repo_dir}/ii.plugin.zsh" "${export_dir}/"
 cp "${repo_dir}/README.md" "${export_dir}/"
+cp "${repo_dir}/VERSION" "${export_dir}/"
 cp -R "${repo_dir}/lib" "${export_dir}/"
 cp -R "${repo_dir}/payloads" "${export_dir}/"
 
 find "${export_dir}" -type f -name '.gitkeep' -delete
 
-printf 'exported ii deployment package to %s\n' "${export_dir}"
+printf 'ii %s\nbuilt_at=%s\ncommit=%s\n' \
+  "$version" \
+  "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+  "$(git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || printf unknown)" \
+  > "${export_dir}/RELEASE"
+
+printf 'exported ii %s deployment package to %s\n' "$version" "${export_dir}"

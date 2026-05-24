@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+version_file="${repo_dir}/VERSION"
+bump="${1:-}"
+
+usage() {
+  cat <<'EOF'
+usage: script/version patch|minor|major
+
+Update VERSION using SemVer rules:
+  patch  0.1.0 -> 0.1.1
+  minor  0.1.0 -> 0.2.0
+  major  0.1.0 -> 1.0.0
+EOF
+}
+
+if [[ "$bump" == "-h" || "$bump" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+case "$bump" in
+  patch|minor|major) ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac
+
+if [[ ! -r "$version_file" ]]; then
+  printf 'missing VERSION file\n' >&2
+  exit 1
+fi
+
+version="$(<"$version_file")"
+if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+  printf 'VERSION must be plain MAJOR.MINOR.PATCH: %s\n' "$version" >&2
+  exit 1
+fi
+
+major="${BASH_REMATCH[1]}"
+minor="${BASH_REMATCH[2]}"
+patch="${BASH_REMATCH[3]}"
+
+case "$bump" in
+  patch)
+    patch=$((patch + 1))
+    ;;
+  minor)
+    minor=$((minor + 1))
+    patch=0
+    ;;
+  major)
+    major=$((major + 1))
+    minor=0
+    patch=0
+    ;;
+esac
+
+new_version="${major}.${minor}.${patch}"
+printf '%s\n' "$new_version" > "$version_file"
+printf '%s -> %s\n' "$version" "$new_version"

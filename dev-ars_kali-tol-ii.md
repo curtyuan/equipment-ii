@@ -253,22 +253,23 @@ Behavior:
 ```text
 1. Read configured ii_ variables from tmux.
 2. Merge them with default variable names.
-3. Present names in fzf with a single-line value preview.
-4. Show the selected variable value in a bottom preview pane.
-5. Support case-insensitive fuzzy search.
-6. Enter edits the selected variable value.
-7. Ctrl-S prompts for a new variable name and value.
-8. Ctrl-X deletes the selected variable.
-9. Ctrl-Y copies selected existing variable values.
-10. Show `add new variable` as the final option.
-11. If `add new variable` is selected, prompt for a variable name and value.
+3. Present names in fzf with populated variables before empty default names.
+4. Show each name with a single-line value preview.
+5. Show the selected variable value in a compact bottom preview pane.
+6. Support case-insensitive fuzzy search.
+7. Enter edits the selected variable value.
+8. Ctrl-S prompts for a new variable name and value.
+9. Ctrl-X deletes the selected variable.
+10. Ctrl-Y copies selected existing variable values.
+11. Show `add new variable` as the final option.
+12. If `add new variable` is selected, prompt for a variable name and value.
    A name without a value stores an empty value.
-12. Support Tab multi-select.
-13. Copy selected existing variable values through the configured copy layer.
-14. Print the copied values.
-15. Do not export values into the current shell unless loaded-variable sync was
+13. Support Tab multi-select.
+14. Copy selected existing variable values through the configured copy layer.
+15. Print the copied values.
+16. Do not export values into the current shell unless loaded-variable sync was
     already enabled by `ii s` or `ii l` in that shell.
-16. Display a nano-style keys block at the bottom of the preview pane.
+17. Display a nano-style keys block at the bottom of the preview pane.
 ```
 
 This command is a variable copy/add layer, not a shell loading layer. Use
@@ -624,8 +625,9 @@ Current strategy:
 ```text
 1. If II_CLIP_BACKEND is set, use that named backend.
 2. If II_CLIP_CMD is set, pipe rendered payload to that command.
-3. Otherwise prefer OSC52 in SSH sessions when base64 is available.
-4. Otherwise prefer xclip-both in local tmux sessions with DISPLAY and xclip.
+3. Otherwise prefer OSC52 in active SSH sessions when base64 is available.
+4. Otherwise prefer xclip-both in local tmux sessions with DISPLAY and xclip,
+   even when tmux still has stale SSH environment variables.
 5. Otherwise prefer OSC52 inside tmux when base64 is available.
 6. Otherwise auto-detect clip.exe, wl-copy, xclip, xsel, pbcopy.
 7. If no clipboard tool is found inside tmux, pipe to tmux load-buffer -.

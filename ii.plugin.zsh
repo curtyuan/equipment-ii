@@ -19,6 +19,7 @@ source "${ii_plugin_dir}/lib/var_interactive.zsh"
 source "${ii_plugin_dir}/lib/vars.zsh"
 source "${ii_plugin_dir}/lib/payloads.zsh"
 source "${ii_plugin_dir}/lib/help.zsh"
+source "${ii_plugin_dir}/lib/version.zsh"
 source "${ii_plugin_dir}/lib/core.zsh"
 
 unset ii_plugin_dir

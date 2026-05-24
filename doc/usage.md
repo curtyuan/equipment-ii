@@ -145,8 +145,9 @@ ii ls l
 ## Interactive Variables
 
 `ii i` shows common variable names even when they do not have values yet. The
-fzf list shows names with a one-line value preview, and the selected value
-appears in the bottom preview.
+fzf list shows names with a one-line value preview. Variables with values are
+listed before empty default names, so the cursor starts near active entries.
+The selected value appears in a compact bottom preview.
 
 Keys:
 
@@ -203,6 +204,17 @@ Files under `payloads/script/` are for custom scripts. They may use
 `${II_NAME}` placeholders, or they may use literal shell variables such as
 `$rhost`. When no renderable `${II_*}` placeholder is present, `ii p` copies the
 script text as-is.
+
+Payload files use a small plain-text schema:
+
+```text
+# description: optional operator-facing description
+payload body with ${II_NAME} placeholders or literal lowercase shell variables
+```
+
+For documentation and tooling, the logical payload object includes `$schema`,
+`path`, `description`, `body`, and `variables`. See
+[payload-schema.md](payload-schema.md).
 
 If a payload variable has not been assigned a non-empty tmux value, `ii p`
 renders a lowercase shell fallback such as `$rhost` so the copied command can

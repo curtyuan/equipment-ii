@@ -11,6 +11,7 @@ ii_cmd_help() {
       ls|list|variable|vars|var|v) ii_cmd_list --help ;;
       payload|p) ii_cmd_payload --help ;;
       unset|u) ii_cmd_unset --help ;;
+      version|-v|--version) ii_cmd_version --help ;;
       help|h) ii_cmd_help ;;
       *) print -u2 "ii: unknown help topic: $1"; return 2 ;;
     esac
@@ -35,6 +36,7 @@ Commands:
   payload|p [CATEGORY]   Select, render, copy, and print a payload
   unset|u NAME [...]     Remove ii_ variables
   unset|u -a             Prompt, then remove all ii_ variables
+  version                Show installed version
   help|h [COMMAND]       Show help
 EOF
 }

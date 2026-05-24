@@ -1,5 +1,9 @@
 # ii_ variable helper functions.
 
+ii_color_blue() {
+  print -r -- $'\033[34m'"$1"$'\033[0m'
+}
+
 ii_var_normalize_name() {
   local name="$1"
   name="${name#export }"
@@ -80,7 +84,9 @@ ii_var_print_name_value() {
   local line="$1"
   local name="${line%%=*}"
   local value="${line#*=}"
-  print "$(ii_var_shell_name "$name")"
+  local shell_name
+  shell_name="$(ii_var_shell_name "$name")"
+  print "$(ii_color_blue "$shell_name")"
   print -r -- "$value"
 }
 
@@ -98,9 +104,8 @@ ii_var_print_list() {
     if [[ -n "$lower_pattern" && "${(L)shell_name}" != *"$lower_pattern"* ]]; then
       continue
     fi
-    print -r -- "$shell_name"
+    print "$(ii_color_blue "$shell_name")"
     print -r -- "$value"
-    print
   done < <(ii_var_lines_from_tmux | sort)
 }
 

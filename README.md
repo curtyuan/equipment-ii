@@ -125,6 +125,7 @@ ii p linux
 | `ii interactive` | `ii i` | Select, edit, delete, add, and copy variables |
 | `ii ls [PATTERN]` | | List non-empty tmux variables, optionally filtered by key |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, and print a payload |
+| `ii p -input [--copy]` | | Render pasted input; optionally copy the result |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |

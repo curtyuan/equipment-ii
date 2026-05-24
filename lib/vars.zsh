@@ -176,7 +176,7 @@ usage: ii ls [PATTERN]
 
 Print non-empty variables from the current tmux session.
 PATTERN filters variable names only, case-insensitively.
-Output format is key, value, then a blank line.
+Output format is blue key, then value, without blank lines between entries.
 EOF
     return 0
   fi

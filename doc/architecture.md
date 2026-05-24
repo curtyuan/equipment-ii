@@ -125,6 +125,7 @@ Responsibilities:
 
 - Normalize user names like `LHOST` into `ii_lhost`.
 - List, filter, and format `ii_` variables.
+- Apply shared terminal colors for variable display keys.
 - Export safe `NAME=VALUE` lines into the current shell.
 - Enable loaded-variable prompt sync after `ii s` or `ii l`.
 - Build default variable candidates for interactive commands.
@@ -163,9 +164,12 @@ ii_cmd_unset
 Helpers:
 
 ```text
+ii_color_blue
 ii_var_normalize_name
 ii_var_lines_from_tmux
 ii_var_filter_by_name
+ii_var_print_name_value
+ii_var_print_list
 ii_export_var_line
 ```
 
@@ -179,6 +183,7 @@ Responsibilities:
 - List payload files as path-style selector entries.
 - Filter payloads by category or fuzzy prefilter.
 - Render `${II_NAME}` placeholders using fresh tmux session values.
+- Render pasted `-input` text with lowercase shell-style variables.
 - Display first-line `# description:` metadata in preview without copying it.
 - Keep description and keys independent from the payload body in fzf preview.
   Reserve the description block even when no description exists.
@@ -199,6 +204,7 @@ ii_payload_filter
 ii_payload_select_fzf
 ii_payload_path_for
 ii_payload_render
+ii_payload_render_input_text
 ii_payload_required_vars
 ii_payload_print_used_vars
 ```
@@ -217,6 +223,11 @@ Output:
 
 The render layer must not depend on the current pane's shell environment. This
 keeps cross-pane rendering correct when pane 2 has not run `ii l` yet.
+
+`ii p -input` is the exception: it intentionally checks the current shell first,
+then falls back to tmux session `ii_` variables. It leaves uppercase variables
+and PowerShell scope variables unchanged, supports `${name:t}` for trailing path
+components, and reports missing variables while rendering them as empty.
 
 Fuzzy boundary:
 

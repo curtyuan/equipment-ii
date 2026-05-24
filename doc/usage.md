@@ -124,12 +124,12 @@ prints it, but it does not modify variables or load values into the shell.
 Multiple matches open a prompt; Enter or Space selects and copies one value,
 while `q`, Esc, or Ctrl-C aborts without changing variables or copying anything.
 
-`ii ls` prints non-empty variables as key/value blocks:
+`ii ls` prints non-empty variables as key/value blocks. Keys are blue and
+entries are not separated by blank lines:
 
 ```text
 lhost
 192.168.45.192
-
 lport
 443
 ```
@@ -224,6 +224,24 @@ The payload selector shows a one-line rendered preview in the list. The selected
 payload preview reserves separate description and keys blocks around the body.
 A first-line `# description: ...` metadata line is shown in preview but omitted
 from copied output.
+
+Render pasted input:
+
+```zsh
+ii p -input
+ii p -input --copy
+```
+
+`ii p -input` reads until `EOF` is entered on its own line. It renders lowercase
+shell-style variables such as `$lhost`, `${file}`, and `${file:t}`. Current
+shell variables win; if the exact lowercase shell variable does not exist, ii
+falls back to the tmux session value. Missing variables render as empty and are
+reported in red. Shell-sourced variables are reported in blue.
+
+Uppercase variables are left unchanged. PowerShell scope variables such as
+`$env:`, `$script:`, `$global:`, `$local:`, and `$private:` are also left
+unchanged. The terminal output starts with a separator for tmux copy-mode, but
+`--copy` copies only the rendered body.
 
 Filter payloads by category:
 

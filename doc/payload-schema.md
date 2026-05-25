@@ -3,6 +3,9 @@
 Payload files are plain text templates under `II_PAYLOAD_DIR`. The selector
 entry is the file path relative to `II_PAYLOAD_DIR`.
 
+This schema covers stored payload files only. Pasted input rendering with
+`ii p --input` has separate rules documented in [usage.md](usage.md).
+
 For documentation and external tooling, treat each payload file as this logical
 object:
 

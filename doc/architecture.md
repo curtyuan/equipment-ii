@@ -149,6 +149,8 @@ Responsibilities:
 
 - Set, load, print, and unset `ii_` variables.
 - Get one tmux variable value through the copy layer without shell loading.
+- Print `ii ls` as dense key/value blocks with blue keys and no blank separator
+  lines.
 - Keep command help and argument validation close to command entrypoints.
 
 Commands:
@@ -183,7 +185,8 @@ Responsibilities:
 - List payload files as path-style selector entries.
 - Filter payloads by category or fuzzy prefilter.
 - Render `${II_NAME}` placeholders using fresh tmux session values.
-- Render pasted `-input` text with lowercase shell-style variables.
+- Render pasted `--input` text with lowercase shell-style variables.
+- Write rendered payload text to a requested output path.
 - Display first-line `# description:` metadata in preview without copying it.
 - Keep description and keys independent from the payload body in fzf preview.
   Reserve the description block even when no description exists.
@@ -224,7 +227,7 @@ Output:
 The render layer must not depend on the current pane's shell environment. This
 keeps cross-pane rendering correct when pane 2 has not run `ii l` yet.
 
-`ii p -input` is the exception: it intentionally checks the current shell first,
+`ii p --input` is the exception: it intentionally checks the current shell first,
 then falls back to tmux session `ii_` variables. It leaves uppercase variables
 and PowerShell scope variables unchanged, supports `${name:t}` for trailing path
 components, and reports missing variables while rendering them as empty.

@@ -8,7 +8,8 @@ from fresh tmux values.
 ```text
 tmux session environment = shared source across panes
 current shell environment = values directly usable in one pane
-payload renderer = reads fresh tmux session values
+payload file renderer = reads fresh tmux session values
+payload input renderer = reads current shell first, then tmux session values
 ```
 
 ## Requirements
@@ -123,9 +124,9 @@ ii p linux
 | `ii clip backend` | | Show or set clipboard backend |
 | `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
 | `ii interactive` | `ii i` | Select, edit, delete, add, and copy variables |
-| `ii ls [PATTERN]` | | List non-empty tmux variables, optionally filtered by key |
-| `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, and print a payload |
-| `ii p -input [--copy]` | | Render pasted input; optionally copy the result |
+| `ii ls [PATTERN]` | | List non-empty tmux variables as compact key/value blocks |
+| `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, print, and optionally write a payload |
+| `ii p --input [--copy] [-o [PATH]]` | | Render pasted input; optionally copy or write the result |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
@@ -179,7 +180,7 @@ export `II_CLIP_BACKEND`.
 
 | Topic | File | Covers |
 | --- | --- | --- |
-| Usage guide | [doc/usage.md](doc/usage.md) | Command behavior, variables, `ii i`, payload templates, and payload categories |
+| Usage guide | [doc/usage.md](doc/usage.md) | Command behavior, variables, `ii i`, payload files, pasted input rendering, and payload categories |
 | Payload schema | [doc/payload-schema.md](doc/payload-schema.md) | Plain-text payload format, logical `$schema`, metadata, and renderable variables |
 | Clipboard behavior | [doc/clipboard.md](doc/clipboard.md) | OSC52, tmux buffer copy, `xclip-both`, VMware/Kali notes, and troubleshooting |
 | ii config example | [doc/conf/ii.conf](doc/conf/ii.conf) | Shell export case values for loaded variables |
@@ -198,5 +199,7 @@ ii help load
 ii help interactive
 ii help ls
 ii help payload
+ii help payload input
+ii help input
 ii help unset
 ```

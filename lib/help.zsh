@@ -35,14 +35,15 @@ Variables:
   get|g FILTER           Copy and print one tmux variable value
   g:FILTER               Shortcut form of ii g FILTER
   load|l                 Load variables into this shell
-  interactive|i          Select, edit, delete, add, and copy variables
+  interactive|i          Select, edit, add, and copy variables
   ls [PATTERN]           List non-empty variables, optionally filtered by key
   unset|u NAME [...]     Remove ii_ variables
   unset|u -a             Prompt, then remove all ii_ variables
 
 Payloads:
-  payload|p [CATEGORY]   Select, render, copy, and print a payload
+  payload|p [CATEGORY]   Select, render, print, and optionally write a payload
   payload|p --input      Render pasted input, optionally with --copy or -o
+  payload|p -www         List, search, or symlink files under /www
 
 Clipboard:
   clip backend           Show or set clipboard backend

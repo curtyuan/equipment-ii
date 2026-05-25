@@ -257,19 +257,17 @@ Behavior:
 4. Show each name with a single-line value preview.
 5. Show the selected variable value in a compact bottom preview pane.
 6. Support case-insensitive fuzzy search.
-7. Enter edits the selected variable value.
-8. Ctrl-S prompts for a new variable name and value.
-9. Ctrl-X deletes the selected variable.
-10. Ctrl-Y copies selected existing variable values.
+7. j/k moves selection.
+8. i edits the selected variable value.
+9. Enter edits the selected variable value, copies it, and closes.
+10. y copies the selected existing variable value without closing.
 11. Show `add new variable` as the final option.
 12. If `add new variable` is selected, prompt for a variable name and value.
    A name without a value stores an empty value.
-13. Support Tab multi-select.
-14. Copy selected existing variable values through the configured copy layer.
-15. Print the copied values.
-16. Do not export values into the current shell unless loaded-variable sync was
+13. Copy selected existing variable values through the configured copy layer.
+14. Do not export values into the current shell unless loaded-variable sync was
     already enabled by `ii s` or `ii l` in that shell.
-17. Display a nano-style keys block at the bottom of the preview pane.
+15. Display a vim-style keys and status block at the bottom of the preview pane.
 ```
 
 This command is a variable copy/add layer, not a shell loading layer. Use
@@ -336,17 +334,22 @@ Behavior:
 1. Resolve the payload library directory.
 2. Scan payload files and display path-style entries.
 3. Apply optional category filtering.
-4. Let fzf handle fuzzy search and selection with rendered payload preview.
-   The selector list includes a single-line rendered preview.
+4. Let fzf handle fuzzy search and selection with template payload preview.
+   The selector list includes path, a solid block delimiter, and a single-line
+   template preview that preserves original tokens and highlights renderable
+   tokens in green.
 5. Resolve the selected entry to a payload file.
 6. Render the template with fresh tmux II_ values.
    Missing or empty values render as lowercase shell fallbacks like $rhost.
-7. Copy the rendered payload.
-8. Print the rendered payload.
-9. Print variables used by the selected payload.
-10. Display description and keys as independent preview blocks so they stay
-    visible across payload sizes. Reserve the description block even when no
-    description exists.
+7. Print the rendered payload.
+8. Print variables used by the selected payload.
+10. Display description as an independent preview block and controls in the fzf
+    footer so they stay visible across payload sizes. Reserve the description
+    block even when no description exists.
+11. Let l unfold the selected script into a full preview. In unfolded mode,
+    hide and disable filtering while preserving j/k selection movement, y copy,
+    Enter render/output, and q abort. Let h return to the
+    searchable selector.
 ```
 
 Categories:
@@ -374,6 +377,10 @@ Payload files may start with a metadata line:
 The description is shown in a reserved description block above the preview body,
 but is omitted from copied and printed payload output. Payloads without a
 description still reserve the same block with an empty content line.
+
+Combo payloads under `script/combo/` may use `# stage:` metadata for multi-stage
+command groups; stage formatting is a presentation layer over normal payload
+rendering.
 
 First implementation supports argument-based category filtering:
 
@@ -552,17 +559,18 @@ Responsibilities:
 ```text
 ii i:
   - Input: default variable names plus II_ variable lines from tmux.
-  - UI: fzf with --multi.
+  - UI: fzf with vim-style movement and single-value actions.
   - Display: variable name, single-line value preview, and red "more" marker
     when the full value is longer than the displayed preview.
   - Preview: full selected value with a bottom keys block.
   - Output: selected display lines mapped back to names and values.
-  - Next layer: edit, delete, add, or copy behavior.
+  - Next layer: edit, add, or copy behavior.
 
 ii p:
   - Input: path-style payload entries.
-  - UI: fzf selector with single-line rendered preview plus independent
-    description and keys blocks in the bottom preview.
+  - UI: fzf selector with path, solid block delimiter, single-line
+    green-highlighted template preview, independent description preview block,
+    and sticky footer controls.
   - Output: one selected payload path.
   - Next layer: payload render.
 ```
@@ -699,10 +707,11 @@ Plugin-level settings:
 ```text
 II_PLUGIN_DIR   defaults to the plugin root directory
 II_PAYLOAD_DIR  defaults to ${II_PLUGIN_DIR}/payloads unless already set
+II_WWW_ROOT     defaults to /www unless already set
 ```
 
 Users only need to set `II_PAYLOAD_DIR` when they want an external payload
-library.
+library, or `II_WWW_ROOT` when their web root is not `/www`.
 
 Layer files:
 
@@ -713,8 +722,10 @@ lib/fzf.zsh         shared fzf input and preview helpers
 lib/var_helpers.zsh variable helpers and candidate generation
 lib/var_interactive.zsh interactive variable selection, add, and edit flows
 lib/vars.zsh        variable command entrypoints
+lib/www.zsh         /www tree, search, and symlink helpers
 lib/payloads.zsh    payload list, fuzzy selection, render, reports
 lib/help.zsh        help routing
+lib/version.zsh     version command
 lib/core.zsh        dispatcher and command functions
 ```
 
@@ -727,9 +738,11 @@ Load order:
 4. var_helpers.zsh
 5. var_interactive.zsh
 6. vars.zsh
-7. payloads.zsh
-8. help.zsh
-9. core.zsh
+7. www.zsh
+8. payloads.zsh
+9. help.zsh
+10. version.zsh
+11. core.zsh
 ```
 
 ## Deployment Package
@@ -772,14 +785,14 @@ Implemented:
 
 ```text
 - plugin entrypoint: ii.plugin.zsh
-- plugin-provided default II_PLUGIN_DIR and II_PAYLOAD_DIR
+- plugin-provided default II_PLUGIN_DIR, II_PAYLOAD_DIR, and II_WWW_ROOT
 - layered lib/ structure
 - ii dispatcher with short subcommands: s, l, i, v, p, h
 - tmux session variable source of truth
 - argument-based payload filtering
 - fzf payload and variable selection
-- nano-style fzf bottom shortcut hints
-- interactive variable edit, add, delete, and copy flows
+- vim-style fzf footer keys and copy status
+- interactive variable edit, add, and copy flows
 - fresh tmux-based payload rendering
 - payload description metadata
 - deterministic non-interactive fzf filter behavior

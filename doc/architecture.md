@@ -20,8 +20,10 @@ lib/
   var_helpers.zsh
   var_interactive.zsh
   vars.zsh
+  www.zsh
   payloads.zsh
   help.zsh
+  version.zsh
   core.zsh
 payloads/
   shell/
@@ -49,12 +51,15 @@ export/
 1. lib/tmux.zsh
 2. lib/clipboard.zsh
 3. lib/fzf.zsh
-4. lib/var_helpers.zsh
-5. lib/var_interactive.zsh
-6. lib/vars.zsh
-7. lib/payloads.zsh
-8. lib/help.zsh
-9. lib/core.zsh
+4. lib/interact.zsh
+5. lib/var_helpers.zsh
+6. lib/var_interactive.zsh
+7. lib/vars.zsh
+8. lib/www.zsh
+9. lib/payloads.zsh
+10. lib/help.zsh
+11. lib/version.zsh
+12. lib/core.zsh
 ```
 
 `core.zsh` is loaded last because it exposes the public dispatcher. The
@@ -71,6 +76,7 @@ Responsibilities:
 - Resolve the plugin root path.
 - Set `II_PLUGIN_DIR` to the plugin root when unset.
 - Set `II_PAYLOAD_DIR` to `${II_PLUGIN_DIR}/payloads` when unset.
+- Set `II_WWW_ROOT` to `/www` when unset.
 - Set `II_CONFIG_FILE` to `~/.config/ii/ii.conf` when unset, and source it
   when readable.
 - Source each implementation layer.
@@ -78,6 +84,11 @@ Responsibilities:
 
 This lets Kali deployments use bundled payloads without adding a separate
 `export II_PAYLOAD_DIR=...` line to `~/.zshrc`.
+
+Configuration belongs in `II_CONFIG_FILE`, not tmux. Tmux session environment is
+reserved for `ii_` workflow variables used by payload rendering across panes.
+Optional settings such as `II_PAYLOAD_DIR`, `II_WWW_ROOT`, and clipboard backend
+selection are shell/config state.
 
 ### `lib/tmux.zsh`
 
@@ -105,16 +116,34 @@ Responsibilities:
 
 - Create single-line previews for list display.
 - Read free-form fzf input values.
-- Print preview text with independent description and keys blocks pinned around
-  the body content.
+- Print preview text with an independent description block pinned around the
+  body content.
 
 Functions:
 
 ```text
 ii_one_line_preview
+ii_fzf_print_preview_blocks
 ii_fzf_print_preview_with_footer
 ii_fzf_select_one
 ii_fzf_input_value
+```
+
+### `lib/interact.zsh`
+
+Shared interaction helpers.
+
+Responsibilities:
+
+- Build selector footers with an optional status line.
+- Keep copy-success and copy-failure wording shared across selector commands.
+- Leave domain actions in the variable and payload command layers.
+
+Functions:
+
+```text
+ii_interact_footer
+ii_interact_copy_status
 ```
 
 ### `lib/var_helpers.zsh`
@@ -138,7 +167,7 @@ Responsibilities:
 
 - Open fzf flows for variable selection, add, and edit.
 - Keep populated variables before empty default names in the selector.
-- Keep Enter/Ctrl-S/Ctrl-X/Ctrl-Y behavior isolated from command dispatch.
+- Keep vim-style selector keys isolated from command dispatch.
 - Store interactive edits in tmux without implicitly loading shell variables.
 
 ### `lib/vars.zsh`
@@ -166,13 +195,46 @@ ii_cmd_unset
 Helpers:
 
 ```text
+ii_color_wrap
 ii_color_blue
+ii_color_red
+ii_color_green
 ii_var_normalize_name
 ii_var_lines_from_tmux
 ii_var_filter_by_name
 ii_var_print_name_value
 ii_var_print_list
 ii_export_var_line
+```
+
+### `lib/www.zsh`
+
+`/www` helper commands used from `ii p -www ...`.
+
+Responsibilities:
+
+- Resolve `II_WWW_ROOT`, defaulting to `/www`.
+- Print a tree of files and directories under the configured web root without
+  showing symlink targets.
+- Fuzzy-select web-root entries and report both paths relative to `/www` and
+  absolute filesystem paths.
+- Fuzzy-select a destination directory under the web root and create symlinks
+  without overwriting existing files.
+- Keep `/www` helper state local to the command instead of storing it in tmux.
+
+Commands:
+
+```text
+ii_cmd_payload_www
+ii_cmd_payload_www_ls
+ii_cmd_payload_www_ln
+ii_cmd_payload_www_search
+```
+
+Config:
+
+```text
+II_WWW_ROOT=/www
 ```
 
 ### `lib/payloads.zsh`
@@ -184,12 +246,13 @@ Responsibilities:
 - Resolve `II_PAYLOAD_DIR`.
 - List payload files as path-style selector entries.
 - Filter payloads by category or fuzzy prefilter.
-- Render `${II_NAME}` placeholders using fresh tmux session values.
-- Render pasted `--input` text with lowercase shell-style variables.
+- Render payload files and pasted `--input` text through the same parser and
+  resolver.
 - Write rendered payload text to a requested output path.
 - Display first-line `# description:` metadata in preview without copying it.
-- Keep description and keys independent from the payload body in fzf preview.
-  Reserve the description block even when no description exists.
+- Keep description independent from the payload body in fzf preview and show
+  selector controls in the sticky footer. Reserve the description block even
+  when no description exists.
 - Print the rendered payload and variables used.
 
 Commands:
@@ -207,30 +270,32 @@ ii_payload_filter
 ii_payload_select_fzf
 ii_payload_path_for
 ii_payload_render
-ii_payload_render_input_text
-ii_payload_required_vars
-ii_payload_print_used_vars
+ii_payload_render_text
+ii_payload_render_report
+ii_payload_output_path
+ii_payload_write_output
+ii_payload_read_input
 ```
 
 Render boundary:
 
 ```text
 Input:
-  - selected payload file
+  - selected payload file or pasted input text
+  - current lowercase shell variables
   - tmux session `ii_` variables
 
 Output:
   - rendered payload text
-  - used-variable report
+  - render-variable report
 ```
 
-The render layer must not depend on the current pane's shell environment. This
-keeps cross-pane rendering correct when pane 2 has not run `ii l` yet.
-
-`ii p --input` is the exception: it intentionally checks the current shell first,
-then falls back to tmux session `ii_` variables. It leaves uppercase variables
-and PowerShell scope variables unchanged, supports `${name:t}` for trailing path
-components, and reports missing variables while rendering them as empty.
+The render layer checks the current shell first, then falls back to tmux session
+`ii_` variables. This keeps one-command shell overrides useful while preserving
+tmux as the shared fallback when a pane has not run `ii l`. It leaves uppercase
+variables and PowerShell scope variables unchanged, supports `${name:t}` for
+trailing path components, and reports missing variables in red while keeping the
+original token in rendered output.
 
 Fuzzy boundary:
 
@@ -361,9 +426,10 @@ prompt integrations do not immediately overwrite loaded values.
 `ii i` copies selected variable values through the copy layer. It does not load
 variables into the current shell.
 
-`ii p` does not depend on current shell values. It reads tmux session values
-directly at render time, so another pane can render immediately after `ii s`
-runs elsewhere.
+`ii p` and `ii p --input` share the same render resolver. A non-empty lowercase
+shell variable in the current command context wins first, then the matching tmux
+`ii_` variable is used. This keeps one-command overrides ergonomic while still
+letting another pane render immediately after `ii s` runs elsewhere.
 
 ## Layer Boundaries
 
@@ -386,8 +452,21 @@ fuzzy search layer:
 
 payload render layer:
   - read selected template
-  - read tmux ii_ values fresh
+  - read lowercase shell values first
+  - read tmux ii_ values as the shared fallback
+  - render lowercase $name, ${name}, ${name:t}, ${II_NAME}, and bare II_NAME
+    placeholders without touching uppercase $NAME
   - return rendered text
+
+payload output layer:
+  - resolve optional -o paths
+  - write rendered text without changing terminal output
+  - report the absolute output path as the final line
+
+www helper layer:
+  - read II_WWW_ROOT from shell/config state
+  - list and search web-root files without using tmux
+  - create symlinks under selected web-root directories
 
 copy layer:
   - receive selected variable values from ii i

@@ -3,13 +3,12 @@
 `ii` is a zsh plugin for tmux-scoped workflow variables and payload rendering.
 It stores shared variables in the current tmux session with an internal `ii_`
 prefix, lets each pane load values when needed, and renders payload templates
-from fresh tmux values.
+from the current shell first, then tmux.
 
 ```text
 tmux session environment = shared source across panes
 current shell environment = values directly usable in one pane
-payload file renderer = reads fresh tmux session values
-payload input renderer = reads current shell first, then tmux session values
+payload renderer = reads current shell first, then tmux session values
 ```
 
 ## Requirements
@@ -92,7 +91,7 @@ Create a release by committing `VERSION` and pushing a matching tag:
 git add VERSION
 git commit -m "Release v0.2.0"
 git tag v0.2.0
-git push origin main --tags
+git push origin master --tags
 ```
 
 The release workflow checks that the tag matches `VERSION`, builds `export/ii`,
@@ -123,14 +122,22 @@ ii p linux
 | `ii load` | `ii l` | Load non-empty tmux variables into this shell |
 | `ii clip backend` | | Show or set clipboard backend |
 | `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
-| `ii interactive` | `ii i` | Select, edit, delete, add, and copy variables |
+| `ii interactive` | `ii i` | Select, edit, add, and copy variables |
 | `ii ls [PATTERN]` | | List non-empty tmux variables as compact key/value blocks |
-| `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, copy, print, and optionally write a payload |
+| `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
 | `ii p --input [--copy] [-o [PATH]]` | | Render pasted input; optionally copy or write the result |
+| `ii p -www ls/search/ln` | | List, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
 | `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
+
+`ii p` shows path entries separated from template previews by a solid block.
+Use `j`/`k` to move, `l` to unfold the selected script preview, `h` to return
+to filtering, `y` to copy the selected rendered payload, Enter to
+render/output, and `q` to abort.
+Copy reports are printed when the selector exits; aborting without Enter or
+`y` prints nothing.
 
 ## Common Configuration
 
@@ -152,6 +159,13 @@ directory only if you keep payloads somewhere else:
 
 ```zsh
 export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
+```
+
+`ii p -www ...` defaults to `/www`. Override it from `~/.config/ii/ii.conf`
+when your web root lives somewhere else:
+
+```zsh
+export II_WWW_ROOT="$HOME/www"
 ```
 
 Shell export case for `ii set` and `ii load` defaults to lowercase:
@@ -181,9 +195,9 @@ export `II_CLIP_BACKEND`.
 | Topic | File | Covers |
 | --- | --- | --- |
 | Usage guide | [doc/usage.md](doc/usage.md) | Command behavior, variables, `ii i`, payload files, pasted input rendering, and payload categories |
-| Payload schema | [doc/payload-schema.md](doc/payload-schema.md) | Plain-text payload format, logical `$schema`, metadata, and renderable variables |
+| Payload schema | [doc/payload-schema.md](doc/payload-schema.md) | Plain-text payload format, metadata, combo naming, and renderable variables |
 | Clipboard behavior | [doc/clipboard.md](doc/clipboard.md) | OSC52, tmux buffer copy, `xclip-both`, VMware/Kali notes, and troubleshooting |
-| ii config example | [doc/conf/ii.conf](doc/conf/ii.conf) | Shell export case values for loaded variables |
+| ii config example | [doc/conf/ii.conf](doc/conf/ii.conf) | Shell export case values and optional `/www` root |
 | tmux clipboard example | [doc/conf/tmux.conf](doc/conf/tmux.conf) | Minimal tmux settings related to `ii` clipboard behavior |
 | Architecture | [doc/architecture.md](doc/architecture.md) | Entrypoint, layer responsibilities, state model, and development boundaries |
 | Testing | [doc/testing.md](doc/testing.md) | Syntax checks, tmux smoke tests, cross-pane tests, and regression scenarios |
@@ -202,4 +216,5 @@ ii help payload
 ii help payload input
 ii help input
 ii help unset
+ii help version
 ```

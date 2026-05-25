@@ -31,10 +31,9 @@ Select variables with fzf, edit values, and copy values.
 Default variable names are shown even before they have values.
 Variables with values are listed before empty default names.
 Select "add new variable" to create or update a variable.
-Enter edits the selected variable. Ctrl-S adds a new variable.
-Ctrl-X deletes the selected variable.
-Ctrl-Y copies selected existing values. Esc or Ctrl-C aborts.
-Use Tab to select multiple variables. Use ii load to load variables into this shell.
+Enter edits the selected variable, copies the value, and closes.
+i edits the selected variable. y copies the selected value without closing.
+q, Esc, or Ctrl-C aborts. Use ii load to load variables into this shell.
 EOF
     return 0
   fi
@@ -42,22 +41,23 @@ EOF
   ii_tmux_available || return
   ii_require_cmd fzf || return
 
-  local key selected copied line name value count plugin_file
+  local key selected line name value plugin_file footer footer_status copy_rc
   plugin_file="${II_PLUGIN_DIR%/}/ii.plugin.zsh"
+  footer="$(ii_interact_footer "j/k Move    i Edit    Enter Edit+Copy+Quit    y Copy    q Quit" "")"
+  footer_status=""
   [[ -t 0 ]] && stty -ixon 2>/dev/null
   while true; do
-    count=0
-    copied=""
     selected="$(
       ii_var_entries_for_fzf \
-        | fzf -i --ansi --multi --expect=enter,ctrl-s,ctrl-x,ctrl-y --prompt='ii vars> ' --delimiter=$'\t' --with-nth=1,2,3 \
-            --preview="zsh -fc 'source \"\$1\"; printf \"%s\" \"\$2\" | ii_fzf_print_preview_with_footer \$'\'' ^S Add          Enter Edit      Tab Mark        ^Y Copy\n ^X Delete       Esc Abort       Type Filter'\''' -- ${(q)plugin_file} {4..}" \
+        | fzf -i --ansi --expect=enter,i,y,q --prompt='ii vars> ' --delimiter=$'\t' --with-nth=1,2,3 \
+            --bind='j:down,k:up' \
+            --preview="zsh -fc 'source \"\$1\"; printf \"%s\" \"\$2\" | ii_fzf_print_preview_with_footer \"\$3\"' -- ${(q)plugin_file} {4..} ${(q)footer}" \
             --preview-window='down,5,wrap,noinfo'
     )" || return
     [[ -n "$selected" ]] || return
 
     key="${selected%%$'\n'*}"
-    if [[ "$key" == "enter" || "$key" == "ctrl-s" || "$key" == "ctrl-x" || "$key" == "ctrl-y" ]]; then
+    if [[ "$key" == "enter" || "$key" == "i" || "$key" == "y" || "$key" == "q" ]]; then
       selected="${selected#*$'\n'}"
     else
       key="enter"
@@ -65,16 +65,18 @@ EOF
     [[ -n "${II_INTERACTIVE_KEY:-}" ]] && key="$II_INTERACTIVE_KEY"
 
     case "$key" in
-      ctrl-s)
-        ii_cmd_interactive_add_variable
+      q)
         return
         ;;
-      ctrl-x)
+      i)
         line="${selected%%$'\n'*}"
         [[ -n "$line" ]] || return
         name="${line%%$'\t'*}"
-        [[ "$name" == "add new variable" ]] && return
-        ii_cmd_interactive_delete_variable "$name"
+        if [[ "$name" == "add new variable" ]]; then
+          ii_cmd_interactive_add_variable
+        else
+          ii_cmd_interactive_edit_variable "$name"
+        fi
         [[ -n "${II_INTERACTIVE_KEY:-}" ]] && return
         continue
         ;;
@@ -84,42 +86,36 @@ EOF
         name="${line%%$'\t'*}"
         if [[ "$name" == "add new variable" ]]; then
           ii_cmd_interactive_add_variable
+          return
         else
-          ii_cmd_interactive_edit_variable "$name"
+          ii_cmd_interactive_edit_variable "$name" || return
+          value="$(ii_var_value_by_name "ii_${name}")"
+          if ii_clip_copy "$value"; then
+            print "copied ${name}"
+          else
+            print "selected ${name}; clipboard copy failed"
+          fi
         fi
         return
         ;;
     esac
 
-    [[ "$key" == "ctrl-y" ]] || return
+    [[ "$key" == "y" ]] || return
 
-    while IFS= read -r line; do
-      [[ -n "$line" ]] || continue
-      name="${line%%$'\t'*}"
-      if [[ "$name" == "add new variable" ]]; then
-        ii_cmd_interactive_add_variable || return
-        continue
-      fi
-      value="${line##*$'\t'}"
-      if [[ $count -eq 0 ]]; then
-        copied="$value"
-      else
-        copied="${copied}"$'\n'"${value}"
-      fi
-      (( count++ ))
-    done <<< "$selected"
-
-    [[ $count -gt 0 ]] || return
-
-    if ii_clip_copy "$copied"; then
-      print "copied ${count} variable value(s)"
+    line="${selected%%$'\n'*}"
+    [[ -n "$line" ]] || return
+    name="${line%%$'\t'*}"
+    if [[ "$name" == "add new variable" ]]; then
+      ii_cmd_interactive_add_variable || return
+      footer_status="variable saved"
     else
-      print "selected ${count} variable value(s); clipboard copy failed"
+      value="${line##*$'\t'}"
+      ii_clip_copy "$value"
+      copy_rc="$?"
+      footer_status="$(ii_interact_copy_status "$copy_rc" "copied ${name}" "selected ${name}; clipboard copy failed")"
     fi
-
-    print
-    print -r -- "$copied"
-    return
+    footer="$(ii_interact_footer "j/k Move    i Edit    Enter Edit+Copy+Quit    y Copy    q Quit" "$footer_status")"
+    [[ -n "${II_INTERACTIVE_KEY:-}" ]] && print -r -- "$footer_status" && return
   done
 }
 

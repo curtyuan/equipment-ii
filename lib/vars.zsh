@@ -3,8 +3,11 @@
 ii_cmd_set() {
   if [[ "${1:-}" == "--help" ]]; then
     cat <<'EOF'
-usage: ii set NAME VALUE
-       ii s NAME VALUE
+usage: ii set NAME=VALUE [NAME=VALUE...]
+       ii s NAME=VALUE [NAME=VALUE...]
+       ii s:NAME=VALUE[,NAME=VALUE...]
+       ii set NAME[,NAME...] [--from-shell]
+       ii s:NAME[,NAME...] [--from-shell]
        ii s NAME -d [INTERFACE]
        ii s -d [INTERFACE]
        ii s:lhost -d [INTERFACE]
@@ -13,8 +16,14 @@ usage: ii set NAME VALUE
        ii s FILTER
        ii s:FILTER
 
-Set NAME in the current tmux session and export it into this shell.
+Set NAME=VALUE in the current tmux session and export it into this shell.
 The current shell export uses NAME without the internal ii_ prefix.
+Direct value setting always uses "=". Multiple assignments can be passed as
+separate arguments or comma-separated shortcut entries.
+
+Use --from-shell to save existing shell variables back into the tmux session.
+Missing shell variables print red warnings and are skipped. A comma-separated
+name list such as ii s:user,passwd --from-shell handles multiple variables.
 
 With no arguments, open a TUI to choose a variable and type its value.
 With one FILTER argument, match variable names before prompting for a value.
@@ -33,8 +42,39 @@ EOF
     return
   fi
 
+  local from_shell=0 arg args
+  args=()
+  for arg in "$@"; do
+    case "$arg" in
+      --from-shell) from_shell=1 ;;
+      *) args+=("$arg") ;;
+    esac
+  done
+  set -- "$args[@]"
+
+  if [[ $# -eq 0 ]]; then
+    if (( from_shell )); then
+      print -u2 "ii: --from-shell requires at least one variable name"
+      return 2
+    fi
+    ii_cmd_set_interactive
+    return
+  fi
+
   if [[ "$1" == "-d" ]]; then
     set -- lhost "$@"
+  fi
+
+  if (( from_shell )); then
+    ii_tmux_available || return
+    ii_cmd_set_from_shell "$@" || return
+    return
+  fi
+
+  if [[ "$*" == *"="* ]]; then
+    ii_tmux_available || return
+    ii_cmd_set_assignments "$@" || return
+    return
   fi
 
   if [[ $# -eq 1 ]]; then
@@ -44,8 +84,11 @@ EOF
 
   if [[ $# -lt 2 ]]; then
     cat <<'EOF'
-usage: ii set NAME VALUE
-       ii s NAME VALUE
+usage: ii set NAME=VALUE [NAME=VALUE...]
+       ii s NAME=VALUE [NAME=VALUE...]
+       ii s:NAME=VALUE[,NAME=VALUE...]
+       ii set NAME[,NAME...] [--from-shell]
+       ii s:NAME[,NAME...] [--from-shell]
        ii s NAME -d [INTERFACE]
        ii s -d [INTERFACE]
        ii s:lhost -d [INTERFACE]
@@ -58,6 +101,11 @@ EOF
   fi
 
   ii_tmux_available || return
+
+  if [[ $# -gt 1 && "${2:-}" != "-d" ]]; then
+    print -u2 "ii: direct values must use name=value"
+    return 2
+  fi
 
   local name value interface
   name="$(ii_var_normalize_name "$(ii_var_shortcut_filter "$1")")" || return
@@ -78,6 +126,76 @@ EOF
   ii_export_var_line "${name}=${value}" || return
   ii_enable_loaded_var_sync
   print "$(ii_var_display_line "${name}=${value}")"
+}
+
+ii_cmd_set_from_shell() {
+  local names raw name normalized ii_name shell_name upper_name value missing=0
+  names=()
+  for raw in "$@"; do
+    for name in "${(@s:,:)raw}"; do
+      normalized="$(ii_cmd_set_alias_name "$name")"
+      [[ -n "$normalized" ]] || continue
+      names+=("$normalized")
+    done
+  done
+
+  [[ $#names -gt 0 ]] || return 2
+  for name in "$names[@]"; do
+    ii_name="$(ii_var_normalize_name "$(ii_var_shortcut_filter "$name")")" || return
+    shell_name="$(ii_var_shell_name "$ii_name")"
+    upper_name="${(U)shell_name}"
+    if (( ${+parameters[$shell_name]} )); then
+      value="${(P)shell_name}"
+    elif (( ${+parameters[$upper_name]} )); then
+      value="${(P)upper_name}"
+    else
+      ii_color_red "ii: shell variable not found: $shell_name" >&2
+      missing=1
+      continue
+    fi
+    tmux set-environment "$ii_name" "$value" || return
+    ii_export_var_line "${ii_name}=${value}" || return
+    print "$(ii_var_display_line "${ii_name}=${value}")"
+  done
+
+  ii_enable_loaded_var_sync
+  return "$missing"
+}
+
+ii_cmd_set_assignments() {
+  local raw item name value ii_name count=0
+
+  for raw in "$@"; do
+    for item in "${(@s:,:)raw}"; do
+      [[ -n "$item" ]] || continue
+      if [[ "$item" != *=* ]]; then
+        print -u2 "ii: direct values must use name=value: $item"
+        return 2
+      fi
+      name="${item%%=*}"
+      value="${item#*=}"
+      name="$(ii_cmd_set_alias_name "$name")"
+      ii_name="$(ii_var_normalize_name "$(ii_var_shortcut_filter "$name")")" || return
+      tmux set-environment "$ii_name" "$value" || return
+      ii_export_var_line "${ii_name}=${value}" || return
+      print "$(ii_var_display_line "${ii_name}=${value}")"
+      (( count++ ))
+    done
+  done
+
+  if (( count == 0 )); then
+    print -u2 "ii: no assignments provided"
+    return 2
+  fi
+
+  ii_enable_loaded_var_sync
+}
+
+ii_cmd_set_alias_name() {
+  case "${(L)1}" in
+    password) print passwd ;;
+    *) print -r -- "$1" ;;
+  esac
 }
 
 ii_cmd_get() {

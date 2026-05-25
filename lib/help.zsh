@@ -28,7 +28,11 @@ ii_cmd_help() {
 usage: ii COMMAND [ARGS]
 
 Variables:
-  set|s NAME VALUE       Set a variable in tmux and this shell
+  set|s NAME=VALUE      Set a variable in tmux and this shell
+  s:NAME=VALUE[,NAME=VALUE...]
+                          Set one or more variables with "="
+  set|s NAME[,NAME...] --from-shell
+                          Save current shell variables back to tmux
   set|s -d [IFACE]       Detect lhost from an interface, default tun0
   set|s [FILTER]         Select a variable and set its value
   s:FILTER               Shortcut form of ii s FILTER

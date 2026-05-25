@@ -1,7 +1,21 @@
 # ii_ variable helper functions.
 
+ii_color_wrap() {
+  local code="$1"
+  local text="$2"
+  print -r -- $'\033['"${code}m${text}"$'\033[0m'
+}
+
 ii_color_blue() {
-  print -r -- $'\033[34m'"$1"$'\033[0m'
+  ii_color_wrap 34 "$1"
+}
+
+ii_color_red() {
+  ii_color_wrap 31 "$1"
+}
+
+ii_color_green() {
+  ii_color_wrap 32 "$1"
 }
 
 ii_var_normalize_name() {
@@ -239,7 +253,7 @@ ii_var_entries_for_fzf() {
     [[ -n "$line" ]] && value="${line#*=}"
     preview="$(ii_one_line_preview "$value" 72)"
     overflow=""
-    [[ "$preview" != "$value" ]] && overflow=$'\033[31mmore\033[0m'
+    [[ "$preview" != "$value" ]] && overflow="$(ii_color_red more)"
     entry="${name}"$'\t'"${preview}"$'\t'"${overflow}"$'\t'"${value}"
     if [[ -n "$value" ]]; then
       populated_entries+="${entry}"$'\n'

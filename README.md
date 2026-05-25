@@ -115,7 +115,9 @@ ii p linux
 
 | Command | Short form | Purpose |
 | --- | --- | --- |
-| `ii set NAME VALUE` | `ii s NAME VALUE` | Set a tmux variable and export it into this shell |
+| `ii set NAME=VALUE` | `ii s NAME=VALUE` | Set a tmux variable and export it into this shell |
+| `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
+| `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface |
 | `ii set [FILTER]` | `ii s [FILTER]`, `ii s:FILTER` | Select or match a variable before setting it |
 | `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value |

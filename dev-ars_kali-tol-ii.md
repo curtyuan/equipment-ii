@@ -121,7 +121,9 @@ ii h = ii help
 Short form:
 
 ```text
-ii s NAME VALUE
+ii s NAME=VALUE
+ii s:NAME=VALUE[,NAME=VALUE...]
+ii s:NAME[,NAME...] --from-shell
 ```
 
 With no arguments:
@@ -156,6 +158,23 @@ ii s r
 ii s:r
 ii s:l
 ii s:d
+```
+
+Direct value setting always uses `=`. Multiple assignments can be separate
+arguments or comma-separated shortcut entries:
+
+```zsh
+ii s user=alice
+ii set user=alice passwd='S3cret!'
+ii s:user=alice,passwd='S3cret!'
+```
+
+`--from-shell` saves current shell variables back into tmux. It checks lowercase
+shell names first, then uppercase names, and prints a red warning for missing
+variables:
+
+```zsh
+ii s:user,passwd --from-shell
 ```
 
 `-d` means detect. It is only supported for `LHOST` and detects the IPv4 address

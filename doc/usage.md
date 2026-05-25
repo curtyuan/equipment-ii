@@ -21,7 +21,9 @@ while preserving tmux as the shared fallback across panes.
 
 | Command | Short form | Purpose |
 | --- | --- | --- |
-| `ii set NAME VALUE` | `ii s NAME VALUE` | Set internal `ii_name` in tmux and export the configured shell name in this shell |
+| `ii set NAME=VALUE` | `ii s NAME=VALUE` | Set internal `ii_name` in tmux and export the configured shell name in this shell |
+| `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
+| `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface, defaulting to `tun0` |
 | `ii set` | `ii s` | Open a TUI to choose common variable names and type a value |
 | `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
@@ -123,6 +125,24 @@ hash2
 - No matches prints `no matched`.
 - One match goes straight to the value prompt.
 - Multiple matches open a variable selection prompt.
+
+Direct value setting always uses `=`:
+
+```zsh
+ii s user=alice
+ii set user=alice passwd='S3cret!'
+ii s:user=alice,passwd='S3cret!'
+```
+
+Use `--from-shell` to save existing shell variables back into tmux:
+
+```zsh
+user=alice passwd='S3cret!' ii s:user,passwd --from-shell
+ii s:user --from-shell
+```
+
+`--from-shell` checks the lowercase shell name first, then the uppercase name.
+Missing shell variables print a red warning and are skipped.
 
 `ii g FILTER` uses the same case-insensitive name matching and shortcuts as
 `ii s FILTER`. It copies the selected value through the clipboard layer and

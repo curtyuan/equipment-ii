@@ -128,7 +128,7 @@ ii p linux
 | `ii ls [PATTERN]` | | List non-empty tmux variables as compact key/value blocks |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
 | `ii p --input [--copy] [-o [PATH]]` | | Render pasted input; optionally copy or write the result |
-| `ii p -www ls/search/ln` | | List, search, or symlink files under the configured web root |
+| `ii p -www ls/search [FILTER]/ln` | | List, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
@@ -210,6 +210,7 @@ export `II_CLIP_BACKEND`.
 ```zsh
 ii help
 ii help set
+ii help from-shell
 ii help get
 ii help clip
 ii help load

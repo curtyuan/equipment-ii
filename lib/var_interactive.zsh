@@ -33,6 +33,7 @@ Variables with values are listed before empty default names.
 Select "add new variable" to create or update a variable.
 Enter edits the selected variable, copies the value, and closes.
 i edits the selected variable. y copies the selected value without closing.
+Edit prompts show Return to save or continue, and Esc to abort.
 q, Esc, or Ctrl-C aborts. Use ii load to load variables into this shell.
 EOF
     return 0
@@ -127,7 +128,7 @@ ii_cmd_interactive_add_variable() {
   elif [[ -v II_ADD_VAR_FILTER ]]; then
     raw="$II_ADD_VAR_FILTER"
   else
-    raw="$(ii_fzf_input_value "" --prompt='ii add name> ' --height=40% --border)" || return
+    raw="$(ii_fzf_input_value "" --prompt='ii add name> ' --height=40% --border --footer='Return Continue    Esc Abort')" || return
   fi
   [[ -n "$raw" ]] || return
 
@@ -135,7 +136,7 @@ ii_cmd_interactive_add_variable() {
   if [[ -v II_ADD_VALUE_FILTER ]]; then
     value="$II_ADD_VALUE_FILTER"
   else
-    value="$(ii_fzf_input_value "" --prompt="${name#ii_} value> " --height=40% --border)" || return
+    value="$(ii_fzf_input_value "" --prompt="${name#ii_} value> " --height=40% --border --footer='Return Save    Esc Abort')" || return
   fi
 
   ii_var_set_tmux_only "$name" "$value" || return
@@ -151,7 +152,7 @@ ii_cmd_interactive_edit_variable() {
   if [[ -v II_EDIT_VALUE_FILTER ]]; then
     value="$II_EDIT_VALUE_FILTER"
   else
-    edited="$(print -r -- "$current" | fzf -i --print-query --phony --query="$current" --prompt="${name#ii_} value> " --height=40% --border)" || return
+    edited="$(print -r -- "$current" | fzf -i --print-query --phony --query="$current" --prompt="${name#ii_} value> " --height=40% --border --footer='Return Save    Esc Abort')" || return
     value="$(print -r -- "$edited" | awk 'NR == 1 {print; exit}')"
   fi
 

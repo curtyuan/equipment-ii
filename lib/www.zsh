@@ -18,7 +18,7 @@ ii_cmd_payload_www() {
       cat <<'EOF'
 usage: ii p -www ln SOURCE_PATH [LINK_NAME]
        ii p -www ls
-       ii p -www search
+       ii p -www search [FILTER]
 
 Commands:
   ln SOURCE_PATH [LINK_NAME]
@@ -29,9 +29,10 @@ Commands:
     Print files and directories under /www as a tree. Symlinks are shown by name
     only; their targets are not printed.
 
-  search
+  search [FILTER]
     Fuzzy-select a file or directory under /www, then print its path relative to
-    /www followed by its absolute path.
+    /www followed by its absolute path. FILTER preselects the first
+    case-insensitive fzf match.
 EOF
       [[ -n "${1:-}" ]] && return 0
       return 2
@@ -99,8 +100,10 @@ ii_cmd_payload_www_ln() {
 }
 
 ii_cmd_payload_www_search() {
-  if [[ $# -gt 0 ]]; then
-    print -u2 "ii: usage: ii p -www search"
+  local filter="${1:-}"
+
+  if [[ $# -gt 1 ]]; then
+    print -u2 "ii: usage: ii p -www search [FILTER]"
     return 2
   fi
 
@@ -109,10 +112,10 @@ ii_cmd_payload_www_search() {
   ii_www_require_root "$root" || return
   ii_require_cmd fzf || return
 
-  selected="$(ii_www_select_entry "$root")" || return
+  selected="$(ii_www_select_entry "$root" "$filter")" || return
   [[ -n "$selected" ]] || return
 
-  ii_color_green "relate to /www by:"
+  ii_color_green "relative to /www:"
   print -r -- "$(ii_www_relative_path "$root" "$selected")"
   ii_color_green "absolute path:"
   print -r -- "${selected:a}"
@@ -148,8 +151,9 @@ ii_www_select_dir() {
 
 ii_www_select_entry() {
   local root="$1"
+  local filter="${2:-}"
   local selected
-  selected="$(ii_www_entries "$root" | fzf -i --ansi --prompt='ii www search> ' --height=80% --border --delimiter=$'\t' --with-nth=1,2 --footer='Enter Select     Esc Abort     Type Filter')"
+  selected="$(ii_www_entries "$root" | ii_fzf_select_one "$filter" --ansi --prompt='ii www search> ' --height=80% --border --delimiter=$'\t' --with-nth=1,2 --footer='Enter Select     Esc Abort     Type Filter')"
   [[ -n "$selected" ]] || return
   print -r -- "${selected##*$'\t'}"
 }

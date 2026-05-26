@@ -3,7 +3,7 @@
 ii_cmd_help() {
   if [[ $# -gt 0 ]]; then
     case "$1" in
-      set|s) ii_cmd_set --help ;;
+      set|s|from-shell|--from-shell) ii_cmd_set --help ;;
       get|g) ii_cmd_get --help ;;
       clip|clipboard) ii_cmd_clip --help ;;
       load|l) ii_cmd_load --help ;;

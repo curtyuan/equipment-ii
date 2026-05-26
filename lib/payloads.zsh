@@ -8,7 +8,7 @@ usage: ii payload [CATEGORY]
        ii p [CATEGORY] -o [PATH]
        ii p -www ln SOURCE_PATH [LINK_NAME]
        ii p -www ls
-       ii p -www search
+       ii p -www search [FILTER]
        ii p --input [--copy] [-o [PATH]]
 
 Payload files:
@@ -48,9 +48,9 @@ Output:
   ii p -www ls
     Print files and directories under /www as a tree.
 
-  ii p -www search
+  ii p -www search [FILTER]
     Fuzzy-select an entry under /www and print its path relative to /www, then
-    its absolute path.
+    its absolute path. FILTER preselects the first case-insensitive fzf match.
 
 Categories:
   all, shell, script, linux, windows, sqli, xss

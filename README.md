@@ -202,6 +202,7 @@ export `II_CLIP_BACKEND`.
 | ii config example | [doc/conf/ii.conf](doc/conf/ii.conf) | Shell export case values and optional `/www` root |
 | tmux clipboard example | [doc/conf/tmux.conf](doc/conf/tmux.conf) | Minimal tmux settings related to `ii` clipboard behavior |
 | Architecture | [doc/architecture.md](doc/architecture.md) | Entrypoint, layer responsibilities, state model, and development boundaries |
+| Design map | [doc/design.html](doc/design.html) | Navigable map for command behavior, layer ownership, help/docs ownership, and maintenance checks |
 | Testing | [doc/testing.md](doc/testing.md) | Syntax checks, tmux smoke tests, cross-pane tests, and regression scenarios |
 
 ## Help

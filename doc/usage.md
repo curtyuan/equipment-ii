@@ -35,6 +35,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
 | `ii p --input [--copy] [-o [PATH]]` | | Render pasted input, optionally copy it, and optionally write it |
+| `ii p -www ls/search/ln` | | List, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |

@@ -13,7 +13,9 @@ topics=(
   interactive
   ls
   payload
+  input
   unset
+  version
 )
 
 for topic in "${topics[@]}"; do

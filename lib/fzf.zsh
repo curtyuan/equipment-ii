@@ -27,23 +27,24 @@ ii_fzf_print_preview_blocks() {
 
   content="$(cat)"
   desc_block="[description]"$'\n'"$description"$'\n'"--------------------------------------------------------------------------------"
-  footer_block="[keys]"$'\n'"$footer"
+  footer_block=""
+  [[ -n "$footer" ]] && footer_block="[keys]"$'\n'"$footer"
 
   if (( preview_lines <= 0 )); then
     print -r -- "$desc_block"
     [[ -n "$content" ]] && print -r -- "$content"
-    print -r -- "$footer_block"
+    [[ -n "$footer_block" ]] && print -r -- "$footer_block"
     return
   fi
 
   reserved=0
   reserved=$(( reserved + $(print -r -- "$desc_block" | awk 'END {print NR}') ))
-  reserved=$(( reserved + $(print -r -- "$footer_block" | awk 'END {print NR}') ))
+  [[ -n "$footer_block" ]] && reserved=$(( reserved + $(print -r -- "$footer_block" | awk 'END {print NR}') ))
 
   if (( preview_lines <= reserved )); then
     {
       print -r -- "$desc_block"
-      print -r -- "$footer_block"
+      [[ -n "$footer_block" ]] && print -r -- "$footer_block"
     } | awk -v limit="$preview_lines" 'NR <= limit {print}'
     return
   fi
@@ -64,8 +65,10 @@ ii_fzf_print_preview_blocks() {
     (( printed++ ))
     (( pad-- ))
   done
-  print -r -- "$footer_block"
-  printed=$(( printed + $(print -r -- "$footer_block" | awk 'END {print NR}') ))
+  if [[ -n "$footer_block" ]]; then
+    print -r -- "$footer_block"
+    printed=$(( printed + $(print -r -- "$footer_block" | awk 'END {print NR}') ))
+  fi
   while (( printed < preview_lines )); do
     print
     (( printed++ ))

@@ -24,37 +24,30 @@ ii_interact_copy_status() {
 }
 
 ii_interact_keys_vars_normal() {
-  print -r -- "j/k Move    / Search    i Edit    Enter Edit+Copy+Quit    y Copy    q Quit"
+  print -r -- "j/k move  / search  i/l edit"
+  print -r -- "Enter copy+quit  y copy  h/q quit"
 }
 
 ii_interact_keys_vars_search() {
-  print -r -- "Type Filter    Esc Normal    Enter Edit+Copy+Quit"
+  print -r -- "type filter  Esc normal"
+  print -r -- "Enter copy+quit"
 }
 
 ii_interact_keys_payload_normal() {
-  print -r -- "j/k Move    / Search    Enter Render/Output    y Copy    l Expand    q Quit"
+  print -r -- "j/k move  / search  l expand  w write"
+  print -r -- "Enter render  y copy  q quit"
 }
 
 ii_interact_keys_payload_expanded() {
-  print -r -- "j/k Move    Enter Render/Output    y Copy    h Back    q Quit"
+  print -r -- "j/k move  h back  w write"
+  print -r -- "Enter render  y copy  q quit"
 }
 
 ii_interact_keys_payload_search() {
-  print -r -- "Type Filter    Esc Normal    Enter Render/Output"
+  print -r -- "type filter  Esc normal"
+  print -r -- "Enter render"
 }
 
 ii_fzf_modal_start_actions() {
   print -r -- "hide-input+disable-search"
-}
-
-ii_fzf_modal_search_actions() {
-  local search_footer="$1"
-  local normal_keys="$2"
-  print -r -- "show-input+enable-search+change-footer($search_footer)+unbind($normal_keys)"
-}
-
-ii_fzf_modal_normal_actions() {
-  local normal_footer="$1"
-  local normal_keys="$2"
-  print -r -- "clear-query+hide-input+disable-search+change-footer($normal_footer)+rebind($normal_keys)"
 }

@@ -136,10 +136,11 @@ ii p linux
 
 `ii p` starts in normal mode. Use `j`/`k` to move, `/` to search, Esc to return
 to normal mode, `l` to unfold the selected script preview, `h` to return to
-compact normal mode, `y` to copy the selected rendered payload, Enter to
-render/output, and `q` to abort.
-Copy reports are printed when the selector exits; aborting without Enter or
-`y` prints nothing.
+compact normal mode, `y` to copy the selected rendered payload, `w` to edit,
+write to `/www/p`, and copy a download command, Enter to render/output, and
+`q` to abort.
+Copy reports are printed when the selector exits; aborting without Enter, `y`,
+or `w` prints nothing.
 
 ## Common Configuration
 

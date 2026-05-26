@@ -121,6 +121,7 @@ Responsibilities:
 - Read free-form fzf input values.
 - Print preview text with an independent description block pinned around the
   body content.
+- Trim leading empty lines from fzf output before selector key parsing.
 
 Functions:
 
@@ -128,6 +129,7 @@ Functions:
 ii_one_line_preview
 ii_fzf_print_preview_blocks
 ii_fzf_print_preview_with_footer
+ii_fzf_trim_leading_empty_lines
 ii_fzf_select_one
 ii_fzf_input_value
 ```
@@ -138,10 +140,9 @@ Shared interaction helpers.
 
 Responsibilities:
 
-- Build selector footers with an optional status line.
+- Build selector preview footers with an optional status line.
 - Keep normal/search selector key text shared for `ii i` and `ii p`.
-- Build reusable fzf modal actions for normal mode, search mode, and Esc back
-  to normal.
+- Build reusable fzf modal start actions.
 - Keep copy-success and copy-failure wording shared across selector commands.
 - Leave domain actions in the variable and payload command layers.
 
@@ -156,8 +157,6 @@ ii_interact_keys_payload_normal
 ii_interact_keys_payload_expanded
 ii_interact_keys_payload_search
 ii_fzf_modal_start_actions
-ii_fzf_modal_search_actions
-ii_fzf_modal_normal_actions
 ```
 
 ### `lib/var_helpers.zsh`
@@ -263,12 +262,14 @@ Responsibilities:
 - Render payload files and pasted `--input` text through the same parser and
   resolver.
 - Write rendered payload text to a requested output path.
+- Edit a selected payload template, write the rendered edited script under the
+  configured web root's `p` directory, and copy a rendered download command.
 - Display first-line `# description:` metadata in preview without copying it.
 - Emit `# stage:` metadata as paste-safe `# --- ... ---` comment delimiters
   for combo payloads.
 - Keep description independent from the payload body in fzf preview and show
-  selector controls in the sticky footer. Reserve the description block even
-  when no description exists.
+  selector controls/status at the bottom of the preview. Reserve the
+  description block when space allows, but preserve controls/status first.
 - Print the rendered payload and variables used.
 
 Commands:

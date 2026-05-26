@@ -195,10 +195,10 @@ Keys:
 | `j` / `k` | Move selection |
 | `/` | Enter search mode |
 | `Esc` | Return from search mode to normal mode |
-| `i` | Edit the selected variable |
-| `Enter` | Edit the selected variable, copy the value, and close |
+| `i` / `l` | Edit the selected variable |
+| `Enter` | Copy the selected value and close |
 | `y` | Copy the selected value without closing |
-| `q` / `Ctrl-C` | Abort |
+| `h` / `q` / `Ctrl-C` | Abort |
 
 Aborting while editing preserves the original value. A value is replaced only
 after confirming with Return. Edit prompts show Return to save or continue, and
@@ -307,23 +307,44 @@ For documentation and tooling, the logical payload object includes `$schema`,
 metadata line is shown in preview but omitted from copied, printed, and written
 output.
 
-The payload selector shows each path, a solid block delimiter, and a one-line
-template preview. It highlights renderable tokens in green and normalizes any
-legacy internal `II_` payload tokens to lowercase user-facing names in preview.
-The selected payload preview reserves a description block above the template
-body and shows selector controls and copy status in the footer.
+The payload selector list shows payload paths only. The selected payload
+preview reserves a description block above the template body, highlights
+renderable tokens in green, normalizes any legacy internal `II_` payload tokens
+to lowercase user-facing names, and shows selector controls and copy status at
+the bottom of the preview.
 
 In the selector, `j` and `k` move between payloads. `/` enters search mode and
 Esc returns to normal mode. `y` copies the selected rendered payload without
-leaving the selector. `l` unfolds the selected script into a full preview and
-hides the filter input. `j` and `k` still move between scripts, Enter renders
-and outputs, and `q` aborts. `h` returns to compact normal mode.
+leaving the selector. `w` edits the selected template, writes the rendered
+edited script under `/www/p`, and copies a download command. `l` unfolds the
+selected script into a full preview and hides the filter input. `j` and `k`
+still move between scripts, Enter renders and outputs, `w` writes/downloads,
+and `q` aborts. `h` returns to compact normal mode.
 
 Render reports are printed when `ii p` leaves the selector. If you only use `y`
 and then abort, `ii` prints the last copied payload's report. If you use `y`
 and then Enter a different payload, `ii` prints the Enter payload's report
 first, then the last copied payload's report. Aborting without Enter or `y`
 prints nothing.
+
+Press `w` to open the selected template in `${VISUAL:-${EDITOR:-vi}}`. Save and
+quit the editor to continue, or quit without writing to abort. After editing,
+`ii` prompts for a filename with default `p`, then opens a selector for one of
+these download command styles:
+
+```text
+powershell-iwr
+cmd-certutil
+cmd-bitadmin
+linux-wget
+linux-curl
+```
+
+The edited template is rendered and written to `/www/p/FILENAME`, or to
+`$II_WWW_ROOT/p/FILENAME` when the web root is overridden. The selected download
+command is rendered with `lhost`, copied to the clipboard, and `ii` prints
+`download command copied`, the render report, and the output path. Esc or `q` in
+the filename or method selector aborts the whole flow.
 
 Write the rendered payload to a file with `-o`:
 

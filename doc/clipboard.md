@@ -3,7 +3,7 @@
 `ii i` and `ii p` both copy through `ii_clip_copy` in `lib/clipboard.zsh`.
 The commands differ in what they copy, not in the final copy layer:
 
-- `ii i` Enter edits the selected variable, copies its value, and closes.
+- `ii i` Enter copies the selected variable value and closes.
 - `ii i` `y` copies the selected variable value without leaving the selector.
 - `ii p` `y` copies the selected rendered payload text from the selector.
 

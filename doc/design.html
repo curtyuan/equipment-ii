@@ -615,7 +615,7 @@
           </div>
           <div class="card">
             <strong>interact.zsh</strong>
-            <span>Build shared selector footers, normal/search key text, modal fzf actions, and copy status wording.</span>
+            <span>Build shared bottom preview controls, normal/search key text, modal fzf start actions, and copy status wording.</span>
           </div>
           <div class="card">
             <strong>var_helpers.zsh</strong>
@@ -696,7 +696,7 @@
             <tr>
               <td>Payload</td>
               <td><code>ii p [CATEGORY]</code>, <code>ii p --input</code>, <code>ii p -www</code></td>
-              <td>Render payload files or pasted text, and route web-root helper operations.</td>
+              <td>Render payload files or pasted text, edit/write payload output, copy download commands, and route web-root helper operations.</td>
             </tr>
             <tr>
               <td>Clipboard</td>
@@ -776,9 +776,9 @@ lport
         <h2>Payload Rendering</h2>
         <div class="callout">
           <code>lib/payloads.zsh</code> owns selector behavior, rendering,
-          copy/write output, pasted input, and render reports. This page only
-          records ownership and document routing; syntax details live in the
-          schema and usage docs.
+          copy/write output, download-command generation, pasted input, and
+          render reports. This page only records ownership and document
+          routing; syntax details live in the schema and usage docs.
         </div>
 
         <div class="card-grid">
@@ -789,6 +789,10 @@ lport
           <div class="card">
             <strong>Pasted input</strong>
             <span>Use <code>doc/usage.md</code> for <code>ii p --input</code> prompts, cancel lines, copy, and output behavior.</span>
+          </div>
+          <div class="card">
+            <strong>Write/download flow</strong>
+            <span>Use <code>doc/usage.md</code> for <code>ii p</code> <code>w</code> editing, filename prompts, method selection, web-root writes, copied download commands, and abort behavior.</span>
           </div>
           <div class="card">
             <strong>/www helpers</strong>

@@ -277,8 +277,8 @@ Behavior:
 5. Show the selected variable value in a compact bottom preview pane.
 6. Support case-insensitive fuzzy search.
 7. j/k moves selection.
-8. i edits the selected variable value.
-9. Enter edits the selected variable value, copies it, and closes.
+8. i/l edits the selected variable value.
+9. Enter copies the selected variable value and closes.
 10. y copies the selected existing variable value without closing.
 11. Show `add new variable` as the final option.
 12. If `add new variable` is selected, prompt for a variable name and value.
@@ -286,7 +286,8 @@ Behavior:
 13. Copy selected existing variable values through the configured copy layer.
 14. Do not export values into the current shell unless loaded-variable sync was
     already enabled by `ii s` or `ii l` in that shell.
-15. Display a vim-style keys and status block at the bottom of the preview pane.
+15. h/q aborts the selector.
+16. Display a vim-style keys and status block at the bottom of the preview pane.
 ```
 
 This command is a variable copy/add layer, not a shell loading layer. Use
@@ -353,22 +354,26 @@ Behavior:
 1. Resolve the payload library directory.
 2. Scan payload files and display path-style entries.
 3. Apply optional category filtering.
-4. Let fzf handle fuzzy search and selection with template payload preview.
-   The selector list includes path, a solid block delimiter, and a single-line
-   template preview that preserves original tokens and highlights renderable
-   tokens in green.
+4. Let fzf handle fuzzy search and selection with the selected template payload
+   preview shown in the bottom preview pane. The selector list shows payload
+   paths only.
 5. Resolve the selected entry to a payload file.
 6. Render the template with fresh tmux II_ values.
    Missing or empty values render as lowercase shell fallbacks like $rhost.
 7. Print the rendered payload.
 8. Print variables used by the selected payload.
-10. Display description as an independent preview block and controls in the fzf
-    footer so they stay visible across payload sizes. Reserve the description
-    block even when no description exists.
+10. Display description as an independent preview block and controls/status at
+    the bottom of the preview. Reserve the description block when space allows,
+    but preserve controls/status first.
 11. Let l unfold the selected script into a full preview. In unfolded mode,
     hide and disable filtering while preserving j/k selection movement, y copy,
     Enter render/output, and q abort. Let h return to the
     searchable selector.
+12. Let w edit the selected template in the user's editor, prompt for a
+    filename with default p, select a download method, write the rendered edited
+    script under /www/p, copy the rendered download command, and print the
+    render report. Abort the whole flow when the editor exits without writing
+    or when filename/method selection is cancelled.
 ```
 
 Categories:
@@ -587,9 +592,9 @@ ii i:
 
 ii p:
   - Input: path-style payload entries.
-  - UI: fzf selector with path, solid block delimiter, single-line
-    green-highlighted template preview, independent description preview block,
-    and sticky footer controls.
+  - UI: fzf selector with path-only entries, independent description preview
+    block, green-highlighted selected template preview, and bottom-pinned
+    preview controls/status.
   - Output: one selected payload path.
   - Next layer: payload render.
 ```
@@ -810,7 +815,7 @@ Implemented:
 - tmux session variable source of truth
 - argument-based payload filtering
 - fzf payload and variable selection
-- vim-style fzf footer keys and copy status
+- vim-style bottom preview keys and copy status
 - interactive variable edit, add, and copy flows
 - fresh tmux-based payload rendering
 - payload description metadata

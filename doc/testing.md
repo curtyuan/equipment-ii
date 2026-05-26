@@ -85,23 +85,23 @@ sudo nmap -p- -Pn -T4 $rhost
 ## Single Pane tmux Smoke Test
 
 Run from outside or inside tmux. It creates an isolated session named
-`codex-jj-test`.
+`codex-ii-test`.
 
 ```zsh
-tmux kill-session -t codex-jj-test 2>/dev/null || true
-tmux new-session -d -s codex-jj-test -x 120 -y 40 zsh
-tmux send-keys -t codex-jj-test "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
-tmux send-keys -t codex-jj-test "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-jj-test "ii s LHOST 127.0.0.1" Enter
-tmux send-keys -t codex-jj-test "ii s LPORT 4444" Enter
-tmux send-keys -t codex-jj-test "ii s DOMAIN example.test" Enter
-tmux send-keys -t codex-jj-test "ii ls" Enter
-tmux send-keys -t codex-jj-test "ii ls host" Enter
-tmux send-keys -t codex-jj-test "ii l" Enter
-tmux send-keys -t codex-jj-test "FZF_DEFAULT_OPTS='--filter=sh-tcp' ii p linux" Enter
+tmux kill-session -t codex-ii-test 2>/dev/null || true
+tmux new-session -d -s codex-ii-test -x 120 -y 40 zsh
+tmux send-keys -t codex-ii-test "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-test "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-test "ii s LHOST 127.0.0.1" Enter
+tmux send-keys -t codex-ii-test "ii s LPORT 4444" Enter
+tmux send-keys -t codex-ii-test "ii s DOMAIN example.test" Enter
+tmux send-keys -t codex-ii-test "ii ls" Enter
+tmux send-keys -t codex-ii-test "ii ls host" Enter
+tmux send-keys -t codex-ii-test "ii l" Enter
+tmux send-keys -t codex-ii-test "FZF_DEFAULT_OPTS='--filter=sh-tcp' ii p linux" Enter
 sleep 2
-tmux capture-pane -t codex-jj-test -p -S -200
-tmux kill-session -t codex-jj-test
+tmux capture-pane -t codex-ii-test -p -S -200
+tmux kill-session -t codex-ii-test
 ```
 
 Expected payload:
@@ -123,20 +123,20 @@ This verifies that `ii p` falls back to tmux session values when the rendering
 pane has not run `ii l`.
 
 ```zsh
-tmux kill-session -t codex-jj-crosspane 2>/dev/null || true
-tmux new-session -d -s codex-jj-crosspane -x 120 -y 40 zsh
-tmux split-window -t codex-jj-crosspane zsh
-tmux send-keys -t codex-jj-crosspane:0.0 "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
-tmux send-keys -t codex-jj-crosspane:0.0 "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-jj-crosspane:0.0 "ii s LHOST 10.10.10.10" Enter
-tmux send-keys -t codex-jj-crosspane:0.0 "ii s LPORT 9001" Enter
-tmux send-keys -t codex-jj-crosspane:0.1 "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
-tmux send-keys -t codex-jj-crosspane:0.1 "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-jj-crosspane:0.1 "echo pane2-shell-before:\$LHOST" Enter
-tmux send-keys -t codex-jj-crosspane:0.1 "FZF_DEFAULT_OPTS='--filter=sh-tcp' II_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
+tmux kill-session -t codex-ii-crosspane 2>/dev/null || true
+tmux new-session -d -s codex-ii-crosspane -x 120 -y 40 zsh
+tmux split-window -t codex-ii-crosspane zsh
+tmux send-keys -t codex-ii-crosspane:0.0 "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-crosspane:0.0 "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-crosspane:0.0 "ii s LHOST 10.10.10.10" Enter
+tmux send-keys -t codex-ii-crosspane:0.0 "ii s LPORT 9001" Enter
+tmux send-keys -t codex-ii-crosspane:0.1 "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-crosspane:0.1 "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-crosspane:0.1 "echo pane2-shell-before:\$LHOST" Enter
+tmux send-keys -t codex-ii-crosspane:0.1 "FZF_DEFAULT_OPTS='--filter=sh-tcp' II_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
 sleep 2
-tmux capture-pane -t codex-jj-crosspane:0.1 -p -S -120
-tmux kill-session -t codex-jj-crosspane
+tmux capture-pane -t codex-ii-crosspane:0.1 -p -S -120
+tmux kill-session -t codex-ii-crosspane
 ```
 
 Expected signs:
@@ -180,16 +180,16 @@ This verifies that rendered payloads are piped into tmux buffer through stdin
 and are not broken by common shell metacharacters.
 
 ```zsh
-tmux kill-session -t codex-jj-special 2>/dev/null || true
-tmux new-session -d -s codex-jj-special -x 120 -y 40 zsh
-tmux send-keys -t codex-jj-special "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
-tmux send-keys -t codex-jj-special "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-jj-special "ii s DOMAIN \"a b/c;whoami & test\"" Enter
-tmux send-keys -t codex-jj-special "FZF_DEFAULT_OPTS='--filter=basic-alert' II_PAYLOAD_KEY=y II_CLIP_CMD='tmux load-buffer -' ii p xss" Enter
+tmux kill-session -t codex-ii-special 2>/dev/null || true
+tmux new-session -d -s codex-ii-special -x 120 -y 40 zsh
+tmux send-keys -t codex-ii-special "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-special "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-special "ii s DOMAIN \"a b/c;whoami & test\"" Enter
+tmux send-keys -t codex-ii-special "FZF_DEFAULT_OPTS='--filter=basic-alert' II_PAYLOAD_KEY=y II_CLIP_CMD='tmux load-buffer -' ii p xss" Enter
 sleep 2
-tmux capture-pane -t codex-jj-special -p -S -120
+tmux capture-pane -t codex-ii-special -p -S -120
 tmux show-buffer
-tmux kill-session -t codex-jj-special
+tmux kill-session -t codex-ii-special
 ```
 
 Expected buffer:
@@ -273,18 +273,18 @@ G101MjtjO1lTQmlMMk03ZDJodllXMXBJQ1lnZEdWemRBPT0H
 ## Variable Guard Test
 
 ```zsh
-tmux kill-session -t codex-jj-vars 2>/dev/null || true
-tmux new-session -d -s codex-jj-vars -x 120 -y 30 zsh
-tmux send-keys -t codex-jj-vars "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
-tmux send-keys -t codex-jj-vars "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-jj-vars "ii s GOOD_NAME ok" Enter
-tmux send-keys -t codex-jj-vars "ii ls good" Enter
-tmux send-keys -t codex-jj-vars "ii unset GOOD_NAME" Enter
-tmux send-keys -t codex-jj-vars "ii ls good" Enter
-tmux send-keys -t codex-jj-vars "ii set 'BAD-NAME' value" Enter
+tmux kill-session -t codex-ii-vars 2>/dev/null || true
+tmux new-session -d -s codex-ii-vars -x 120 -y 30 zsh
+tmux send-keys -t codex-ii-vars "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-vars "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-vars "ii s GOOD_NAME ok" Enter
+tmux send-keys -t codex-ii-vars "ii ls good" Enter
+tmux send-keys -t codex-ii-vars "ii unset GOOD_NAME" Enter
+tmux send-keys -t codex-ii-vars "ii ls good" Enter
+tmux send-keys -t codex-ii-vars "ii set 'BAD-NAME' value" Enter
 sleep 2
-tmux capture-pane -t codex-jj-vars -p -S -100
-tmux kill-session -t codex-jj-vars
+tmux capture-pane -t codex-ii-vars -p -S -100
+tmux kill-session -t codex-ii-vars
 ```
 
 Expected signs:
@@ -327,23 +327,23 @@ unset 2 variable(s)
 ## Variable View Test
 
 ```zsh
-tmux kill-session -t codex-jj-views 2>/dev/null || true
-tmux new-session -d -s codex-jj-views -x 120 -y 35 zsh
-tmux send-keys -t codex-jj-views "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
-tmux send-keys -t codex-jj-views "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-jj-views "ii s LHOST 192.0.2.10" Enter
-tmux send-keys -t codex-jj-views "ii s RHOST 198.51.100.20" Enter
-tmux send-keys -t codex-jj-views "ii s LPORT 4444" Enter
-tmux send-keys -t codex-jj-views "ii s USER1 alice" Enter
-tmux send-keys -t codex-jj-views "ii s PASSWD1 secret" Enter
-tmux send-keys -t codex-jj-views "ii s HASH2 deadbeef" Enter
-tmux send-keys -t codex-jj-views "ii ls host" Enter
-tmux send-keys -t codex-jj-views "ii ls user" Enter
-tmux send-keys -t codex-jj-views "ii ls passwd" Enter
-tmux send-keys -t codex-jj-views "ii ls hash" Enter
+tmux kill-session -t codex-ii-views 2>/dev/null || true
+tmux new-session -d -s codex-ii-views -x 120 -y 35 zsh
+tmux send-keys -t codex-ii-views "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-views "source ./ii.plugin.zsh" Enter
+tmux send-keys -t codex-ii-views "ii s LHOST 192.0.2.10" Enter
+tmux send-keys -t codex-ii-views "ii s RHOST 198.51.100.20" Enter
+tmux send-keys -t codex-ii-views "ii s LPORT 4444" Enter
+tmux send-keys -t codex-ii-views "ii s USER1 alice" Enter
+tmux send-keys -t codex-ii-views "ii s PASSWD1 secret" Enter
+tmux send-keys -t codex-ii-views "ii s HASH2 deadbeef" Enter
+tmux send-keys -t codex-ii-views "ii ls host" Enter
+tmux send-keys -t codex-ii-views "ii ls user" Enter
+tmux send-keys -t codex-ii-views "ii ls passwd" Enter
+tmux send-keys -t codex-ii-views "ii ls hash" Enter
 sleep 2
-tmux capture-pane -t codex-jj-views -p -S -160
-tmux kill-session -t codex-jj-views
+tmux capture-pane -t codex-ii-views -p -S -160
+tmux kill-session -t codex-ii-views
 ```
 
 Expected signs:

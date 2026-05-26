@@ -17,6 +17,7 @@ lib/
   tmux.zsh
   clipboard.zsh
   fzf.zsh
+  interact.zsh
   var_helpers.zsh
   var_interactive.zsh
   vars.zsh
@@ -32,6 +33,8 @@ payloads/
 doc/
   architecture.md
   clipboard.md
+  design.html
+  payload-schema.md
   usage.md
   testing.md
   conf/
@@ -227,8 +230,8 @@ Responsibilities:
 - Resolve `II_WWW_ROOT`, defaulting to `/www`.
 - Print a tree of files and directories under the configured web root without
   showing symlink targets.
-- Fuzzy-select web-root entries and report both paths relative to `/www` and
-  absolute filesystem paths.
+- Fuzzy-select web-root entries and report the containing directory relative to
+  `/www`, then the selected entry's absolute filesystem path.
 - Fuzzy-select a destination directory under the web root and create symlinks
   without overwriting existing files.
 - Keep `/www` helper state local to the command instead of storing it in tmux.
@@ -261,6 +264,8 @@ Responsibilities:
   resolver.
 - Write rendered payload text to a requested output path.
 - Display first-line `# description:` metadata in preview without copying it.
+- Emit `# stage:` metadata as paste-safe `# --- ... ---` comment delimiters
+  for combo payloads.
 - Keep description independent from the payload body in fzf preview and show
   selector controls in the sticky footer. Reserve the description block even
   when no description exists.
@@ -270,6 +275,7 @@ Commands:
 
 ```text
 ii_cmd_payload
+ii_cmd_payload_input
 ```
 
 Helpers:
@@ -286,6 +292,7 @@ ii_payload_render_report
 ii_payload_output_path
 ii_payload_write_output
 ii_payload_read_input
+ii_payload_body
 ```
 
 Render boundary:
@@ -470,6 +477,7 @@ payload render layer:
   - read tmux ii_ values as the shared fallback
   - render lowercase $name, ${name}, and ${name:t} placeholders without
     touching uppercase $NAME
+  - turn # stage: metadata into paste-safe comment delimiters
   - return rendered text
 
 payload output layer:

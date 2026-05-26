@@ -35,7 +35,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
 | `ii p --input [--copy] [-o [PATH]]` | | Render pasted input, optionally copy it, and optionally write it |
-| `ii p -www ls/search [FILTER]/ln` | | List, search, or symlink files under the configured web root |
+| `ii p -www ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | List, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
@@ -109,8 +109,10 @@ Default variable names:
 domain
 lhost
 rhost
+file
 lport
 rport
+mm
 user
 passwd
 user1
@@ -298,8 +300,8 @@ payload body with $name, ${name}, or ${name:t} placeholders
 ```
 
 For documentation and tooling, the logical payload object includes `$schema`,
-`path`, `description`, `body`, and `variables`. See
-[payload-schema.md](payload-schema.md).
+`path`, `description`, `stages`, `source_body`, `emitted_body`, and
+`variables`. See [payload-schema.md](payload-schema.md).
 
 `ii p` uses the shared render rules above. A first-line `# description: ...`
 metadata line is shown in preview but omitted from copied, printed, and written
@@ -336,8 +338,9 @@ ii p linux -o /tmp/payload.txt
 `-o` keeps the normal terminal output. With no path, it writes
 `/www/p/att.txt`. A bare filename writes under `/www`, so `-o filename` writes
 `/www/filename`. Directory paths use `att.txt`, so `-o ./` writes
-`./att.txt`. After the rendered output and variable report, `ii` prints an
-output note and then ends with the full output path on its own line.
+`./att.txt`. The terminal output prints the render report first, then a
+`[payload]` marker, then the rendered body. When writing a file, `ii` appends
+an output note and ends with the full output path on its own line.
 
 ### Pasted Input Rendering
 
@@ -352,8 +355,8 @@ ii p --input -o ./payload.txt
 
 `ii p --input` reads until `.` is entered on its own line and uses the shared
 render rules above. The terminal output prints the render report first, then a
-separator for tmux copy-mode, then the rendered body. `--copy` copies only the
-rendered body.
+`[payload]` marker, then the rendered body. `--copy` copies only the rendered
+body.
 
 `-o` writes the rendered body to a file while keeping the normal terminal
 output. It follows the same path rules as payload file output, including the

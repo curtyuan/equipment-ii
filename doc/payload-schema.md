@@ -7,15 +7,17 @@ This schema covers stored payload files. Pasted input with `ii p --input` uses
 the same render rules, but it does not have path or first-line description
 metadata.
 
-For documentation and external tooling, treat each payload file as this logical
-object:
+For documentation and external tooling, treat each stored payload file as this
+logical object:
 
 ```json
 {
-  "$schema": "https://example.invalid/ii/payload.schema.json",
+  "$schema": "ii.payload.schema.v1",
   "path": "shell/linux/sh-tcp",
   "description": "optional first-line metadata without the prefix",
-  "body": "payload text copied after rendering",
+  "stages": [],
+  "source_body": "payload source text after first-line description metadata",
+  "emitted_body": "payload text after metadata conversion and variable rendering",
   "variables": ["lhost", "lport", "rhost"]
 }
 ```
@@ -27,20 +29,30 @@ Field meanings:
 | `$schema` | Documentation/tooling | No | Identifies this logical schema. It is not written into payload files. |
 | `path` | Relative file path | Yes | Also used as the fzf selector entry and category filter input. |
 | `description` | First line | No | Only recognized when line 1 starts with `# description:`. It is shown in preview and omitted from copied output. |
-| `body` | Remaining text | Yes | Copied after renderable placeholders are rendered. |
+| `stages` | Body metadata scan | No | Each `# stage:` line marks a combo step and is emitted as a paste-safe comment delimiter. |
+| `source_body` | Remaining text | Yes | File content after first-line description metadata. It may include `# stage:` metadata. |
+| `emitted_body` | Render pipeline | Yes | Text printed, copied, or written after `# stage:` conversion and variable rendering. |
 | `variables` | Body scan | No | Lowercase shell-style placeholders used by the renderer. |
 
 Recognized payload file syntax:
 
 ```text
 # description: optional operator-facing description
+# stage: optional combo stage label
 payload body with ${lhost}, $rhost, ${file}, or ${file:t}
 ```
 
+Metadata handling:
+
+- `# description:` is recognized only on line 1.
+- `# stage:` is recognized on any body line and emits `# --- label ---`.
+- Other comment lines are ordinary payload body text.
+
 Payload files render `$name`, `${name}`, and `${name:t}` through the shared
-renderer. A non-empty lowercase shell variable wins first, then the matching
-tmux `ii_` variable is used. Uppercase shell variables such as `$RHOST` are
-left unchanged. Missing values keep the original token and are reported in red.
+renderer. New payloads should use lowercase shell-style placeholders only. A
+non-empty lowercase shell variable wins first, then the matching tmux `ii_`
+variable is used. Uppercase shell variables such as `$RHOST` are left unchanged.
+Missing values keep the original token and are reported in red.
 
 ## Combo Payload Convention
 
@@ -80,8 +92,8 @@ script/combo/trans/lin-busybox-nc-T2K-KLTC
 ```
 
 Combo files should keep executable command text in the body and avoid Markdown
-fences or long prose in copied output. Use `# stage:` metadata to mark each
-operator/target step:
+fences or long prose in copied output. Use concise `# stage:` metadata to mark
+each operator/target step:
 
 ```text
 # description: Kali send to Target
@@ -106,7 +118,7 @@ The emitted delimiter uses `#` because it is valid in both PowerShell and common
 Linux shells. Keep stage labels short and action-oriented, and name the side and
 shell when that matters.
 
-Uppercase non-`II_` variables such as `$RFILE` and `$OUTFILE` intentionally stay
+Uppercase shell variables such as `$RFILE` and `$OUTFILE` intentionally stay
 unrendered. Use them when the target shell should expand or assign the value at
 runtime. Use lowercase render tokens such as `$file`, `${file:t}`, `$lhost`,
 `$lport`, `$rhost`, and `$rport` only for values that `ii` should resolve before

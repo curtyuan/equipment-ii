@@ -852,9 +852,7 @@ ii help load
 ii help interactive
 ii help ls
 ii help payload
-ii help payload input
 ii help payload-input
-ii help payload www
 ii help payload-www
 ii help unset
 ii help version</code></pre>
@@ -937,11 +935,12 @@ make</code></pre>
           <div class="detail-body">
             <p>
               The renderer intentionally consumes lowercase shell-style tokens
-              and internal ii tokens, while preserving uppercase shell tokens
-              and PowerShell scopes. Regression tests should cover mixed input
-              such as <code>$rhost</code>, <code>$RHOST</code>,
-              <code>${II_RHOST}</code>, bare <code>II_RHOST</code>, and
-              <code>$env:TEMP</code>.
+              while preserving uppercase shell tokens and PowerShell scopes.
+              Regression tests should cover mixed input such as
+              <code>$rhost</code>, <code>${file:t}</code>,
+              <code>$RHOST</code>, <code>$env:TEMP</code>, and combo
+              <code># stage:</code> metadata emitted as paste-safe comment
+              delimiters.
             </p>
           </div>
         </details>

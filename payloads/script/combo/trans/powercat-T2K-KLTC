@@ -1,3 +1,3 @@
 # description: Windows sends file to Kali with Kali-side nc listener
-# stage: Kali receive
-# stage: Target send
+# stage: Kali shell: receive file
+# stage: Target PowerShell: send file and close connection

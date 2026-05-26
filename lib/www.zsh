@@ -30,9 +30,9 @@ Commands:
     only; their targets are not printed.
 
   search [FILTER]
-    Fuzzy-select a file or directory under /www, then print its path relative to
-    /www followed by its absolute path. FILTER preselects the first
-    case-insensitive fzf match.
+    Fuzzy-select a file or directory under /www, then print its containing
+    directory relative to /www followed by its absolute path. FILTER preselects
+    the first case-insensitive fzf match.
 EOF
       [[ -n "${1:-}" ]] && return 0
       return 2
@@ -116,7 +116,7 @@ ii_cmd_payload_www_search() {
   [[ -n "$selected" ]] || return
 
   ii_color_green "relative to /www:"
-  print -r -- "$(ii_www_relative_path "$root" "$selected")"
+  print -r -- "$(ii_www_relative_dir_path "$root" "$selected")"
   ii_color_green "absolute path:"
   print -r -- "${selected:a}"
 }
@@ -203,6 +203,25 @@ ii_www_relative_path() {
     print -r -- "."
   else
     print -r -- "${entry_path#$root/}"
+  fi
+}
+
+ii_www_relative_dir_path() {
+  local root="${1%/}"
+  local entry_path="$2"
+  local dir rel
+
+  if [[ -d "$entry_path" && ! -L "$entry_path" ]]; then
+    dir="$entry_path"
+  else
+    dir="${entry_path:h}"
+  fi
+
+  rel="$(ii_www_relative_path "$root" "$dir")"
+  if [[ "$rel" == "." ]]; then
+    print -r -- "/"
+  else
+    print -r -- "/${rel%/}/"
   fi
 }
 

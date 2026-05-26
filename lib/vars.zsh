@@ -1,8 +1,7 @@
 # ii_ variable commands.
 
-ii_cmd_set() {
-  if [[ "${1:-}" == "--help" ]]; then
-    cat <<'EOF'
+ii_cmd_set_usage() {
+  cat <<'EOF'
 usage: ii set NAME=VALUE [NAME=VALUE...]
        ii s NAME=VALUE [NAME=VALUE...]
        ii s:NAME=VALUE[,NAME=VALUE...]
@@ -15,28 +14,50 @@ usage: ii set NAME=VALUE [NAME=VALUE...]
        ii s
        ii s FILTER
        ii s:FILTER
-
-Set NAME=VALUE in the current tmux session and export it into this shell.
-The current shell export uses NAME without the internal ii_ prefix.
-Direct value setting always uses "=". Multiple assignments can be passed as
-separate arguments or comma-separated shortcut entries.
-
-Use --from-shell to save existing shell variables back into the tmux session.
-Missing shell variables print red warnings and are skipped. A comma-separated
-name list such as ii s:user,passwd --from-shell handles multiple variables.
-
-With no arguments, open a TUI to choose a variable and type its value.
-With one FILTER argument, match variable names before prompting for a value.
-No matches prints "no matched"; multiple matches prompt for variable selection.
-Single-letter shortcuts include r for rhost, l for lhost, and d for domain.
-
--d means detect. It is only supported for lhost and detects the IPv4 address
-from INTERFACE. The default INTERFACE is tun0. II_EXPORT_CASE controls whether
-exported shell variables use lower, upper, or both cases.
 EOF
-    return 0
-  fi
+}
 
+ii_cmd_set_help() {
+  ii_cmd_set_usage
+  cat <<'EOF'
+
+Forms:
+  NAME=VALUE
+    Set NAME=VALUE in the current tmux session and export it into this shell.
+    Multiple assignments can be separate arguments or comma-separated shortcut
+    entries, such as ii s:user=alice,passwd=secret.
+
+  NAME[,NAME...] --from-shell
+    Save existing shell variables back into the tmux session. Lowercase shell
+    names are checked first, then uppercase names. Missing shell variables print
+    red warnings and are skipped.
+
+  -d [INTERFACE]
+    Detect lhost from INTERFACE. The default INTERFACE is tun0. Detect is only
+    supported for lhost.
+
+  [FILTER]
+    Match variable names before prompting for a value. No matches prints
+    "no matched"; multiple matches prompt for variable selection.
+
+  no arguments
+    Open a TUI to choose a variable and type its value.
+
+Notes:
+  User-facing names do not include the internal ii_ prefix. Single-letter
+  shortcuts include r for rhost, l for lhost, and d for domain. II_EXPORT_CASE
+  controls whether exported shell variables use lower, upper, or both cases.
+EOF
+}
+
+ii_cmd_set() {
+  local help_arg
+  for help_arg in "$@"; do
+    if [[ "$help_arg" == "--help" || "$help_arg" == "-h" ]]; then
+      ii_cmd_set_help
+      return 0
+    fi
+  done
   if [[ $# -eq 0 ]]; then
     ii_cmd_set_interactive
     return
@@ -83,20 +104,7 @@ EOF
   fi
 
   if [[ $# -lt 2 ]]; then
-    cat <<'EOF'
-usage: ii set NAME=VALUE [NAME=VALUE...]
-       ii s NAME=VALUE [NAME=VALUE...]
-       ii s:NAME=VALUE[,NAME=VALUE...]
-       ii set NAME[,NAME...] [--from-shell]
-       ii s:NAME[,NAME...] [--from-shell]
-       ii s NAME -d [INTERFACE]
-       ii s -d [INTERFACE]
-       ii s:lhost -d [INTERFACE]
-       ii set
-       ii s
-       ii s FILTER
-       ii s:FILTER
-EOF
+    ii_cmd_set_usage
     return 2
   fi
 

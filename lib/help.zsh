@@ -1,27 +1,48 @@
 # Help command routing.
 
+ii_help_topics() {
+  print -r -- help
+  print -r -- set
+  print -r -- get
+  print -r -- clip
+  print -r -- load
+  print -r -- interactive
+  print -r -- ls
+  print -r -- payload
+  print -r -- payload-input
+  print -r -- payload-www
+  print -r -- unset
+  print -r -- version
+}
+
+ii_help_dispatch() {
+  case "$1" in
+    set|s) ii_cmd_set --help ;;
+    get|g) ii_cmd_get --help ;;
+    clip|clipboard) ii_cmd_clip --help ;;
+    load|l) ii_cmd_load --help ;;
+    interactive|i) ii_cmd_interactive --help ;;
+    ls|list|variable|vars|var|v) ii_cmd_list --help ;;
+    payload|p)
+      case "${2:-}" in
+        --input|input) ii_cmd_payload_input --help ;;
+        -www|www) ii_cmd_payload_www --help ;;
+        *) ii_cmd_payload --help ;;
+      esac
+      ;;
+    payload-input|input) ii_cmd_payload_input --help ;;
+    payload-www) ii_cmd_payload_www --help ;;
+    unset|u) ii_cmd_unset --help ;;
+    version|-v|--version) ii_cmd_version --help ;;
+    help|h) ii_cmd_help ;;
+    *) print -u2 "ii: unknown help topic: $1"; return 2 ;;
+  esac
+}
+
 ii_cmd_help() {
   if [[ $# -gt 0 ]]; then
-    case "$1" in
-      set|s|from-shell|--from-shell) ii_cmd_set --help ;;
-      get|g) ii_cmd_get --help ;;
-      clip|clipboard) ii_cmd_clip --help ;;
-      load|l) ii_cmd_load --help ;;
-      interactive|i) ii_cmd_interactive --help ;;
-      ls|list|variable|vars|var|v) ii_cmd_list --help ;;
-      payload|p)
-        case "${2:-}" in
-          --input|input) ii_cmd_payload_input --help ;;
-          *) ii_cmd_payload --help ;;
-        esac
-        ;;
-      payload-input|input) ii_cmd_payload_input --help ;;
-      unset|u) ii_cmd_unset --help ;;
-      version|-v|--version) ii_cmd_version --help ;;
-      help|h) ii_cmd_help ;;
-      *) print -u2 "ii: unknown help topic: $1"; return 2 ;;
-    esac
-    return
+    ii_help_dispatch "$@"
+    return $?
   fi
 
   cat <<'EOF'

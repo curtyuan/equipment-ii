@@ -16,7 +16,7 @@ object:
   "path": "shell/linux/sh-tcp",
   "description": "optional first-line metadata without the prefix",
   "body": "payload text copied after rendering",
-  "variables": ["II_LHOST", "II_LPORT", "rhost"]
+  "variables": ["lhost", "lport", "rhost"]
 }
 ```
 
@@ -28,20 +28,19 @@ Field meanings:
 | `path` | Relative file path | Yes | Also used as the fzf selector entry and category filter input. |
 | `description` | First line | No | Only recognized when line 1 starts with `# description:`. It is shown in preview and omitted from copied output. |
 | `body` | Remaining text | Yes | Copied after renderable placeholders are rendered. |
-| `variables` | Body scan | No | Uppercase `II_*` and lowercase shell-style placeholders used by the renderer. |
+| `variables` | Body scan | No | Lowercase shell-style placeholders used by the renderer. |
 
 Recognized payload file syntax:
 
 ```text
 # description: optional operator-facing description
-payload body with ${II_LHOST}, $rhost, ${file}, or ${file:t}
+payload body with ${lhost}, $rhost, ${file}, or ${file:t}
 ```
 
-Payload files render `${II_NAME}`, bare `II_NAME`, `$name`, `${name}`, and
-`${name:t}` through the shared renderer. A non-empty lowercase shell variable
-wins first, then the matching tmux `ii_` variable is used. Uppercase shell
-variables such as `$RHOST` are left unchanged. Missing values keep the original
-token and are reported in red.
+Payload files render `$name`, `${name}`, and `${name:t}` through the shared
+renderer. A non-empty lowercase shell variable wins first, then the matching
+tmux `ii_` variable is used. Uppercase shell variables such as `$RHOST` are
+left unchanged. Missing values keep the original token and are reported in red.
 
 ## Combo Payload Convention
 
@@ -81,23 +80,31 @@ script/combo/trans/lin-busybox-nc-T2K-KLTC
 ```
 
 Combo files should keep executable command text in the body and avoid Markdown
-fences or long prose in copied output. Use metadata lines for structure:
+fences or long prose in copied output. Use `# stage:` metadata to mark each
+operator/target step:
 
 ```text
 # description: Kali send to Target
-# stage: Target receive
+# stage: Target PowerShell: receive file to TEMP
 $RFILE="${file:t}"
 $OUTFILE = Join-Path $env:TEMP "$RFILE"
 powercat -l -p $rport -of $OUTFILE
 
-# stage: Kali send
+# stage: Kali shell: send file and close connection
 nc -q 0 $rhost $rport < $file
 nc -N $rhost $rport < $file
 ```
 
-`# stage:` is reserved for combo-aware formatting. Stage labels should be shown
-as blue bold headings before their rendered commands when combo formatting is
-implemented.
+`# stage:` lines are not emitted literally. During preview, print, copy, and
+file output, each stage becomes a paste-safe shell comment delimiter:
+
+```text
+# --- Target PowerShell: receive file to TEMP ---
+```
+
+The emitted delimiter uses `#` because it is valid in both PowerShell and common
+Linux shells. Keep stage labels short and action-oriented, and name the side and
+shell when that matters.
 
 Uppercase non-`II_` variables such as `$RFILE` and `$OUTFILE` intentionally stay
 unrendered. Use them when the target shell should expand or assign the value at

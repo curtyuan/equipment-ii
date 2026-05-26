@@ -584,12 +584,15 @@
             <pre><code>1. lib/tmux.zsh
 2. lib/clipboard.zsh
 3. lib/fzf.zsh
-4. lib/var_helpers.zsh
-5. lib/var_interactive.zsh
-6. lib/vars.zsh
-7. lib/payloads.zsh
-8. lib/help.zsh
-9. lib/core.zsh</code></pre>
+4. lib/interact.zsh
+5. lib/var_helpers.zsh
+6. lib/var_interactive.zsh
+7. lib/vars.zsh
+8. lib/www.zsh
+9. lib/payloads.zsh
+10. lib/help.zsh
+11. lib/version.zsh
+12. lib/core.zsh</code></pre>
             <p class="muted">
               core.zsh loads last because it exposes the public dispatcher after
               all command implementations are defined.
@@ -611,6 +614,10 @@
             <span>Provide list previews, input prompts, and preview blocks shared by selectors.</span>
           </div>
           <div class="card">
+            <strong>interact.zsh</strong>
+            <span>Build shared selector footers, normal/search key text, modal fzf actions, and copy status wording.</span>
+          </div>
+          <div class="card">
             <strong>var_helpers.zsh</strong>
             <span>Normalize names, list tmux ii_ variables, format output, export shell values, and provide color helpers.</span>
           </div>
@@ -623,12 +630,20 @@
             <span>Implement set, get, load, list, and unset command entrypoints.</span>
           </div>
           <div class="card">
+            <strong>www.zsh</strong>
+            <span>Own <code>ii p -www</code> list, search, and symlink helpers.</span>
+          </div>
+          <div class="card">
             <strong>payloads.zsh</strong>
             <span>List payloads, run fzf selection, render templates, read pasted input, write output files, and report render sources.</span>
           </div>
           <div class="card">
             <strong>help.zsh</strong>
             <span>Route ii help topics to the command help close to each implementation.</span>
+          </div>
+          <div class="card">
+            <strong>version.zsh</strong>
+            <span>Read and print the installed plugin version.</span>
           </div>
           <div class="card">
             <strong>core.zsh</strong>
@@ -651,7 +666,7 @@
             <tr>
               <td>Set</td>
               <td><code>ii set</code>, <code>ii s</code>, <code>ii s:FILTER</code></td>
-              <td>Write a value to tmux and export it into the current shell. With no args, open fzf.</td>
+              <td>Write values, save values from shell with <code>--from-shell</code>, or open fzf with no args.</td>
             </tr>
             <tr>
               <td>Detect</td>
@@ -680,13 +695,18 @@
             </tr>
             <tr>
               <td>Payload</td>
-              <td><code>ii p [CATEGORY]</code>, <code>ii p --input</code></td>
-              <td>Render payload files or pasted text, print output, optionally copy or write files.</td>
+              <td><code>ii p [CATEGORY]</code>, <code>ii p --input</code>, <code>ii p -www</code></td>
+              <td>Render payload files or pasted text, and route web-root helper operations.</td>
             </tr>
             <tr>
               <td>Clipboard</td>
               <td><code>ii clip backend</code>, <code>ii clip doctor</code></td>
               <td>Inspect, configure, and diagnose copy behavior for local, tmux, SSH, and Kali contexts.</td>
+            </tr>
+            <tr>
+              <td>Other</td>
+              <td><code>ii unset</code>, <code>ii version</code>, <code>ii help</code></td>
+              <td>Remove variables, print version metadata, and route command help.</td>
             </tr>
           </tbody>
         </table>
@@ -754,136 +774,31 @@ lport
 
       <section class="section" id="payloads">
         <h2>Payload Rendering</h2>
-        <div class="diagram">
-          <div class="diagram-row">
-            <div class="node">Input source</div>
-            <div class="edge">Stored payload body after optional description removal, or pasted text from <code>ii p --input</code>.</div>
-          </div>
-          <div class="diagram-row">
-            <div class="node">Token parser</div>
-            <div class="edge">Scans <code>$name</code>, <code>${name}</code>, <code>${name:t}</code>, <code>${II_NAME}</code>, and bare <code>II_NAME</code>.</div>
-          </div>
-          <div class="diagram-row">
-            <div class="node">Resolver</div>
-            <div class="edge">Checks non-empty lowercase shell variable, then non-empty tmux <code>ii_</code> variable, then keeps the original token.</div>
-          </div>
-          <div class="diagram-row">
-            <div class="node">Report</div>
-            <div class="edge">Shell source is blue, tmux/ii source is normal, unresolved source is red.</div>
-          </div>
-          <div class="diagram-row">
-            <div class="node">Output</div>
-            <div class="edge">Printed body, y clipboard copy from the selector, optional <code>-o</code> file output, then final absolute output path when writing.</div>
-          </div>
+        <div class="callout">
+          <code>lib/payloads.zsh</code> owns selector behavior, rendering,
+          copy/write output, pasted input, and render reports. This page only
+          records ownership and document routing; syntax details live in the
+          schema and usage docs.
         </div>
 
-        <details open>
-          <summary>Shared render rules</summary>
-          <div class="detail-body">
-            <table>
-              <thead>
-                <tr>
-                  <th>Token</th>
-                  <th>Behavior</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>$rhost</code></td>
-                  <td>Render lowercase shell-style variable.</td>
-                </tr>
-                <tr>
-                  <td><code>${rhost}</code></td>
-                  <td>Render lowercase shell-style variable.</td>
-                </tr>
-                <tr>
-                  <td><code>${file:t}</code></td>
-                  <td>Render value, then keep only the trailing path component.</td>
-                </tr>
-                <tr>
-                  <td><code>${II_RHOST}</code></td>
-                  <td>Normalize internal ii name to lowercase identity <code>rhost</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>II_RHOST</code></td>
-                  <td>Render bare internal ii token when it is not part of another word or <code>$II_RHOST</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>$RHOST</code>, <code>${RHOST}</code></td>
-                  <td>Leave uppercase shell variables unchanged.</td>
-                </tr>
-                <tr>
-                  <td><code>$env:</code>, <code>$script:</code></td>
-                  <td>Leave PowerShell scope variables unchanged.</td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="card-grid">
+          <div class="card">
+            <strong>Stored payload files</strong>
+            <span>Use <code>doc/payload-schema.md</code> for file schema, metadata, combo naming, and renderable token syntax.</span>
           </div>
-        </details>
-
-        <details>
-          <summary>Payload file schema</summary>
-          <div class="detail-body">
-            <p>
-              Payload files are plain text under <code>II_PAYLOAD_DIR</code>.
-              The selector entry is the relative file path. A first-line
-              <code># description:</code> is metadata shown in preview and
-              omitted from copied, printed, and written output.
-            </p>
-            <pre><code># description: optional operator-facing text
-payload body with ${II_LHOST}, $rhost, ${file}, or ${file:t}</code></pre>
+          <div class="card">
+            <strong>Pasted input</strong>
+            <span>Use <code>doc/usage.md</code> for <code>ii p --input</code> prompts, cancel lines, copy, and output behavior.</span>
           </div>
-        </details>
-
-        <details>
-          <summary>Pasted input mode</summary>
-          <div class="detail-body">
-            <p>
-              <code>ii p --input</code> reads pasted text until a single
-              <code>.</code> line. A single <code>:q</code> or <code>:q!</code>
-              line cancels without rendering, copying, or saving.
-            </p>
-            <pre><code>paste content below
-finish: single "." line OR ":q"/":q!" line -> cancel, don't save
-ii input&gt; </code></pre>
+          <div class="card">
+            <strong>/www helpers</strong>
+            <span><code>lib/www.zsh</code> owns list, search, and symlink behavior used through <code>ii p -www</code>.</span>
           </div>
-        </details>
-
-        <details>
-          <summary>Output path rules</summary>
-          <div class="detail-body">
-            <table>
-              <thead>
-                <tr>
-                  <th>Input</th>
-                  <th>Resolved output</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>-o</code></td>
-                  <td><code>/www/p/att.txt</code></td>
-                </tr>
-                <tr>
-                  <td><code>-o filename</code></td>
-                  <td><code>/www/filename</code></td>
-                </tr>
-                <tr>
-                  <td><code>-o ./</code></td>
-                  <td><code>./att.txt</code></td>
-                </tr>
-                <tr>
-                  <td><code>-o ./payload.txt</code></td>
-                  <td><code>./payload.txt</code></td>
-                </tr>
-                <tr>
-                  <td><code>-o /tmp/payload.txt</code></td>
-                  <td><code>/tmp/payload.txt</code></td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="card">
+            <strong>Verification</strong>
+            <span>Use <code>doc/testing.md</code> for tmux render, fallback, copy, and output-path checks.</span>
           </div>
-        </details>
+        </div>
       </section>
 
       <section class="section" id="clipboard">
@@ -925,11 +840,12 @@ ii input&gt; </code></pre>
               Command help is registered beside command entrypoints. The
               central <code>ii help</code> router delegates topics to those
               implementations. Documentation explains behavior and design, but
-              should not be the only place a live option is described.
+              should not be the only place a live option is described. Options
+              such as <code>--from-shell</code> stay inside their command help,
+              for example <code>ii s --help</code>.
             </p>
             <pre><code>ii help
 ii help set
-ii help from-shell
 ii help get
 ii help clip
 ii help load
@@ -937,7 +853,9 @@ ii help interactive
 ii help ls
 ii help payload
 ii help payload input
-ii help input
+ii help payload-input
+ii help payload www
+ii help payload-www
 ii help unset
 ii help version</code></pre>
           </div>

@@ -1,3 +1,3 @@
 # description: Windows connects back to Kali and runs cmd.exe
-# stage: Kali listen
-# stage: Target connect
+# stage: Kali shell: listen for reverse cmd
+# stage: Target PowerShell: connect and run cmd.exe

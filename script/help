@@ -4,22 +4,7 @@ set -e
 repo_dir="${0:A:h:h}"
 source "${repo_dir}/ii.plugin.zsh"
 
-topics=(
-  help
-  set
-  from-shell
-  get
-  clip
-  load
-  interactive
-  ls
-  payload
-  input
-  unset
-  version
-)
-
-for topic in "${topics[@]}"; do
+for topic in ${(f)"$(ii_help_topics)"}; do
   print "===== ii ${topic} ====="
   if [[ "$topic" == "help" ]]; then
     ii help

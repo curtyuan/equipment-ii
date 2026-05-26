@@ -1,1 +1,1 @@
-<script>alert('${II_DOMAIN}')</script>
+<script>alert('${domain}')</script>

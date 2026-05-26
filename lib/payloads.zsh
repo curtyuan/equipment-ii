@@ -18,14 +18,16 @@ Payload files:
   selected template preview at the bottom, with renderable tokens highlighted.
   A first-line "# description: ..." metadata line is shown in preview but
   omitted from copied output.
+  "# stage: ..." metadata lines are emitted as paste-safe "# --- ... ---"
+  comment delimiters for combo payloads.
+  The selector starts in normal mode. Press / to search; Esc returns to normal.
   Use y to copy the selected rendered payload without leaving the selector.
   Use l to unfold the selected script into a full preview, and h to
-  return to the searchable selector. In unfolded preview, j and k still move
-  between payloads, Enter still renders and outputs, q aborts, and filtering is
-  disabled until returning.
-  Payload files render ${II_NAME}, bare II_NAME, $name, ${name}, and ${name:t}.
-  Shell values win over ii tmux values. Uppercase shell variables such as $RHOST
-  are left unchanged. Missing values keep their original token.
+  return to compact normal mode. In unfolded preview, j and k still move
+  between payloads, Enter still renders and outputs, and q aborts.
+  Payload files render $name, ${name}, and ${name:t}. Shell values win over ii
+  tmux values. Uppercase shell variables such as $RHOST are left unchanged.
+  Missing values keep their original token.
 
 Pasted input:
   ii p --input [--copy] [-o [PATH]]
@@ -49,8 +51,9 @@ Output:
     Print files and directories under /www as a tree.
 
   ii p -www search [FILTER]
-    Fuzzy-select an entry under /www and print its path relative to /www, then
-    its absolute path. FILTER preselects the first case-insensitive fzf match.
+    Fuzzy-select an entry under /www and print its containing directory relative
+    to /www, then its absolute path. FILTER preselects the first
+    case-insensitive fzf match.
 
 Categories:
   all, shell, script, linux, windows, sqli, xss
@@ -166,9 +169,9 @@ EOF
     ii_payload_write_output "$rendered" "$output_spec"
   fi
 
+  [[ -n "$report" ]] && print -r -- "$report" && print
   ii_payload_print_separator
   print -r -- "$rendered"
-  [[ -n "$report" ]] && print && print -r -- "$report"
   if [[ $last_yank_count -gt 0 && "$last_yank_selected" != "$selected" && -n "$last_yank_report" ]]; then
     print
     print -r -- "$last_yank_report"
@@ -204,9 +207,6 @@ Supported input placeholders:
   $name       replace lowercase name
   ${name}     replace lowercase name
   ${name:t}   replace lowercase name with its trailing path component
-  ${II_NAME}  replace internal ii name as lowercase name
-  II_NAME     replace bare internal ii name as lowercase name
-
 Uppercase variables and PowerShell scope variables such as $env:, $script:,
 $global:, $local:, and $private: are left unchanged.
 
@@ -290,19 +290,22 @@ ii_payload_filter() {
 ii_payload_select_fzf() {
   local filter="${1:-all}"
   local footer_status="${2:-}"
-  local plugin_file payload_dir compact_keys expanded_keys compact_footer expanded_footer
+  local plugin_file payload_dir compact_footer expanded_footer search_footer normal_keys
   plugin_file="${II_PLUGIN_DIR%/}/ii.plugin.zsh"
   payload_dir="$(ii_payload_dir)"
-  compact_keys='j/k Move    Enter Render/Output    y Copy    l Expand    q Quit'
-  expanded_keys='j/k Move    Enter Render/Output    y Copy    h Back    q Quit'
-  compact_footer="$(ii_interact_footer "$compact_keys" "$footer_status")"
-  expanded_footer="$(ii_interact_footer "$expanded_keys" "$footer_status")"
+  compact_footer="$(ii_interact_footer "$(ii_interact_keys_payload_normal)" "$footer_status")"
+  expanded_footer="$(ii_interact_footer "$(ii_interact_keys_payload_expanded)" "$footer_status")"
+  search_footer="$(ii_interact_footer "$(ii_interact_keys_payload_search)" "$footer_status")"
+  normal_keys="j,k,y,q,l,h,/"
 
   fzf --ansi --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1,2,3,4 \
-    --expect=enter,y,q \
-    --bind='j:down,k:up' \
-    --bind="l:change-preview-window(up,99%,wrap,noinfo)+hide-input+disable-search+change-footer($expanded_footer)" \
-    --bind="h:change-preview-window(down,50%,nowrap,noinfo)+show-input+enable-search+change-footer($compact_footer)" \
+    --expect=enter \
+    --bind="start:$(ii_fzf_modal_start_actions)" \
+    --bind="/:$(ii_fzf_modal_search_actions "$search_footer" "$normal_keys")" \
+    --bind="esc:$(ii_fzf_modal_normal_actions "$compact_footer" "$normal_keys")" \
+    --bind='j:down,k:up,y:print(y)+accept,q:abort' \
+    --bind="l:change-preview-window(up,99%,wrap,noinfo)+hide-input+disable-search+change-footer($expanded_footer)+unbind(/)+rebind(j,k,y,q,l,h)" \
+    --bind="h:change-preview-window(down,50%,nowrap,noinfo)+hide-input+disable-search+change-footer($compact_footer)+rebind($normal_keys)" \
     --preview="zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}" \
     --preview-window='down,50%,nowrap,noinfo' \
     --footer="$compact_footer" --footer-border=line
@@ -343,7 +346,7 @@ ii_payload_render() {
 }
 
 ii_payload_print_separator() {
-  print -r -- "--------------------------------------------------------------------------------"
+  ii_color_blue "[payload]"
 }
 
 ii_payload_output_path() {
@@ -629,7 +632,7 @@ ii_payload_preview_text() {
 
 ii_payload_highlight_preview_text() {
   local text="$1"
-  local highlighted="" length i ch next expr end token original
+  local highlighted="" length i ch next expr end token original name display
 
   length="${#text}"
   i=1
@@ -644,9 +647,15 @@ ii_payload_highlight_preview_text() {
         done
         if (( end <= length )); then
           expr="${text[i+2,end-1]}"
-          if [[ "$expr" =~ '^([a-z_][a-z0-9_]*)(:t)?$' || "$expr" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
+          if [[ "$expr" =~ '^([a-z_][a-z0-9_]*)(:t)?$' ]]; then
             original="${text[i,end]}"
             highlighted+="$(ii_color_green "$original")"
+            i=$(( end + 1 ))
+            continue
+          elif [[ "$expr" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
+            name="${(L)match[1]}"
+            display='${'"$name"'}'
+            highlighted+="$(ii_color_green "$display")"
             i=$(( end + 1 ))
             continue
           fi
@@ -678,7 +687,9 @@ ii_payload_highlight_preview_text() {
       done
       token="${text[i,end-1]}"
       if [[ "$token" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
-        highlighted+="$(ii_color_green "$token")"
+        name="${(L)match[1]}"
+        display='$'"$name"
+        highlighted+="$(ii_color_green "$display")"
         i="$end"
         continue
       fi
@@ -706,6 +717,15 @@ ii_payload_body() {
   local payload_path="$1"
   awk '
     NR == 1 && $0 ~ /^# description:[[:space:]]*/ { next }
+    $0 ~ /^# stage:[[:space:]]*/ {
+      label = $0
+      sub(/^# stage:[[:space:]]*/, "", label)
+      if (label == "") {
+        label = "stage"
+      }
+      print "# --- " label " ---"
+      next
+    }
     { print }
   ' "$payload_path"
 }

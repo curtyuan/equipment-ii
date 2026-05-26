@@ -134,9 +134,9 @@ ii p linux
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
 | `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
 
-`ii p` shows path entries separated from template previews by a solid block.
-Use `j`/`k` to move, `l` to unfold the selected script preview, `h` to return
-to filtering, `y` to copy the selected rendered payload, Enter to
+`ii p` starts in normal mode. Use `j`/`k` to move, `/` to search, Esc to return
+to normal mode, `l` to unfold the selected script preview, `h` to return to
+compact normal mode, `y` to copy the selected rendered payload, Enter to
 render/output, and `q` to abort.
 Copy reports are printed when the selector exits; aborting without Enter or
 `y` prints nothing.
@@ -210,7 +210,6 @@ export `II_CLIP_BACKEND`.
 ```zsh
 ii help
 ii help set
-ii help from-shell
 ii help get
 ii help clip
 ii help load
@@ -218,7 +217,9 @@ ii help interactive
 ii help ls
 ii help payload
 ii help payload input
-ii help input
+ii help payload-input
+ii help payload www
+ii help payload-www
 ii help unset
 ii help version
 ```

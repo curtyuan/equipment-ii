@@ -1,3 +1,3 @@
 # description: Windows connects back to Kali with PowerShell pseudo session
-# stage: Kali listen
-# stage: Target connect
+# stage: Kali shell: listen for reverse PowerShell
+# stage: Target PowerShell: connect with pseudo session

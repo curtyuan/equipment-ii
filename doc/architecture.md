@@ -317,6 +317,10 @@ variables and PowerShell scope variables unchanged, supports `${name:t}` for
 trailing path components, and reports missing variables in red while keeping the
 original token in rendered output.
 
+Payload previews use the same shell-then-tmux availability check for color only:
+tokens with values are green, missing tokens are red. The preview color check
+does not change render output or render reports.
+
 Fuzzy boundary:
 
 ```text

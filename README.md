@@ -138,6 +138,8 @@ ii p linux
 to normal mode, `l` to unfold the selected script preview, `h` to return to
 compact normal mode, `y` to copy the selected rendered payload, Enter to
 render/output, and `q` to abort.
+Preview renderable tokens with values are green; missing renderable tokens are
+red.
 Copy reports are printed when the selector exits; aborting without Enter or
 `y` prints nothing.
 

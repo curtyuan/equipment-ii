@@ -16,7 +16,8 @@ Payload files:
   Open the payload selector, render the selected template, and print the output.
 
   The selector shows payload paths in the list and a selected template preview
-  at the bottom, with renderable tokens highlighted.
+  at the bottom, with resolved renderable tokens highlighted green and missing
+  tokens highlighted red.
   A first-line "# description: ..." metadata line is shown in preview but
   omitted from copied output.
   "# stage: ..." metadata lines are emitted as paste-safe "# --- ... ---"
@@ -659,14 +660,15 @@ ii_payload_highlight_preview_text() {
         if (( end <= length )); then
           expr="${text[i+2,end-1]}"
           if [[ "$expr" =~ '^([a-z_][a-z0-9_]*)(:t)?$' ]]; then
+            name="${match[1]}"
             original="${text[i,end]}"
-            highlighted+="$(ii_color_green "$original")"
+            highlighted+="$(ii_payload_highlight_preview_var "$name" "$original")"
             i=$(( end + 1 ))
             continue
           elif [[ "$expr" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
             name="${(L)match[1]}"
             display='${'"$name"'}'
-            highlighted+="$(ii_color_green "$display")"
+            highlighted+="$(ii_payload_highlight_preview_var "$name" "$display")"
             i=$(( end + 1 ))
             continue
           fi
@@ -684,7 +686,7 @@ ii_payload_highlight_preview_text() {
             continue
           fi
           original="${text[i,end-1]}"
-          highlighted+="$(ii_color_green "$original")"
+          highlighted+="$(ii_payload_highlight_preview_var "$token" "$original")"
           i="$end"
           continue
         fi
@@ -700,7 +702,7 @@ ii_payload_highlight_preview_text() {
       if [[ "$token" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
         name="${(L)match[1]}"
         display='$'"$name"
-        highlighted+="$(ii_color_green "$display")"
+        highlighted+="$(ii_payload_highlight_preview_var "$name" "$display")"
         i="$end"
         continue
       fi
@@ -711,6 +713,34 @@ ii_payload_highlight_preview_text() {
   done
 
   print -rn -- "$highlighted"
+}
+
+ii_payload_highlight_preview_var() {
+  local name="$1"
+  local display="$2"
+
+  if ii_payload_preview_var_available "$name"; then
+    ii_color_green "$display"
+  else
+    ii_color_red "$display"
+  fi
+}
+
+ii_payload_preview_var_available() {
+  local name="$1"
+  local ii_name line
+
+  if (( ${+parameters[$name]} )) && [[ -n "${(P)name}" ]]; then
+    return 0
+  fi
+
+  ii_name="$(ii_var_normalize_name "$name")" || return 1
+  if ii_tmux_available >/dev/null 2>&1; then
+    line="$(ii_var_line_by_name "$ii_name")"
+  else
+    line=""
+  fi
+  [[ -n "$line" && -n "${line#*=}" ]]
 }
 
 ii_payload_description() {

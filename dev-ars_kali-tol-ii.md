@@ -356,7 +356,8 @@ Behavior:
 3. Apply optional category filtering.
 4. Let fzf handle fuzzy search and selection with the selected template payload
    preview shown in the bottom preview pane. The selector list shows payload
-   paths only.
+   paths only. Preview renderable tokens with values in green and missing
+   renderable tokens in red without changing render output.
 5. Resolve the selected entry to a payload file.
 6. Render the template with fresh tmux II_ values.
    Missing or empty values render as lowercase shell fallbacks like $rhost.

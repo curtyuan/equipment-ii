@@ -309,9 +309,10 @@ output.
 
 The payload selector list shows payload paths only. The selected payload
 preview reserves a description block above the template body, highlights
-renderable tokens in green, normalizes any legacy internal `II_` payload tokens
-to lowercase user-facing names, and shows selector controls and copy status at
-the bottom of the preview.
+renderable tokens with values in green, highlights missing renderable tokens in
+red, normalizes any legacy internal `II_` payload tokens to lowercase
+user-facing names, and shows selector controls and copy status at the bottom of
+the preview.
 
 In the selector, `j` and `k` move between payloads. `/` enters search mode and
 Esc returns to normal mode. `y` copies the selected rendered payload without

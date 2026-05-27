@@ -168,19 +168,21 @@ ii_cmd_payload_www_search() {
 
 ii_www_print_file_analysis() {
   local file_path="$1"
-  local root relative_dir
+  local root relative_dir file_abs rfile
 
   root="$(ii_www_root)"
   relative_dir="$(ii_www_relative_dir_path "$root" "$file_path")"
+  file_abs="${file_path:a}"
+  rfile="${file_abs:t}"
 
   ii_color_green "relative to /www:"
   print -r -- "$relative_dir"
   ii_color_green "absolute path:"
-  print -r -- "${file_path:a}"
+  print -r -- "$file_abs"
   ii_color_green "shell commands:"
   print -r -- "relative_file=${(q)relative_dir}"
-  print -r -- "file=${(q)${file_path:a}}"
-  print -r -- 'rfile=${file:t}'
+  print -r -- "file=${(q)file_abs}"
+  print -r -- "rfile=${(q)rfile}"
 }
 
 ii_www_root() {

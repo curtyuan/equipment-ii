@@ -128,7 +128,7 @@ ii p linux
 | `ii ls [PATTERN]` | | List non-empty tmux variables as compact key/value blocks |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
 | `ii p --input [--copy] [-o [PATH]]` | | Render pasted input; optionally copy or write the result |
-| `ii p -www ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | List, search, or symlink files under the configured web root |
+| `ii p --www --file PATH` / `ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | Render a file, list, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
@@ -136,11 +136,10 @@ ii p linux
 
 `ii p` starts in normal mode. Use `j`/`k` to move, `/` to search, Esc to return
 to normal mode, `l` to unfold the selected script preview, `h` to return to
-compact normal mode, `y` to copy the selected rendered payload, `w` to edit,
-write to `/www/p`, and copy a download command, Enter to render/output, and
-`q` to abort.
-Copy reports are printed when the selector exits; aborting without Enter, `y`,
-or `w` prints nothing.
+compact normal mode, `y` to copy the selected rendered payload, Enter to
+render/output, and `q` to abort.
+Copy reports are printed when the selector exits; aborting without Enter or
+`y` prints nothing.
 
 ## Common Configuration
 
@@ -164,7 +163,7 @@ directory only if you keep payloads somewhere else:
 export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
 ```
 
-`ii p -www ...` defaults to `/www`. Override it from `~/.config/ii/ii.conf`
+`ii p --www ...` defaults to `/www`. Override it from `~/.config/ii/ii.conf`
 when your web root lives somewhere else:
 
 ```zsh

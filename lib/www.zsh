@@ -1,7 +1,11 @@
-# /www helper commands used from ii p -www.
+# /www helper commands used from ii p --www.
 
 ii_cmd_payload_www() {
   case "${1:-}" in
+    --file)
+      shift
+      ii_cmd_payload_www_file "$@"
+      ;;
     ln)
       shift
       ii_cmd_payload_www_ln "$@"
@@ -16,11 +20,17 @@ ii_cmd_payload_www() {
       ;;
     --help|-h|"")
       cat <<'EOF'
-usage: ii p -www ln SOURCE_PATH [LINK_NAME]
-       ii p -www ls
-       ii p -www search [FILTER]
+usage: ii p --www --file PATH
+       ii p --www ln SOURCE_PATH [LINK_NAME]
+       ii p --www ls
+       ii p --www search [FILTER]
 
 Commands:
+  --file PATH
+    Read PATH, render it with the normal payload renderer, print the render
+    report and rendered output, then symlink PATH into /www/p and print
+    relative_file, file, and rfile shell commands for manual copy.
+
   ln SOURCE_PATH [LINK_NAME]
     Select a directory under /www and create a symlink to SOURCE_PATH there.
     With no LINK_NAME, the symlink name is SOURCE_PATH's basename.
@@ -38,16 +48,51 @@ EOF
       return 2
       ;;
     *)
-      print -u2 "ii: unknown -www command: $1"
-      print -u2 "ii: expected ln, ls, or search"
+      print -u2 "ii: unknown --www command: $1"
+      print -u2 "ii: expected --file, ln, ls, or search"
       return 2
       ;;
   esac
 }
 
+ii_cmd_payload_www_file() {
+  local source="${1:-}"
+  local source_abs rendered report link_path
+
+  if [[ -z "$source" ]]; then
+    print -u2 "ii: usage: ii p --www --file PATH"
+    return 2
+  fi
+  if [[ $# -gt 1 ]]; then
+    print -u2 "ii: too many arguments for ii p --www --file"
+    return 2
+  fi
+  if [[ ! -f "$source" ]]; then
+    print -u2 "ii: file not found: $source"
+    return 1
+  fi
+
+  source_abs="${source:a}"
+  ii_payload_render_text "$(<"$source_abs")" >/dev/null || return
+  rendered="$II_PAYLOAD_RENDERED_TEXT"
+  report="$(ii_payload_render_report)"
+
+  ii_www_link_into_p "$source_abs" "${source_abs:t}" || return
+  link_path="$II_WWW_LINK_PATH"
+
+  [[ -n "$report" ]] && print -r -- "$report" && print
+  ii_payload_print_separator
+  print -r -- "$rendered"
+  print
+  ii_color_blue "symlink written to:"
+  print -r -- "$link_path"
+  print
+  ii_www_print_file_analysis "$link_path"
+}
+
 ii_cmd_payload_www_ls() {
   if [[ $# -gt 0 ]]; then
-    print -u2 "ii: usage: ii p -www ls"
+    print -u2 "ii: usage: ii p --www ls"
     return 2
   fi
 
@@ -62,11 +107,11 @@ ii_cmd_payload_www_ln() {
   local root selected source_abs target
 
   if [[ -z "$source" ]]; then
-    print -u2 "ii: usage: ii p -www ln SOURCE_PATH [LINK_NAME]"
+    print -u2 "ii: usage: ii p --www ln SOURCE_PATH [LINK_NAME]"
     return 2
   fi
   if [[ $# -gt 2 ]]; then
-    print -u2 "ii: too many arguments for ii p -www ln"
+    print -u2 "ii: too many arguments for ii p --www ln"
     return 2
   fi
   if [[ ! -e "$source" ]]; then
@@ -103,7 +148,7 @@ ii_cmd_payload_www_search() {
   local filter="${1:-}"
 
   if [[ $# -gt 1 ]]; then
-    print -u2 "ii: usage: ii p -www search [FILTER]"
+    print -u2 "ii: usage: ii p --www search [FILTER]"
     return 2
   fi
 
@@ -119,6 +164,23 @@ ii_cmd_payload_www_search() {
   print -r -- "$(ii_www_relative_dir_path "$root" "$selected")"
   ii_color_green "absolute path:"
   print -r -- "${selected:a}"
+}
+
+ii_www_print_file_analysis() {
+  local file_path="$1"
+  local root relative_dir
+
+  root="$(ii_www_root)"
+  relative_dir="$(ii_www_relative_dir_path "$root" "$file_path")"
+
+  ii_color_green "relative to /www:"
+  print -r -- "$relative_dir"
+  ii_color_green "absolute path:"
+  print -r -- "${file_path:a}"
+  ii_color_green "shell commands:"
+  print -r -- "relative_file=${(q)relative_dir}"
+  print -r -- "file=${(q)${file_path:a}}"
+  print -r -- 'rfile=${file:t}'
 }
 
 ii_www_root() {
@@ -139,6 +201,31 @@ ii_www_validate_link_name() {
     print -u2 "ii: invalid link name: $link_name"
     return 2
   fi
+}
+
+ii_www_link_into_p() {
+  local source_abs="$1"
+  local link_name="$2"
+  local root dir target
+
+  root="$(ii_www_root)"
+  ii_www_validate_link_name "$link_name" || return
+  dir="${root%/}/p"
+  if ! mkdir -p -- "$dir"; then
+    print -u2 "ii: failed to create /www/p directory: $dir"
+    return 1
+  fi
+  target="${dir%/}/${link_name}"
+  if [[ -e "$target" || -L "$target" ]]; then
+    print -u2 "ii: target already exists: $target"
+    return 1
+  fi
+  if ! ln -s -- "$source_abs" "$target"; then
+    print -u2 "ii: failed to create symlink: $target"
+    return 1
+  fi
+
+  typeset -g II_WWW_LINK_PATH="${target:a}"
 }
 
 ii_www_select_dir() {

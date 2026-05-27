@@ -369,11 +369,9 @@ Behavior:
     hide and disable filtering while preserving j/k selection movement, y copy,
     Enter render/output, and q abort. Let h return to the
     searchable selector.
-12. Let w edit the selected template in the user's editor, prompt for a
-    filename with default p, select a download method, write the rendered edited
-    script under /www/p, copy the rendered download command, and print the
-    render report. Abort the whole flow when the editor exits without writing
-    or when filename/method selection is cancelled.
+12. `ii p --www --file PATH` reads PATH, renders it with the payload renderer,
+    prints the render report and rendered output, and symlinks PATH under
+    /www/p without overwriting existing targets.
 ```
 
 Categories:

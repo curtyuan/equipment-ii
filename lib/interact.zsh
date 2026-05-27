@@ -5,10 +5,29 @@ ii_interact_footer() {
   local footer_status="${2:-}"
 
   if [[ -n "$footer_status" ]]; then
-    print -r -- "$keys"$'\n'"$footer_status"
+    print -r -- "$keys"$'\n'"$(ii_interact_status_line "$footer_status")"
   else
     print -r -- "$keys"
   fi
+}
+
+ii_interact_hint_line() {
+  local key label out
+
+  out=$'\033[48;5;236m'
+  while (( $# >= 2 )); do
+    key="$1"
+    label="$2"
+    shift 2
+    out+=$' \033[1;97m'"${key}"$'\033[22;2;37m '"${label}"$'  '
+  done
+  out+=$'\033[0m'
+  print -r -- "$out"
+}
+
+ii_interact_status_line() {
+  local message="$1"
+  print -r -- $'\033[48;5;238;97m '"$message"$' \033[0m'
 }
 
 ii_interact_copy_status() {
@@ -24,28 +43,28 @@ ii_interact_copy_status() {
 }
 
 ii_interact_keys_vars_normal() {
-  print -r -- "j/k move  / search  i/l edit"
-  print -r -- "Enter copy+quit  y copy  h/q quit"
+  ii_interact_hint_line "j/k" "move" "/" "search" "i/l" "edit"
+  ii_interact_hint_line "Enter" "copy+quit" "y" "copy" "h/q" "quit"
 }
 
 ii_interact_keys_vars_search() {
-  print -r -- "type filter  Esc normal"
-  print -r -- "Enter copy+quit"
+  ii_interact_hint_line "type" "filter" "Esc" "normal"
+  ii_interact_hint_line "Enter" "copy+quit"
 }
 
 ii_interact_keys_payload_normal() {
-  print -r -- "j/k move  / search  l expand  w write"
-  print -r -- "Enter render  y copy  q quit"
+  ii_interact_hint_line "j/k" "move" "/" "search" "l" "expand"
+  ii_interact_hint_line "Enter" "render" "y" "copy" "q" "quit"
 }
 
 ii_interact_keys_payload_expanded() {
-  print -r -- "j/k move  h back  w write"
-  print -r -- "Enter render  y copy  q quit"
+  ii_interact_hint_line "j/k" "move" "h" "back"
+  ii_interact_hint_line "Enter" "render" "y" "copy" "q" "quit"
 }
 
 ii_interact_keys_payload_search() {
-  print -r -- "type filter  Esc normal"
-  print -r -- "Enter render"
+  ii_interact_hint_line "type" "filter" "Esc" "normal"
+  ii_interact_hint_line "Enter" "render"
 }
 
 ii_fzf_modal_start_actions() {

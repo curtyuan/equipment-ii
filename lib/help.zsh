@@ -26,7 +26,7 @@ ii_help_dispatch() {
     payload|p)
       case "${2:-}" in
         --input|input) ii_cmd_payload_input --help ;;
-        -www|www) ii_cmd_payload_www --help ;;
+        --www|www) ii_cmd_payload_www --help ;;
         *) ii_cmd_payload --help ;;
       esac
       ;;
@@ -68,7 +68,7 @@ Variables:
 Payloads:
   payload|p [CATEGORY]   Select, render, print, and optionally write a payload
   payload|p --input      Render pasted input, optionally with --copy or -o
-  payload|p -www         List, search, or symlink files under /www
+  payload|p --www        Render a file, list, search, or symlink under /www
 
 Clipboard:
   clip backend           Show or set clipboard backend

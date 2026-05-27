@@ -631,7 +631,7 @@
           </div>
           <div class="card">
             <strong>www.zsh</strong>
-            <span>Own <code>ii p -www</code> list, search, and symlink helpers.</span>
+            <span>Own <code>ii p --www</code> file render, list, search, and symlink helpers.</span>
           </div>
           <div class="card">
             <strong>payloads.zsh</strong>
@@ -695,8 +695,8 @@
             </tr>
             <tr>
               <td>Payload</td>
-              <td><code>ii p [CATEGORY]</code>, <code>ii p --input</code>, <code>ii p -www</code></td>
-              <td>Render payload files or pasted text, edit/write payload output, copy download commands, and route web-root helper operations.</td>
+              <td><code>ii p [CATEGORY]</code>, <code>ii p --input</code>, <code>ii p --www</code></td>
+              <td>Render payload files, pasted text, or explicit web-root files, and route web-root helper operations.</td>
             </tr>
             <tr>
               <td>Clipboard</td>
@@ -791,12 +791,12 @@ lport
             <span>Use <code>doc/usage.md</code> for <code>ii p --input</code> prompts, cancel lines, copy, and output behavior.</span>
           </div>
           <div class="card">
-            <strong>Write/download flow</strong>
-            <span>Use <code>doc/usage.md</code> for <code>ii p</code> <code>w</code> editing, filename prompts, method selection, web-root writes, copied download commands, and abort behavior.</span>
+            <strong>/www file render</strong>
+            <span>Use <code>doc/usage.md</code> for <code>ii p --www --file PATH</code> rendering, render reports, web-root symlinks, and existing-target behavior.</span>
           </div>
           <div class="card">
             <strong>/www helpers</strong>
-            <span><code>lib/www.zsh</code> owns list, search, and symlink behavior used through <code>ii p -www</code>.</span>
+            <span><code>lib/www.zsh</code> owns list, search, and symlink behavior used through <code>ii p --www</code>.</span>
           </div>
           <div class="card">
             <strong>Verification</strong>

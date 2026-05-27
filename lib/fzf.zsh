@@ -28,7 +28,7 @@ ii_fzf_print_preview_blocks() {
   content="$(cat)"
   desc_block="[description]"$'\n'"$description"$'\n'"--------------------------------------------------------------------------------"
   footer_block=""
-  [[ -n "$footer" ]] && footer_block="[keys]"$'\n'"$footer"
+  [[ -n "$footer" ]] && footer_block="$footer"
 
   if (( preview_lines <= 0 )); then
     print -r -- "$desc_block"

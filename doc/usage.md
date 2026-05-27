@@ -35,7 +35,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
 | `ii p --input [--copy] [-o [PATH]]` | | Render pasted input, optionally copy it, and optionally write it |
-| `ii p -www ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | List, search, or symlink files under the configured web root |
+| `ii p --www --file PATH` / `ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | Render a file, list, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
@@ -315,11 +315,9 @@ the bottom of the preview.
 
 In the selector, `j` and `k` move between payloads. `/` enters search mode and
 Esc returns to normal mode. `y` copies the selected rendered payload without
-leaving the selector. `w` edits the selected template, writes the rendered
-edited script under `/www/p`, and copies a download command. `l` unfolds the
-selected script into a full preview and hides the filter input. `j` and `k`
-still move between scripts, Enter renders and outputs, `w` writes/downloads,
-and `q` aborts. `h` returns to compact normal mode.
+leaving the selector. `l` unfolds the selected script into a full preview and
+hides the filter input. `j` and `k` still move between scripts, Enter renders
+and outputs, and `q` aborts. `h` returns to compact normal mode.
 
 Render reports are printed when `ii p` leaves the selector. If you only use `y`
 and then abort, `ii` prints the last copied payload's report. If you use `y`
@@ -327,24 +325,18 @@ and then Enter a different payload, `ii` prints the Enter payload's report
 first, then the last copied payload's report. Aborting without Enter or `y`
 prints nothing.
 
-Press `w` to open the selected template in `${VISUAL:-${EDITOR:-vi}}`. Save and
-quit the editor to continue, or quit without writing to abort. After editing,
-`ii` prompts for a filename with default `p`, then opens a selector for one of
-these download command styles:
+Render an existing file and expose it from the web-root `p` directory:
 
-```text
-powershell-iwr
-cmd-certutil
-cmd-bitadmin
-linux-wget
-linux-curl
+```zsh
+ii p --www --file ./payload.txt
 ```
 
-The edited template is rendered and written to `/www/p/FILENAME`, or to
-`$II_WWW_ROOT/p/FILENAME` when the web root is overridden. The selected download
-command is rendered with `lhost`, copied to the clipboard, and `ii` prints
-`download command copied`, the render report, and the output path. Esc or `q` in
-the filename or method selector aborts the whole flow.
+`ii p --www --file PATH` reads `PATH`, renders it with the shared payload render
+rules, prints the render report and rendered body, then creates a symlink to the
+original file under `/www/p`, or `$II_WWW_ROOT/p` when the web root is
+overridden. Existing targets are not overwritten. After linking, it prints the
+relative web directory, absolute symlink path, and paste-ready shell commands:
+`relative_file=/p/`, `file=...`, and `rfile=${file:t}`.
 
 Write the rendered payload to a file with `-o`:
 
@@ -440,7 +432,7 @@ Override it only if you keep payloads somewhere else:
 export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
 ```
 
-`ii p -www ...` uses `/www` by default. Override it in your ii config when your
+`ii p --www ...` uses `/www` by default. Override it in your ii config when your
 web root lives elsewhere:
 
 ```zsh

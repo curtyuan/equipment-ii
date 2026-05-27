@@ -222,13 +222,15 @@ ii_export_var_line
 
 ### `lib/www.zsh`
 
-`/www` helper commands used from `ii p -www ...`.
+`/www` helper commands used from `ii p --www ...`.
 
 Responsibilities:
 
 - Resolve `II_WWW_ROOT`, defaulting to `/www`.
 - Print a tree of files and directories under the configured web root without
   showing symlink targets.
+- Read a file, render it through the payload renderer, report render sources,
+  and symlink the file under the web root's `p` directory.
 - Fuzzy-select web-root entries and report the containing directory relative to
   `/www`, then the selected entry's absolute filesystem path.
 - Fuzzy-select a destination directory under the web root and create symlinks
@@ -239,6 +241,7 @@ Commands:
 
 ```text
 ii_cmd_payload_www
+ii_cmd_payload_www_file
 ii_cmd_payload_www_ls
 ii_cmd_payload_www_ln
 ii_cmd_payload_www_search
@@ -262,8 +265,6 @@ Responsibilities:
 - Render payload files and pasted `--input` text through the same parser and
   resolver.
 - Write rendered payload text to a requested output path.
-- Edit a selected payload template, write the rendered edited script under the
-  configured web root's `p` directory, and copy a rendered download command.
 - Display first-line `# description:` metadata in preview without copying it.
 - Emit `# stage:` metadata as paste-safe `# --- ... ---` comment delimiters
   for combo payloads.
@@ -488,6 +489,7 @@ payload output layer:
 
 www helper layer:
   - read II_WWW_ROOT from shell/config state
+  - render an explicit file and symlink it under /www/p
   - list and search web-root files without using tmux
   - create symlinks under selected web-root directories
 

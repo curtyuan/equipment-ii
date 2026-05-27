@@ -220,6 +220,7 @@ ii help ls
 ii help payload
 ii help payload-input
 ii help payload-www
+ii help payload-www-file
 ii help unset
 ii help version
 ```

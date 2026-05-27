@@ -4,6 +4,10 @@ ii_cmd_payload_www() {
   case "${1:-}" in
     --file)
       shift
+      if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        ii_cmd_payload_www_file --help
+        return
+      fi
       ii_cmd_payload_www_file "$@"
       ;;
     ln)
@@ -58,6 +62,25 @@ EOF
 ii_cmd_payload_www_file() {
   local source="${1:-}"
   local source_abs rendered report link_path
+
+  if [[ "$source" == "--help" || "$source" == "-h" ]]; then
+    cat <<'EOF'
+usage: ii p --www --file PATH
+
+Read PATH, render it with the normal payload renderer, and print the render
+report and rendered output.
+
+After rendering, create a symlink to PATH under /www/p, or $II_WWW_ROOT/p when
+the web root is overridden. Existing targets are not overwritten.
+
+After linking, print the same path analysis style used by ii p --www search:
+relative to /www, absolute path, and paste-ready shell assignments:
+relative_file=/p/
+file=/www/p/FILENAME
+rfile=FILENAME
+EOF
+    return 0
+  fi
 
   if [[ -z "$source" ]]; then
     print -u2 "ii: usage: ii p --www --file PATH"

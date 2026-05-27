@@ -141,7 +141,8 @@ Shared interaction helpers.
 Responsibilities:
 
 - Build selector preview footers with an optional status line.
-- Keep normal/search selector key text shared for `ii i` and `ii p`.
+- Keep width-aware normal/search selector key text shared for `ii i` and
+  `ii p`; wrap only between complete key prompt units.
 - Build reusable fzf modal start actions.
 - Keep copy-success and copy-failure wording shared across selector commands.
 - Leave domain actions in the variable and payload command layers.
@@ -150,6 +151,8 @@ Functions:
 
 ```text
 ii_interact_footer
+ii_interact_hint_line
+ii_interact_status_line
 ii_interact_copy_status
 ii_interact_keys_vars_normal
 ii_interact_keys_vars_search

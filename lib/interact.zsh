@@ -12,17 +12,29 @@ ii_interact_footer() {
 }
 
 ii_interact_hint_line() {
-  local key label out
+  local key label line line_len unit unit_len width
 
-  out=$'\033[48;5;236m'
+  width="${II_INTERACT_COLUMNS:-${FZF_PREVIEW_COLUMNS:-${COLUMNS:-80}}}"
+  [[ "$width" == <-> ]] || width=80
+  (( width > 0 )) || width=80
+
+  line=$'\033[48;5;236m'
+  line_len=0
   while (( $# >= 2 )); do
     key="$1"
     label="$2"
     shift 2
-    out+=$' \033[1;97m'"${key}"$'\033[22;2;37m '"${label}"$'  '
+    unit=$' \033[1;97m'"${key}"$'\033[22;2;37m '"${label}"$'  '
+    unit_len=$(( ${#key} + 1 + ${#label} + 3 ))
+    if (( line_len > 0 && line_len + unit_len > width )); then
+      print -r -- "$line"$'\033[0m'
+      line=$'\033[48;5;236m'
+      line_len=0
+    fi
+    line+="$unit"
+    line_len=$(( line_len + unit_len ))
   done
-  out+=$'\033[0m'
-  print -r -- "$out"
+  print -r -- "$line"$'\033[0m'
 }
 
 ii_interact_status_line() {
@@ -43,28 +55,23 @@ ii_interact_copy_status() {
 }
 
 ii_interact_keys_vars_normal() {
-  ii_interact_hint_line "j/k" "move" "/" "search" "i/l" "edit"
-  ii_interact_hint_line "Enter" "copy+quit" "y" "copy" "h/q" "quit"
+  ii_interact_hint_line "j/k" "move" "/" "search" "i/l" "edit" "Enter" "copy+quit" "y" "copy" "h/q" "quit"
 }
 
 ii_interact_keys_vars_search() {
-  ii_interact_hint_line "type" "filter" "Esc" "normal"
-  ii_interact_hint_line "Enter" "copy+quit"
+  ii_interact_hint_line "type" "filter" "Esc" "normal" "Enter" "copy+quit"
 }
 
 ii_interact_keys_payload_normal() {
-  ii_interact_hint_line "j/k" "move" "/" "search" "l" "expand"
-  ii_interact_hint_line "Enter" "render" "y" "copy" "q" "quit"
+  ii_interact_hint_line "j/k" "move" "/" "search" "l" "expand" "Enter" "render" "y" "copy" "q" "quit"
 }
 
 ii_interact_keys_payload_expanded() {
-  ii_interact_hint_line "j/k" "move" "h" "back"
-  ii_interact_hint_line "Enter" "render" "y" "copy" "q" "quit"
+  ii_interact_hint_line "j/k" "move" "h" "back" "Enter" "render" "y" "copy" "q" "quit"
 }
 
 ii_interact_keys_payload_search() {
-  ii_interact_hint_line "type" "filter" "Esc" "normal"
-  ii_interact_hint_line "Enter" "render"
+  ii_interact_hint_line "type" "filter" "Esc" "normal" "Enter" "render"
 }
 
 ii_fzf_modal_start_actions() {

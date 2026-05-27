@@ -11,6 +11,7 @@ ii_help_topics() {
   print -r -- payload
   print -r -- payload-input
   print -r -- payload-www
+  print -r -- payload-www-file
   print -r -- unset
   print -r -- version
 }
@@ -26,13 +27,20 @@ ii_help_dispatch() {
     payload|p)
       case "${2:-}" in
         --input|input) ii_cmd_payload_input --help ;;
-        --www|www) ii_cmd_payload_www --help ;;
+        --www|www)
+          case "${3:-}" in
+            --file|file) ii_cmd_payload_www_file --help ;;
+            "") ii_cmd_payload_www --help ;;
+            *) ii_cmd_payload_www --help ;;
+          esac
+          ;;
         -www|-wwww) print -u2 "ii: use --www instead of ${2:-}"; return 2 ;;
         *) ii_cmd_payload --help ;;
       esac
       ;;
     payload-input|input) ii_cmd_payload_input --help ;;
     payload-www) ii_cmd_payload_www --help ;;
+    payload-www-file) ii_cmd_payload_www_file --help ;;
     unset|u) ii_cmd_unset --help ;;
     version|-v|--version) ii_cmd_version --help ;;
     help|h) ii_cmd_help ;;

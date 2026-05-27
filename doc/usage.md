@@ -337,7 +337,7 @@ rules, prints the render report and rendered body, then creates a symlink to the
 original file under `/www/p`, or `$II_WWW_ROOT/p` when the web root is
 overridden. Existing targets are not overwritten. After linking, it prints the
 relative web directory, absolute symlink path, and paste-ready shell commands:
-`relative_file=/p/`, `file=...`, and `rfile=${file:t}`.
+`relative_file=/p/`, `file=...`, and `rfile=FILENAME`.
 
 Write the rendered payload to a file with `-o`:
 

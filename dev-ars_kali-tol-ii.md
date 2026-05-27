@@ -287,7 +287,8 @@ Behavior:
 14. Do not export values into the current shell unless loaded-variable sync was
     already enabled by `ii s` or `ii l` in that shell.
 15. h/q aborts the selector.
-16. Display a vim-style keys and status block at the bottom of the preview pane.
+16. Display a nano-style keys and status block at the bottom of the preview
+    pane, while keeping vim-style movement keys.
 ```
 
 This command is a variable copy/add layer, not a shell loading layer. Use
@@ -795,7 +796,11 @@ ii help load
 ii help interactive
 ii help ls
 ii help payload
+ii help payload-input
+ii help payload-www
+ii help payload-www-file
 ii help unset
+ii help version
 ```
 
 The script must call the registered help implementations instead of duplicating
@@ -814,7 +819,7 @@ Implemented:
 - tmux session variable source of truth
 - argument-based payload filtering
 - fzf payload and variable selection
-- vim-style bottom preview keys and copy status
+- nano-style bottom preview keys and copy status
 - interactive variable edit, add, and copy flows
 - fresh tmux-based payload rendering
 - payload description metadata

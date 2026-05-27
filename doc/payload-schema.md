@@ -71,7 +71,7 @@ Naming fields:
 | Field | Meaning | Examples |
 | --- | --- | --- |
 | `DOMAIN` | Workflow area. | `trans` |
-| `TOOL` | Primary tool or tool family. | `powercat`, `lin-nc`, `lin-busybox-nc` |
+| `TOOL` | Primary tool or tool family. | `powercat` |
 | `DIRECTION` | Data direction. | `K2T` = Kali sends to target, `T2K` = target sends to Kali |
 | `FLOW` | Listener/connector roles. | `KLTC` = Kali listens and target connects, `TLKC` = target listens and Kali connects |
 
@@ -83,12 +83,9 @@ Examples:
 
 ```text
 script/combo/trans/powercat-K2T-TLKC
-script/combo/trans/powercat-K2T-KLTC
 script/combo/trans/powercat-T2K-KLTC
-script/combo/trans/lin-nc-K2T-TLKC
-script/combo/trans/lin-nc-T2K-KLTC
-script/combo/trans/lin-busybox-nc-K2T-TLKC
-script/combo/trans/lin-busybox-nc-T2K-KLTC
+script/combo/shell/powercat-rev-cmd-TCKL
+script/combo/shell/powercat-rev-ps-TCKL
 ```
 
 Combo files should keep executable command text in the body and avoid Markdown

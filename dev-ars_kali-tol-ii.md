@@ -592,7 +592,7 @@ ii i:
 ii p:
   - Input: path-style payload entries.
   - UI: fzf selector with path-only entries, independent description preview
-    block, green-highlighted selected template preview, and bottom-pinned
+    block, green/red selected template preview token status, and bottom-pinned
     preview controls/status.
   - Output: one selected payload path.
   - Next layer: payload render.

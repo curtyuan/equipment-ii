@@ -27,6 +27,7 @@ ii_help_dispatch() {
       case "${2:-}" in
         --input|input) ii_cmd_payload_input --help ;;
         --www|www) ii_cmd_payload_www --help ;;
+        -www|-wwww) print -u2 "ii: use --www instead of ${2:-}"; return 2 ;;
         *) ii_cmd_payload --help ;;
       esac
       ;;

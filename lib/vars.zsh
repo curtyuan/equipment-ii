@@ -36,6 +36,11 @@ Forms:
     Detect lhost from INTERFACE. The default INTERFACE is tun0. Detect is only
     supported for lhost.
 
+  automatic lhost detect
+    When rhost or rhosts is set, ii automatically detects lhost from the
+    configured interface and prints the detected value. This is controlled by
+    II_AUTO_DETECT_LHOST and II_AUTO_DETECT_LHOST_INTERFACE.
+
   [FILTER]
     Match variable names before prompting for a value. No matches prints
     "no matched"; multiple matches prompt for variable selection.
@@ -132,12 +137,13 @@ ii_cmd_set() {
 
   tmux set-environment "$name" "$value" || return
   ii_export_var_line "${name}=${value}" || return
+  ii_var_auto_detect_lhost_for_rhost "$name"
   ii_enable_loaded_var_sync
   print "$(ii_var_display_line "${name}=${value}")"
 }
 
 ii_cmd_set_from_shell() {
-  local names raw name normalized ii_name shell_name upper_name value missing=0
+  local names raw name normalized ii_name shell_name upper_name value missing=0 saw_rhost=0 saw_lhost=0
   names=()
   for raw in "$@"; do
     for name in "${(@s:,:)raw}"; do
@@ -164,14 +170,19 @@ ii_cmd_set_from_shell() {
     tmux set-environment "$ii_name" "$value" || return
     ii_export_var_line "${ii_name}=${value}" || return
     print "$(ii_var_display_line "${ii_name}=${value}")"
+    ii_var_is_rhost_name "$ii_name" && saw_rhost=1
+    [[ "$ii_name" == "ii_lhost" ]] && saw_lhost=1
   done
 
+  if (( saw_rhost && ! saw_lhost )); then
+    ii_var_auto_detect_lhost_for_rhost "ii_rhost"
+  fi
   ii_enable_loaded_var_sync
   return "$missing"
 }
 
 ii_cmd_set_assignments() {
-  local raw item name value ii_name count=0
+  local raw item name value ii_name count=0 saw_rhost=0 saw_lhost=0
 
   for raw in "$@"; do
     for item in "${(@s:,:)raw}"; do
@@ -187,6 +198,8 @@ ii_cmd_set_assignments() {
       tmux set-environment "$ii_name" "$value" || return
       ii_export_var_line "${ii_name}=${value}" || return
       print "$(ii_var_display_line "${ii_name}=${value}")"
+      ii_var_is_rhost_name "$ii_name" && saw_rhost=1
+      [[ "$ii_name" == "ii_lhost" ]] && saw_lhost=1
       (( count++ ))
     done
   done
@@ -196,6 +209,9 @@ ii_cmd_set_assignments() {
     return 2
   fi
 
+  if (( saw_rhost && ! saw_lhost )); then
+    ii_var_auto_detect_lhost_for_rhost "ii_rhost"
+  fi
   ii_enable_loaded_var_sync
 }
 

@@ -90,7 +90,8 @@ This lets Kali deployments use bundled payloads without adding a separate
 
 Configuration belongs in `II_CONFIG_FILE`, not tmux. Tmux session environment is
 reserved for `ii_` workflow variables used by payload rendering across panes.
-Optional settings such as `II_PAYLOAD_DIR`, `II_WWW_ROOT`, and clipboard backend
+Optional settings such as `II_PAYLOAD_DIR`, `II_WWW_ROOT`,
+`II_AUTO_DETECT_LHOST`, `II_AUTO_DETECT_LHOST_INTERFACE`, and clipboard backend
 selection are shell/config state.
 
 ### `lib/tmux.zsh`
@@ -172,6 +173,7 @@ Responsibilities:
 - List, filter, and format `ii_` variables.
 - Apply shared terminal colors for variable display keys.
 - Export safe `NAME=VALUE` lines into the current shell.
+- Detect and export lhost automatically after rhost/rhosts is set, when enabled.
 - Enable loaded-variable prompt sync after `ii s` or `ii l`.
 - Build default variable candidates for interactive commands.
 

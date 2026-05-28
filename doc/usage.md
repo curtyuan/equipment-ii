@@ -25,6 +25,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
 | `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface, defaulting to `tun0` |
+| `ii set rhost=VALUE` | `ii s:rhost=VALUE` | Set rhost and automatically detect lhost when enabled |
 | `ii set` | `ii s` | Open a TUI to choose common variable names and type a value |
 | `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
 | `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value without loading |
@@ -85,6 +86,8 @@ root:
 
 ```zsh
 export II_EXPORT_CASE=lower
+export II_AUTO_DETECT_LHOST=1
+export II_AUTO_DETECT_LHOST_INTERFACE=tun0
 export II_WWW_ROOT=/www
 ```
 
@@ -135,7 +138,13 @@ Direct value setting always uses `=`:
 ii s user=alice
 ii set user=alice passwd='S3cret!'
 ii s:user=alice,passwd='S3cret!'
+ii s:rhost=192.168.201.175
 ```
+
+When `II_AUTO_DETECT_LHOST` is enabled, setting `rhost` or `rhosts` also detects
+`lhost` from `II_AUTO_DETECT_LHOST_INTERFACE` and prints
+`lhost has automatically sets as VALUE`. The default is enabled on `tun0`.
+Set `II_AUTO_DETECT_LHOST=0` to manage `lhost` manually.
 
 Use `--from-shell` to save existing shell variables back into tmux:
 
@@ -352,8 +361,8 @@ ii p linux -o /tmp/payload.txt
 `-o` keeps the normal terminal output. With no path, it writes
 `/www/p/att.txt`. A bare filename writes under `/www`, so `-o filename` writes
 `/www/filename`. Directory paths use `att.txt`, so `-o ./` writes
-`./att.txt`. The terminal output prints the render report first, then a
-`[payload]` marker, then the rendered body. When writing a file, `ii` appends
+`./att.txt`. The terminal output prints the render report first, then the
+selected payload path, then the rendered body. When writing a file, `ii` appends
 an output note and ends with the full output path on its own line.
 
 ### Pasted Input Rendering
@@ -367,7 +376,7 @@ ii p --input -o
 ii p --input -o ./payload.txt
 ```
 
-`ii p --input` reads until `.` is entered on its own line and uses the shared
+`ii p --input` reads until `:w` is entered on its own line and uses the shared
 render rules above. The terminal output prints the render report first, then a
 `[payload]` marker, then the rendered body. `--copy` copies only the rendered
 body.

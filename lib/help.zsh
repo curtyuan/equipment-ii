@@ -64,6 +64,7 @@ Variables:
   set|s NAME[,NAME...] --from-shell
                           Save current shell variables back to tmux
   set|s -d [IFACE]       Detect lhost from an interface, default tun0
+  set|s rhost=VALUE      Set rhost and auto-detect lhost when enabled
   set|s [FILTER]         Select a variable and set its value
   s:FILTER               Shortcut form of ii s FILTER
   get|g FILTER           Copy and print one tmux variable value

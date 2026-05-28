@@ -187,6 +187,11 @@ ii s:l -d
 ii s -d
 ```
 
+When `II_AUTO_DETECT_LHOST` is enabled, setting `rhost` or `rhosts` also detects
+`lhost` from `II_AUTO_DETECT_LHOST_INTERFACE`, defaulting to `tun0`, and prints
+`lhost has automatically sets as VALUE`. If the same assignment batch explicitly
+sets `lhost`, the automatic update is skipped.
+
 Behavior:
 
 ```text
@@ -195,8 +200,9 @@ Behavior:
 2. Validate the normalized variable name.
 3. Store ii_name=VALUE in the current tmux session environment.
 4. Export shell variables into the current shell according to II_EXPORT_CASE.
-5. Enable loaded-variable sync for the current shell.
-6. Print name=VALUE without the internal ii_ prefix.
+5. When enabled and rhost/rhosts was set, detect and store lhost.
+6. Enable loaded-variable sync for the current shell.
+7. Print name=VALUE without the internal ii_ prefix.
 ```
 
 Example:

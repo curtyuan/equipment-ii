@@ -119,6 +119,7 @@ ii p linux
 | `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
 | `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface |
+| `ii set rhost=VALUE` | `ii s:rhost=VALUE` | Set rhost and automatically detect lhost when enabled |
 | `ii set [FILTER]` | `ii s [FILTER]`, `ii s:FILTER` | Select or match a variable before setting it |
 | `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value |
 | `ii load` | `ii l` | Load non-empty tmux variables into this shell |
@@ -178,6 +179,14 @@ Shell export case for `ii set` and `ii load` defaults to lowercase:
 export II_EXPORT_CASE=lower
 export II_EXPORT_CASE=upper
 export II_EXPORT_CASE=both
+```
+
+Automatic `lhost` detection after setting `rhost` is enabled by default and
+uses `tun0` unless configured otherwise:
+
+```zsh
+export II_AUTO_DETECT_LHOST=1
+export II_AUTO_DETECT_LHOST_INTERFACE=tun0
 ```
 
 Clipboard overrides:

@@ -227,6 +227,35 @@ ii_var_detect_interface_ipv4() {
   print -r -- "$value"
 }
 
+ii_var_auto_detect_lhost_enabled() {
+  local enabled="${II_AUTO_DETECT_LHOST:-1}"
+  case "${(L)enabled}" in
+    0|false|no|off|disabled) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+ii_var_is_rhost_name() {
+  case "$1" in
+    ii_rhost|ii_rhosts) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+ii_var_auto_detect_lhost_for_rhost() {
+  local name="$1"
+  local interface="${II_AUTO_DETECT_LHOST_INTERFACE:-tun0}"
+  local value
+
+  ii_var_auto_detect_lhost_enabled || return 0
+  ii_var_is_rhost_name "$name" || return 0
+
+  value="$(ii_var_detect_interface_ipv4 "$interface")" || return 0
+  tmux set-environment ii_lhost "$value" || return
+  ii_export_var_line "ii_lhost=${value}" || return
+  print "lhost has automatically sets as ${value}"
+}
+
 ii_enable_loaded_var_sync() {
   typeset -g II_SYNC_LOADED_VARS=1
   precmd_functions=(${precmd_functions:#ii_sync_loaded_vars_precmd} ii_sync_loaded_vars_precmd)

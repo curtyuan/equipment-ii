@@ -1,4 +1,4 @@
-# description: Kali sends file to Windows TEMP with target-side powercat listener
+# description: Kali sends file to Windows TEMP; target listens and Kali connects
 # stage: Target PowerShell: receive file to TEMP
 $PORT = $rport
 $RFILE = "${file:t}"

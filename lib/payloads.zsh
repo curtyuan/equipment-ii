@@ -34,7 +34,7 @@ Payload files:
 Pasted input:
   ii p --input [--copy] [-o [PATH]]
 
-  Paste template text below the prompt. Finish with a single "." line, or cancel
+  Paste template text below the prompt. Finish with a single ":w" line, or cancel
   with a single ":q" or ":q!" line. The renderer uses lowercase shell-style
   variables from this shell first and ii variables second. Use --copy to copy
   the rendered input to the clipboard.
@@ -124,11 +124,11 @@ EOF
 
   while true; do
     if ! selected="$(print -r -- "$payloads" | ii_payload_filter "$filter" | ii_payload_entries_for_fzf | ii_payload_select_fzf "$filter" "$footer_status")"; then
-      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && print -r -- "$last_yank_report"
+      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && ii_payload_print_report "$last_yank_report" "$last_yank_selected"
       return
     fi
     if [[ -z "$selected" ]]; then
-      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && print -r -- "$last_yank_report"
+      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && ii_payload_print_report "$last_yank_report" "$last_yank_selected"
       return
     fi
 
@@ -146,7 +146,7 @@ EOF
     [[ -n "$selected" ]] || return
 
     if [[ "$key" == "q" ]]; then
-      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && print -r -- "$last_yank_report"
+      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && ii_payload_print_report "$last_yank_report" "$last_yank_selected"
       return
     fi
 
@@ -167,7 +167,7 @@ EOF
       (( last_yank_count++ ))
       if [[ -n "${II_PAYLOAD_KEY:-}" ]]; then
         print -r -- "$footer_status"
-        [[ -n "$last_yank_report" ]] && print && print -r -- "$last_yank_report"
+        [[ -n "$last_yank_report" ]] && print && ii_payload_print_report "$last_yank_report" "$last_yank_selected"
         return
       fi
       continue
@@ -182,12 +182,11 @@ EOF
     ii_payload_write_output "$rendered" "$output_spec"
   fi
 
-  [[ -n "$report" ]] && print -r -- "$report" && print
-  ii_payload_print_separator
+  [[ -n "$report" ]] && ii_payload_print_report "$report" "$selected" && print
   print -r -- "$rendered"
   if [[ $last_yank_count -gt 0 && "$last_yank_selected" != "$selected" && -n "$last_yank_report" ]]; then
     print
-    print -r -- "$last_yank_report"
+    ii_payload_print_report "$last_yank_report" "$last_yank_selected"
   fi
   ii_payload_print_output_report
 }
@@ -214,7 +213,7 @@ usage: ii p --input [--copy] [-o [PATH]]
 Paste template text below the prompt, then render variables and print the
 rendered output.
 
-Finish input with a single "." line. Cancel with a single ":q" or ":q!" line.
+Finish input with a single ":w" line. Cancel with a single ":q" or ":q!" line.
 
 Supported input placeholders:
   $name       replace lowercase name
@@ -303,27 +302,28 @@ ii_payload_filter() {
 ii_payload_select_fzf() {
   local filter="${1:-all}"
   local footer_status="${2:-}"
-  local plugin_file payload_dir compact_footer expanded_footer search_footer normal_keys compact_preview_cmd expanded_preview_cmd search_preview_cmd
+  local plugin_file payload_dir compact_footer expanded_footer search_footer normal_keys preview_cmd
   plugin_file="${II_PLUGIN_DIR%/}/ii.plugin.zsh"
   payload_dir="$(ii_payload_dir)"
   compact_footer="$(ii_interact_footer "$(ii_interact_keys_payload_normal)" "$footer_status")"
   expanded_footer="$(ii_interact_footer "$(ii_interact_keys_payload_expanded)" "$footer_status")"
   search_footer="$(ii_interact_footer "$(ii_interact_keys_payload_search)" "$footer_status")"
   normal_keys="j,k,y,q,l,h,/"
-  compact_preview_cmd="II_FZF_FOOTER=${(q)compact_footer} zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \"\$II_FZF_FOOTER\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
-  expanded_preview_cmd="II_FZF_FOOTER=${(q)expanded_footer} zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \"\$II_FZF_FOOTER\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
-  search_preview_cmd="II_FZF_FOOTER=${(q)search_footer} zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\" \"\$II_FZF_FOOTER\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
+  preview_cmd="zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
 
-  fzf --ansi --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1 \
+  II_FZF_COMPACT_FOOTER="$compact_footer" II_FZF_EXPANDED_FOOTER="$expanded_footer" II_FZF_SEARCH_FOOTER="$search_footer" \
+  fzf --ansi --layout=reverse --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1 \
     --expect=enter \
     --bind="start:$(ii_fzf_modal_start_actions)" \
-    --bind="/:show-input+enable-search+change-preview($search_preview_cmd)+unbind($normal_keys)" \
-    --bind="esc:clear-query+hide-input+disable-search+change-preview($compact_preview_cmd)+rebind($normal_keys)" \
+    --bind="/:show-input+enable-search+transform-footer(printf %s \"\$II_FZF_SEARCH_FOOTER\")+unbind($normal_keys)" \
+    --bind="esc:clear-query+hide-input+disable-search+transform-footer(printf %s \"\$II_FZF_COMPACT_FOOTER\")+rebind($normal_keys)" \
     --bind='j:down,k:up,y:print(y)+accept,q:abort' \
-    --bind="l:change-preview-window(up,99%,wrap,noinfo)+change-preview($expanded_preview_cmd)+hide-input+disable-search+unbind(/)+rebind(j,k,y,q,l,h)" \
-    --bind="h:change-preview-window(down,50%,nowrap,noinfo)+change-preview($compact_preview_cmd)+hide-input+disable-search+rebind($normal_keys)" \
-    --preview="$compact_preview_cmd" \
-    --preview-window='down,50%,nowrap,noinfo' \
+    --bind="l:change-preview-window(up,99%,wrap,noinfo)+transform-footer(printf %s \"\$II_FZF_EXPANDED_FOOTER\")+hide-input+disable-search+unbind(/)+rebind(j,k,y,q,l,h)" \
+    --bind="h:change-preview-window(up,50%,nowrap,noinfo)+transform-footer(printf %s \"\$II_FZF_COMPACT_FOOTER\")+hide-input+disable-search+rebind($normal_keys)" \
+    --preview="$preview_cmd" \
+    --preview-window='up,50%,nowrap,noinfo' \
+    --footer="$compact_footer" \
+    --footer-border=line \
     --no-separator
 }
 
@@ -356,8 +356,17 @@ ii_payload_render() {
   ii_payload_render_text "$rendered"
 }
 
+ii_payload_print_report() {
+  local report="$1"
+  local selected="$2"
+
+  [[ -n "$report" ]] && print -r -- "$report"
+  ii_payload_print_separator "$selected"
+}
+
 ii_payload_print_separator() {
-  ii_color_blue "[payload]"
+  local selected="${1:-[payload]}"
+  ii_color_blue "$selected"
 }
 
 ii_payload_output_path() {
@@ -444,7 +453,7 @@ ii_payload_read_input() {
 
 ii_payload_print_input_intro() {
   print -u2 "paste content below"
-  print -u2 'finish: single "." line OR ":q"/":q!" line -> cancel, don'\''t save'
+  print -u2 'finish: single ":w" line OR ":q"/":q!" line -> cancel, don'\''t save'
 }
 
 ii_payload_print_input_prompt() {
@@ -452,7 +461,7 @@ ii_payload_print_input_prompt() {
 }
 
 ii_payload_input_is_finish_line() {
-  [[ "$1" == "." ]]
+  [[ "$1" == ":w" ]]
 }
 
 ii_payload_input_is_cancel_line() {
@@ -553,7 +562,7 @@ ii_payload_resolve_render_var() {
   local name="$1"
   local modifier="$2"
   local original="$3"
-  local ii_name line value source
+  local ii_name line value render_value source
 
   if (( ${+parameters[$name]} )) && [[ -n "${(P)name}" ]]; then
     value="${(P)name}"
@@ -574,12 +583,13 @@ ii_payload_resolve_render_var() {
     fi
   fi
 
+  render_value="$value"
   if [[ "$source" != "missing" && "$modifier" == ":t" ]]; then
-    value="${value:t}"
+    render_value="$(ii_payload_path_tail "$value")"
   fi
 
   ii_payload_record_render_var "$name" "$source" "$value"
-  typeset -g II_PAYLOAD_RESOLVED_VALUE="$value"
+  typeset -g II_PAYLOAD_RESOLVED_VALUE="$render_value"
   typeset -g II_PAYLOAD_RESOLVED_SOURCE="$source"
 }
 
@@ -635,6 +645,13 @@ ii_payload_preview_fzf() {
   description="$(ii_payload_description "$payload")"
   preview_text="$(ii_payload_preview_text "$payload")" || return
   ii_payload_highlight_preview_text "$preview_text" | ii_fzf_print_preview_blocks "$description" "$footer"
+}
+
+ii_payload_path_tail() {
+  local value="$1"
+  value="${value##*/}"
+  value="${value##*\\}"
+  print -r -- "$value"
 }
 
 ii_payload_preview_text() {

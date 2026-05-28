@@ -43,7 +43,7 @@ EOF
   ii_tmux_available || return
   ii_require_cmd fzf || return
 
-  local key selected line name value plugin_file footer search_footer footer_status copy_rc normal_keys preview_cmd search_preview_cmd
+  local key selected line name value plugin_file footer search_footer footer_status copy_rc normal_keys preview_cmd
   plugin_file="${II_PLUGIN_DIR%/}/ii.plugin.zsh"
   footer="$(ii_interact_footer "$(ii_interact_keys_vars_normal)" "")"
   search_footer="$(ii_interact_footer "$(ii_interact_keys_vars_search)" "")"
@@ -51,17 +51,19 @@ EOF
   footer_status=""
   [[ -t 0 ]] && stty -ixon 2>/dev/null
   while true; do
-    preview_cmd="II_FZF_FOOTER=${(q)footer} zsh -fc 'source \"\$1\"; printf \"%s\" \"\$2\" | ii_fzf_print_preview_with_footer \"\$II_FZF_FOOTER\"' -- ${(q)plugin_file} {4..}"
-    search_preview_cmd="II_FZF_FOOTER=${(q)search_footer} zsh -fc 'source \"\$1\"; printf \"%s\" \"\$2\" | ii_fzf_print_preview_with_footer \"\$II_FZF_FOOTER\"' -- ${(q)plugin_file} {4..}"
+    preview_cmd="zsh -fc 'source \"\$1\"; printf \"%s\" \"\$2\" | ii_fzf_print_preview_blocks \"\" \"\"' -- ${(q)plugin_file} {4..}"
     selected="$(
       ii_var_entries_for_fzf \
-        | fzf -i --ansi --expect=enter --prompt='ii vars> ' --delimiter=$'\t' --with-nth=1,2,3 \
+        | II_FZF_NORMAL_FOOTER="$footer" II_FZF_SEARCH_FOOTER="$search_footer" \
+          fzf -i --ansi --expect=enter --layout=reverse --prompt='ii vars> ' --delimiter=$'\t' --with-nth=1,2,3 \
             --bind="start:$(ii_fzf_modal_start_actions)+rebind($normal_keys)" \
-            --bind="/:show-input+enable-search+change-preview($search_preview_cmd)+unbind($normal_keys)" \
-            --bind="esc:clear-query+hide-input+disable-search+change-preview($preview_cmd)+rebind($normal_keys)" \
+            --bind="/:show-input+enable-search+transform-footer(printf %s \"\$II_FZF_SEARCH_FOOTER\")+unbind($normal_keys)" \
+            --bind="esc:clear-query+hide-input+disable-search+transform-footer(printf %s \"\$II_FZF_NORMAL_FOOTER\")+rebind($normal_keys)" \
             --bind='j:down,k:up,l:print(i)+accept,i:print(i)+accept,y:print(y)+accept,h:abort,q:abort' \
             --preview="$preview_cmd" \
-            --preview-window='down,5,wrap,noinfo' \
+            --preview-window='up,5,wrap,noinfo' \
+            --footer="$footer" \
+            --footer-border=line \
             --no-separator
     )" || return
     [[ -n "$selected" ]] || return

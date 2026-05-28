@@ -84,8 +84,8 @@ Examples:
 ```text
 script/combo/trans/powercat-K2T-TLKC
 script/combo/trans/powercat-T2K-KLTC
-script/combo/shell/powercat-rev-cmd-TCKL
-script/combo/shell/powercat-rev-ps-TCKL
+script/combo/trans/powercat-K2T-KLTC
+script/combo/trans/powercat-T2K-TLKC
 ```
 
 Combo files should keep executable command text in the body and avoid Markdown

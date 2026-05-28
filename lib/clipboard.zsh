@@ -51,14 +51,14 @@ ii_clip_copy_with_backend() {
   local text="$2"
 
   case "$backend" in
-    clip.exe) print -rn -- "$text" | clip.exe ;;
-    wl-copy) print -rn -- "$text" | wl-copy ;;
-    xclip) print -rn -- "$text" | xclip -selection clipboard ;;
-    xclip-both) print -rn -- "$text" | xclip -i -f -selection primary | xclip -i -selection clipboard ;;
-    xsel) print -rn -- "$text" | xsel --clipboard --input ;;
-    pbcopy) print -rn -- "$text" | pbcopy ;;
+    clip.exe) { print -rn -- "$text" | clip.exe } 2>/dev/null ;;
+    wl-copy) { print -rn -- "$text" | wl-copy } 2>/dev/null ;;
+    xclip) { print -rn -- "$text" | xclip -selection clipboard } 2>/dev/null ;;
+    xclip-both) { print -rn -- "$text" | xclip -i -f -selection primary | xclip -i -selection clipboard } 2>/dev/null ;;
+    xsel) { print -rn -- "$text" | xsel --clipboard --input } 2>/dev/null ;;
+    pbcopy) { print -rn -- "$text" | pbcopy } 2>/dev/null ;;
     osc52) ii_clip_copy_osc52 "$text" ;;
-    tmux) print -rn -- "$text" | tmux load-buffer - ;;
+    tmux) { print -rn -- "$text" | tmux load-buffer - } 2>/dev/null ;;
     *) return 1 ;;
   esac
 }
@@ -237,7 +237,10 @@ ii_clip_copy_osc52() {
   local sequence
 
   if [[ -n "${TMUX:-}" ]] && command -v tmux >/dev/null 2>&1; then
-    if print -rn -- "$text" | tmux load-buffer -w - 2>/dev/null; then
+    if { print -rn -- "$text" | tmux load-buffer -w - } 2>/dev/null; then
+      return 0
+    fi
+    if { print -rn -- "$text" | tmux load-buffer - } 2>/dev/null; then
       return 0
     fi
   fi
@@ -245,7 +248,7 @@ ii_clip_copy_osc52() {
   sequence="$(ii_clip_osc52_sequence "$text")" || return
 
   if [[ -w /dev/tty ]]; then
-    print -rn -- "$sequence" > /dev/tty
+    { print -rn -- "$sequence" > /dev/tty } 2>/dev/null
   else
     print -rn -- "$sequence"
   fi

@@ -140,12 +140,12 @@ LHOST
 RHOST
 LPORT
 RPORT
+USERT
+PASST
 USER1
-PASSWD1
-HASH1
+PASS1
 USER2
-PASSWD2
-HASH2
+PASS2
 ```
 
 With one filter argument, match variable names before prompting for a value. No
@@ -164,9 +164,9 @@ Direct value setting always uses `=`. Multiple assignments can be separate
 arguments or comma-separated shortcut entries:
 
 ```zsh
-ii s user=alice
-ii set user=alice passwd='S3cret!'
-ii s:user=alice,passwd='S3cret!'
+ii s usert=alice
+ii set usert=alice passt='S3cret!'
+ii s:usert=alice,passt='S3cret!'
 ```
 
 `--from-shell` saves current shell variables back into tmux. It checks lowercase
@@ -174,7 +174,7 @@ shell names first, then uppercase names, and prints a red warning for missing
 variables:
 
 ```zsh
-ii s:user,passwd --from-shell
+ii s:usert,passt --from-shell
 ```
 
 `-d` means detect. It is only supported for `LHOST` and detects the IPv4 address
@@ -319,7 +319,7 @@ Examples:
 ```zsh
 ii ls
 ii ls host
-ii ls user
+ii ls usert
 ii ls port
 ii ls d
 ```

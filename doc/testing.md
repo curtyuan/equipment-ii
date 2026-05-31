@@ -303,7 +303,7 @@ tmux new-session -d -s codex-ii-unset-all -x 120 -y 30 zsh
 tmux send-keys -t codex-ii-unset-all "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-unset-all "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-unset-all "ii s LHOST 192.0.2.10" Enter
-tmux send-keys -t codex-ii-unset-all "ii s USER1 alice" Enter
+tmux send-keys -t codex-ii-unset-all "ii s USER1=alice" Enter
 tmux send-keys -t codex-ii-unset-all "printf 'n\n' | ii unset -a" Enter
 tmux send-keys -t codex-ii-unset-all "ii ls" Enter
 tmux send-keys -t codex-ii-unset-all "printf 'y\n' | ii unset -a" Enter
@@ -334,13 +334,12 @@ tmux send-keys -t codex-ii-views "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-views "ii s LHOST 192.0.2.10" Enter
 tmux send-keys -t codex-ii-views "ii s RHOST 198.51.100.20" Enter
 tmux send-keys -t codex-ii-views "ii s LPORT 4444" Enter
-tmux send-keys -t codex-ii-views "ii s USER1 alice" Enter
-tmux send-keys -t codex-ii-views "ii s PASSWD1 secret" Enter
-tmux send-keys -t codex-ii-views "ii s HASH2 deadbeef" Enter
+tmux send-keys -t codex-ii-views "ii s USER1=alice" Enter
+tmux send-keys -t codex-ii-views "ii s PASS1=secret" Enter
+tmux send-keys -t codex-ii-views "ii s PASS2=deadbeef" Enter
 tmux send-keys -t codex-ii-views "ii ls host" Enter
 tmux send-keys -t codex-ii-views "ii ls user" Enter
-tmux send-keys -t codex-ii-views "ii ls passwd" Enter
-tmux send-keys -t codex-ii-views "ii ls hash" Enter
+tmux send-keys -t codex-ii-views "ii ls pass" Enter
 sleep 2
 tmux capture-pane -t codex-ii-views -p -S -160
 tmux kill-session -t codex-ii-views
@@ -357,9 +356,9 @@ lport
 4444
 user1
 alice
-passwd1
+pass1
 secret
-hash2
+pass2
 deadbeef
 ```
 
@@ -373,10 +372,10 @@ tmux kill-session -t codex-ii-case 2>/dev/null || true
 tmux new-session -d -s codex-ii-case -x 120 -y 30 zsh
 tmux send-keys -t codex-ii-case "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-case "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-ii-case "ii s user2 bob" Enter
-tmux send-keys -t codex-ii-case "unset USER2 user2 PASSWD2 passwd2" Enter
+tmux send-keys -t codex-ii-case "ii s user2=bob" Enter
+tmux send-keys -t codex-ii-case "unset USER2 user2 PASS2 pass2" Enter
 tmux send-keys -t codex-ii-case "ii l" Enter
-tmux send-keys -t codex-ii-case "echo user2:\$USER2/\$user2 passwd2:\${PASSWD2-unset}/\${passwd2-unset}" Enter
+tmux send-keys -t codex-ii-case "echo user2:\$USER2/\$user2 pass2:\${PASS2-unset}/\${pass2-unset}" Enter
 sleep 2
 tmux capture-pane -t codex-ii-case -p -S -100
 tmux kill-session -t codex-ii-case
@@ -387,7 +386,7 @@ Expected signs:
 ```text
 user2=bob
 loaded 1 variable(s)
-user2:/bob passwd2:unset/unset
+user2:/bob pass2:unset/unset
 ```
 
 ## Set Shortcut And Edit Test
@@ -539,7 +538,7 @@ tmux new-session -d -s codex-ii-i-order -x 120 -y 30 zsh
 tmux send-keys -t codex-ii-i-order "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
 tmux send-keys -t codex-ii-i-order "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-i-order "ii s rhost 10.0.0.8" Enter
-tmux send-keys -t codex-ii-i-order "ii s user alice" Enter
+tmux send-keys -t codex-ii-i-order "ii s usert=alice" Enter
 tmux send-keys -t codex-ii-i-order "ii_var_entries_for_fzf | head -n 5" Enter
 sleep 2
 tmux capture-pane -t codex-ii-i-order -p -S -100
@@ -550,7 +549,7 @@ Expected signs:
 
 ```text
 rhost
-user
+usert
 domain
 ```
 

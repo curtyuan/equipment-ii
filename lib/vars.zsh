@@ -25,7 +25,7 @@ Forms:
   NAME=VALUE
     Set NAME=VALUE in the current tmux session and export it into this shell.
     Multiple assignments can be separate arguments or comma-separated shortcut
-    entries, such as ii s:user=alice,passwd=secret.
+    entries, such as ii s:usert=alice,passt=secret.
 
   NAME[,NAME...] --from-shell
     Save existing shell variables back into the tmux session. Lowercase shell
@@ -216,8 +216,20 @@ ii_cmd_set_assignments() {
 }
 
 ii_cmd_set_alias_name() {
-  case "${(L)1}" in
-    password) print passwd ;;
+  local lower="${(L)1}"
+  if [[ "$lower" =~ '^passwd[12]$' ]]; then
+    print -r -- "pass${lower#passwd}"
+    return
+  fi
+  if [[ "$lower" =~ '^password[12]$' ]]; then
+    print -r -- "pass${lower#password}"
+    return
+  fi
+
+  case "$lower" in
+    user) print usert ;;
+    username) print usert ;;
+    passwd|password) print passt ;;
     *) print -r -- "$1" ;;
   esac
 }

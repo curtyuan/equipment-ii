@@ -51,12 +51,12 @@ ii s
 ii s lhost 192.168.45.192
 ii s lport 443
 ii s domain example.test
-ii s user alice
-ii s passwd secret
+ii s usert=alice
+ii s passt=secret
 
 ii ls
 ii ls host
-ii ls user
+ii ls usert
 ii p linux
 ```
 
@@ -116,14 +116,12 @@ file
 lport
 rport
 mm
-user
-passwd
+usert
+passt
 user1
-passwd1
-hash1
+pass1
 user2
-passwd2
-hash2
+pass2
 ```
 
 `ii s FILTER` resolves matches before asking for a value:
@@ -135,9 +133,9 @@ hash2
 Direct value setting always uses `=`:
 
 ```zsh
-ii s user=alice
-ii set user=alice passwd='S3cret!'
-ii s:user=alice,passwd='S3cret!'
+ii s usert=alice
+ii set usert=alice passt='S3cret!'
+ii s:usert=alice,passt='S3cret!'
 ii s:rhost=192.168.201.175
 ```
 
@@ -149,8 +147,8 @@ Set `II_AUTO_DETECT_LHOST=0` to manage `lhost` manually.
 Use `--from-shell` to save existing shell variables back into tmux:
 
 ```zsh
-user=alice passwd='S3cret!' ii s:user,passwd --from-shell
-ii s:user --from-shell
+usert=alice passt='S3cret!' ii s:usert,passt --from-shell
+ii s:usert --from-shell
 ```
 
 `--from-shell` checks the lowercase shell name first, then the uppercase name.
@@ -166,7 +164,7 @@ while `q`, Esc, or Ctrl-C aborts without changing variables or copying anything.
 
 ```zsh
 ii ls host
-ii ls user
+ii ls usert
 ii ls l
 ```
 

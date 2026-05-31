@@ -62,15 +62,24 @@ ii_var_print_named_view() {
 ii_var_print_cred_view() {
   ii_var_lines_from_tmux \
     | awk -F= '
-        /^ii_(user|passwd|hash)[0-9]*=/ {
+        /^ii_(usert|passt|user[12]|pass[12])=/ {
           name = $1
           sub(/^ii_/, "", name)
-          rank = 0
-          if (name ~ /^passwd/) rank = 1
-          if (name ~ /^hash/) rank = 2
-          suffix = name
-          sub(/^(user|passwd|hash)/, "", suffix)
-          if (suffix == "") suffix = 0
+          if (name == "usert") {
+            suffix = 0
+            rank = 0
+          } else if (name == "passt") {
+            suffix = 0
+            rank = 1
+          } else if (name ~ /^user/) {
+            suffix = name
+            sub(/^user/, "", suffix)
+            rank = 0
+          } else {
+            suffix = name
+            sub(/^pass/, "", suffix)
+            rank = 1
+          }
           print suffix "\t" rank "\t" $0
         }
       ' \
@@ -131,14 +140,12 @@ ii_var_default_names() {
   print lport
   print rport
   print mm
-  print user
-  print passwd
+  print usert
+  print passt
   print user1
-  print passwd1
-  print hash1
+  print pass1
   print user2
-  print passwd2
-  print hash2
+  print pass2
 }
 
 ii_var_set_candidates() {

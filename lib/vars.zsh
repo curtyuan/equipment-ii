@@ -138,7 +138,6 @@ ii_cmd_set() {
   tmux set-environment "$name" "$value" || return
   ii_export_var_line "${name}=${value}" || return
   ii_var_auto_detect_lhost_for_rhost "$name"
-  ii_enable_loaded_var_sync
   print "$(ii_var_display_line "${name}=${value}")"
 }
 
@@ -177,7 +176,6 @@ ii_cmd_set_from_shell() {
   if (( saw_rhost && ! saw_lhost )); then
     ii_var_auto_detect_lhost_for_rhost "ii_rhost"
   fi
-  ii_enable_loaded_var_sync
   return "$missing"
 }
 
@@ -212,7 +210,6 @@ ii_cmd_set_assignments() {
   if (( saw_rhost && ! saw_lhost )); then
     ii_var_auto_detect_lhost_for_rhost "ii_rhost"
   fi
-  ii_enable_loaded_var_sync
 }
 
 ii_cmd_set_alias_name() {
@@ -319,8 +316,40 @@ EOF
     (( count++ ))
   done < <(ii_var_lines_from_tmux)
 
-  ii_enable_loaded_var_sync
   print "loaded ${count} variable(s)"
+}
+
+ii_cmd_sync() {
+  case "${1:-status}" in
+    on)
+      ii_enable_auto_sync
+      print "ii auto-sync enabled"
+      ;;
+    off)
+      ii_disable_auto_sync
+      print "ii auto-sync disabled"
+      ;;
+    status)
+      ii_auto_sync_status
+      ;;
+    --help|-h)
+      cat <<'EOF'
+usage: ii sync [on|off|status]
+
+Control optional tmux-to-shell prompt synchronization.
+
+Commands:
+  on      Refresh exported shell variables from tmux before each prompt.
+  off     Stop prompt-time refresh for this shell.
+  status  Show II_SYNC_LOADED_VARS and hook state.
+EOF
+      ;;
+    *)
+      print -u2 "ii: unknown sync command: $1"
+      ii_cmd_sync --help
+      return 2
+      ;;
+  esac
 }
 
 ii_cmd_list() {

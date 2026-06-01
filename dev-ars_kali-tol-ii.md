@@ -52,16 +52,16 @@ Command behavior follows this model:
 ```text
 ii s   writes internal ii_ names to tmux and unprefixed names to current shell
 ii g   reads one internal ii_ value from tmux, copies it, and prints it
-ii l   loads tmux session values into current shell without ii_ prefix
+ii l   loads tmux session values into current shell once without ii_ prefix
+ii sync optionally keeps current shell values refreshed from tmux before prompts
 ii ls  reads non-empty tmux session values and displays them without ii_ prefix
 ii i   reads tmux session values, then copies selected variable values
 ii p   reads tmux session values directly while rendering
 ```
 
 `ii s` and `ii l` export lowercase shell names by default. `II_EXPORT_CASE`
-can be set to `lower`, `upper`, or `both`. A pane that has loaded values keeps
-a prompt-time sync hook enabled so prompt integrations do not immediately
-override loaded tmux values.
+can be set to `lower`, `upper`, or `both`. `ii l` is a one-time load. A pane
+only keeps a prompt-time sync hook enabled after `ii sync on`.
 
 This distinction is required:
 
@@ -82,11 +82,15 @@ Dispatches to command implementations:
 
 ```text
 ii set
+ii get
 ii load
+ii sync
+ii clip
 ii interactive
 ii ls
 ii payload
 ii unset
+ii version
 ii help
 ```
 
@@ -201,8 +205,7 @@ Behavior:
 3. Store ii_name=VALUE in the current tmux session environment.
 4. Export shell variables into the current shell according to II_EXPORT_CASE.
 5. When enabled and rhost/rhosts was set, detect and store lhost.
-6. Enable loaded-variable sync for the current shell.
-7. Print name=VALUE without the internal ii_ prefix.
+6. Print name=VALUE without the internal ii_ prefix.
 ```
 
 Example:
@@ -248,8 +251,7 @@ Behavior:
 3. Export each variable into the current shell without the ii_ prefix.
    II_EXPORT_CASE controls whether lower, upper, or both names are exported.
 4. Do not export default variable names that have not been assigned values.
-5. Enable loaded-variable sync for the current shell.
-6. Print the number of loaded variables.
+5. Print the number of loaded variables.
 ```
 
 Purpose:
@@ -290,8 +292,8 @@ Behavior:
 12. If `add new variable` is selected, prompt for a variable name and value.
    A name without a value stores an empty value.
 13. Copy selected existing variable values through the configured copy layer.
-14. Do not export values into the current shell unless loaded-variable sync was
-    already enabled by `ii s` or `ii l` in that shell.
+14. Do not export values into the current shell unless prompt auto-sync was
+    explicitly enabled by `ii sync on` in that shell.
 15. h/q aborts the selector.
 16. Display a nano-style keys and status block at the bottom of the preview
     pane, while keeping vim-style movement keys.
@@ -638,10 +640,16 @@ ii_export_var_line:
   - Export lowercase, uppercase, or both names according to II_EXPORT_CASE.
   - Use global exported assignment so existing shell variables are overwritten.
 
-ii_enable_loaded_var_sync:
-  - Enable prompt-time sync after `ii s` or `ii l`.
+ii_enable_auto_sync:
+  - Enable prompt-time sync after `ii sync on`.
   - Keep the sync hook last in `precmd_functions` so prompt integrations that
     rewrite lowercase names are corrected before the next command.
+
+ii_disable_auto_sync:
+  - Disable prompt-time sync for the current shell.
+
+ii_auto_sync_status:
+  - Print `II_SYNC_LOADED_VARS` and whether the precmd hook is installed.
 
 ii_var_display_lines_for_fzf:
   - Convert ii_lhost=... to lhost=... for TUI display.

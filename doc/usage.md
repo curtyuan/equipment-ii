@@ -30,6 +30,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
 | `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value without loading |
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `ii_` prefix |
+| `ii sync on/off/status` | | Control optional prompt-time auto-sync from tmux into this shell |
 | `ii clip backend` | | Show or set clipboard backend |
 | `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
 | `ii interactive` | `ii i` | Select variable names with fzf, preview values, edit, add, and copy values |
@@ -153,6 +154,21 @@ ii s:usert --from-shell
 
 `--from-shell` checks the lowercase shell name first, then the uppercase name.
 Missing shell variables print a red warning and are skipped.
+
+`ii l` is a one-time load from tmux into the current shell. It does not enable
+ongoing synchronization. Use `ii sync on` only when this shell should keep
+refreshing loaded variables from tmux before each prompt; use `ii sync off` to
+stop that refresh.
+
+When auto-sync is on, use inline assignments for local values that should be
+saved back immediately:
+
+```zsh
+usert=alice ii s:usert --from-shell
+```
+
+For multi-command local edits, run `ii sync off` first so the next prompt does
+not refresh the same names from tmux before `--from-shell` can save them.
 
 `ii g FILTER` uses the same case-insensitive name matching and shortcuts as
 `ii s FILTER`. It copies the selected value through the clipboard layer and
@@ -392,8 +408,10 @@ Use inline assignments for one-command shell overrides:
 lhost=10.10.14.3 file=/tmp/drop/agent.exe ii p --input --copy
 ```
 
-This matters after `ii s` or `ii l`, because loaded-variable prompt sync can
-refresh same-name shell variables from tmux before the next command prompt.
+`ii l` is a one-time load. This matters only when prompt auto-sync has been
+enabled explicitly with `ii sync on`, because prompt sync can refresh same-name
+shell variables from tmux before the next command prompt. Use `ii sync off` to
+stop that refresh in the current shell.
 
 Example input:
 

@@ -68,35 +68,6 @@ ii version
 echo $II_PAYLOAD_DIR
 ```
 
-## Versioning
-
-`VERSION` is the source of truth for releases and follows SemVer:
-
-```text
-MAJOR.MINOR.PATCH
-```
-
-Update the version with the dedicated version script:
-
-```zsh
-./script/version patch  # 0.1.0 -> 0.1.1
-./script/version minor  # 0.1.0 -> 0.2.0
-./script/version major  # 0.1.0 -> 1.0.0
-```
-
-Create a release by committing `VERSION` and pushing a matching tag:
-
-```zsh
-./script/version minor
-git add VERSION
-git commit -m "Release v0.2.0"
-git tag v0.2.0
-git push origin master --tags
-```
-
-The release workflow checks that the tag matches `VERSION`, builds `export/ii`,
-and publishes `ii-VERSION.tar.gz` plus `ii-VERSION.zip`.
-
 ## Quick Start
 
 Run inside tmux:
@@ -123,6 +94,7 @@ ii p linux
 | `ii set [FILTER]` | `ii s [FILTER]`, `ii s:FILTER` | Select or match a variable before setting it |
 | `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value |
 | `ii load` | `ii l` | Load non-empty tmux variables into this shell |
+| `ii sync on/off/status` | | Control optional tmux-to-shell prompt auto-sync |
 | `ii clip backend` | | Show or set clipboard backend |
 | `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
 | `ii interactive` | `ii i` | Select, edit, add, and copy variables |
@@ -207,6 +179,7 @@ export `II_CLIP_BACKEND`.
 
 | Topic | File | Covers |
 | --- | --- | --- |
+| Documentation index | [doc/README.md](doc/README.md) | User docs, maintainer docs, and file ownership |
 | Usage guide | [doc/usage.md](doc/usage.md) | Command behavior, variables, `ii i`, payload files, pasted input rendering, and payload categories |
 | Payload schema | [doc/payload-schema.md](doc/payload-schema.md) | Plain-text payload format, metadata, combo naming, and renderable variables |
 | Clipboard behavior | [doc/clipboard.md](doc/clipboard.md) | OSC52, tmux buffer copy, `xclip-both`, VMware/Kali notes, and troubleshooting |
@@ -215,6 +188,7 @@ export `II_CLIP_BACKEND`.
 | Architecture | [doc/architecture.md](doc/architecture.md) | Entrypoint, layer responsibilities, state model, and development boundaries |
 | Design map | [doc/design.html](doc/design.html) | Navigable map for command behavior, layer ownership, help/docs ownership, and maintenance checks |
 | Testing | [doc/testing.md](doc/testing.md) | Syntax checks, tmux smoke tests, cross-pane tests, and regression scenarios |
+| Release process | [doc/release.md](doc/release.md) | Version bumping, build output, and release tagging |
 
 ## Help
 
@@ -224,6 +198,7 @@ ii help set
 ii help get
 ii help clip
 ii help load
+ii help sync
 ii help interactive
 ii help ls
 ii help payload

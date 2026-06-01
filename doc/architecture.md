@@ -31,10 +31,12 @@ payloads/
   script/
   xss/
 doc/
+  README.md
   architecture.md
   clipboard.md
   design.html
   payload-schema.md
+  release.md
   usage.md
   testing.md
   conf/
@@ -174,7 +176,7 @@ Responsibilities:
 - Apply shared terminal colors for variable display keys.
 - Export safe `NAME=VALUE` lines into the current shell.
 - Detect and export lhost automatically after rhost/rhosts is set, when enabled.
-- Enable loaded-variable prompt sync after `ii s` or `ii l`.
+- Control optional loaded-variable prompt auto-sync for `ii sync`.
 - Build default variable candidates for interactive commands.
 
 ### `lib/var_interactive.zsh`
@@ -452,8 +454,9 @@ current shell environment = local state for one pane
 
 `ii l` copies tmux `ii_` values into the current shell without the internal
 prefix. `II_EXPORT_CASE` controls whether exported shell variables are lower,
-upper, or both; the default is lower. It enables a prompt-time sync hook so
-prompt integrations do not immediately overwrite loaded values.
+upper, or both; the default is lower. This is a one-time load. `ii sync on`,
+`ii sync off`, and `ii sync status` explicitly control the optional prompt-time
+sync hook.
 
 `ii i` copies selected variable values through the copy layer. It does not load
 variables into the current shell.
@@ -473,7 +476,7 @@ variable loading layer:
   - validate names
   - strip ii_ only for variable TUI display
   - export all values into current shell through ii l
-  - keep loaded values synchronized after prompt hooks run
+  - keep loaded values synchronized after prompt hooks run only when `ii sync on` is active
 
 fuzzy search layer:
   - present candidate lines

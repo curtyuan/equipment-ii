@@ -263,9 +263,24 @@ ii_var_auto_detect_lhost_for_rhost() {
   print "lhost has automatically sets as ${value}"
 }
 
-ii_enable_loaded_var_sync() {
+ii_enable_auto_sync() {
   typeset -g II_SYNC_LOADED_VARS=1
   precmd_functions=(${precmd_functions:#ii_sync_loaded_vars_precmd} ii_sync_loaded_vars_precmd)
+}
+
+ii_disable_auto_sync() {
+  typeset -g II_SYNC_LOADED_VARS=0
+  precmd_functions=(${precmd_functions:#ii_sync_loaded_vars_precmd})
+}
+
+ii_auto_sync_status() {
+  local state="off" hook="absent"
+  [[ "${II_SYNC_LOADED_VARS:-}" == "1" ]] && state="on"
+  (( ${precmd_functions[(I)ii_sync_loaded_vars_precmd]} )) && hook="present"
+
+  print "II_SYNC_LOADED_VARS=${II_SYNC_LOADED_VARS:-0}"
+  print "auto-sync: ${state}"
+  print "precmd hook: ${hook}"
 }
 
 ii_sync_loaded_vars_precmd() {

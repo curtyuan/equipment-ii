@@ -565,7 +565,7 @@
               <li>User names such as <code>RHOST</code>, <code>rhost</code>, and <code>ii_rhost</code> normalize to <code>ii_rhost</code> for storage.</li>
               <li>Shell exports omit the internal prefix and follow <code>II_EXPORT_CASE</code>: <code>lower</code>, <code>upper</code>, or <code>both</code>.</li>
               <li>Default names exist as candidates, but empty values are not exported and are hidden from <code>ii ls</code>.</li>
-              <li>Loaded-variable prompt sync can refresh shell values from tmux before the next prompt after <code>ii s</code> or <code>ii l</code>.</li>
+              <li><code>ii l</code> is a one-time load. Loaded-variable prompt sync refreshes shell values from tmux before each prompt only after <code>ii sync on</code>.</li>
             </ul>
           </div>
         </details>
@@ -893,6 +893,10 @@ ii help version</code></pre>
                   <td><code>doc/testing.md</code></td>
                   <td>Manual smoke tests and regression checks.</td>
                 </tr>
+                <tr>
+                  <td><code>doc/release.md</code></td>
+                  <td>Version bumping, package build output, and release tagging.</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -953,9 +957,10 @@ make</code></pre>
           <div class="detail-body">
             <p>
               A temporary shell assignment such as <code>rhost=1.2.3.4 ii p --input</code>
-              must override tmux for that render. Prompt sync may later refresh
-              shell values from tmux, so this is intentionally a command-scoped
-              override pattern.
+              must override tmux for that render. When enabled with
+              <code>ii sync on</code>, prompt sync may
+              later refresh shell values from tmux, so this is intentionally a
+              command-scoped override pattern.
             </p>
           </div>
         </details>

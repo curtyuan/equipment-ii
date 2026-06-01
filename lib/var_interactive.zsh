@@ -191,7 +191,7 @@ ii_var_set_tmux_only() {
   tmux set-environment "$name" "$value" || return
   if [[ "${II_SYNC_LOADED_VARS:-}" == "1" ]]; then
     ii_export_var_line "${name}=${value}" || return
-    ii_enable_loaded_var_sync
+    ii_enable_auto_sync
   fi
   print "$(ii_var_display_line "${name}=${value}")"
 }

@@ -13,6 +13,7 @@ ii() {
     g:*) ii_cmd_get "${cmd#g:}" "$@" ;;
     clip|clipboard) ii_cmd_clip "$@" ;;
     load|l) ii_cmd_load "$@" ;;
+    sync) ii_cmd_sync "$@" ;;
     interactive|i) ii_cmd_interactive "$@" ;;
     ls|list|variable|vars|var|v) ii_cmd_list "$@" ;;
     payload|p) ii_cmd_payload "$@" ;;

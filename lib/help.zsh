@@ -6,6 +6,7 @@ ii_help_topics() {
   print -r -- get
   print -r -- clip
   print -r -- load
+  print -r -- sync
   print -r -- interactive
   print -r -- ls
   print -r -- payload
@@ -22,6 +23,7 @@ ii_help_dispatch() {
     get|g) ii_cmd_get --help ;;
     clip|clipboard) ii_cmd_clip --help ;;
     load|l) ii_cmd_load --help ;;
+    sync) ii_cmd_sync --help ;;
     interactive|i) ii_cmd_interactive --help ;;
     ls|list|variable|vars|var|v) ii_cmd_list --help ;;
     payload|p)
@@ -70,6 +72,7 @@ Variables:
   get|g FILTER           Copy and print one tmux variable value
   g:FILTER               Shortcut form of ii g FILTER
   load|l                 Load variables into this shell
+  sync [on|off|status]   Control optional tmux-to-shell prompt auto-sync
   interactive|i          Select, edit, add, and copy variables
   ls [PATTERN]           List non-empty variables, optionally filtered by key
   unset|u NAME [...]     Remove ii_ variables

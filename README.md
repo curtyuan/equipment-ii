@@ -1,22 +1,15 @@
 # ii
 
-`ii` is a zsh plugin for tmux-scoped workflow variables and payload rendering.
-It stores shared variables in the current tmux session with an internal `ii_`
-prefix, lets each pane load values when needed, and renders payload templates
-from the current shell first, then tmux.
+![ii icon](doc/asset/ii-icon2.png)
 
-```text
-tmux session environment = shared source across panes
-current shell environment = values directly usable in one pane
-payload renderer = reads current shell first, then tmux session values
-```
+`ii` is a zsh plugin for tmux-scoped workflow variables and payload rendering.
 
 ## Requirements
 
 - zsh
 - tmux
-- fzf for `ii i` and `ii p`
-- coreutils for `base64`, used by OSC52 clipboard copy
+- fzf
+- coreutils
 
 Kali:
 
@@ -25,7 +18,7 @@ sudo apt update
 sudo apt install -y zsh tmux fzf coreutils
 ```
 
-## Install
+## Deploy
 
 Build the deployable plugin package:
 
@@ -33,19 +26,7 @@ Build the deployable plugin package:
 ./script/make
 ```
 
-This creates `export/ii`, which is the deployment unit:
-
-```text
-export/ii/
-  ii.plugin.zsh
-  lib/
-  payloads/
-  README.md
-  VERSION
-  RELEASE
-```
-
-Copy it into your zsh plugin directory:
+Install it under the zsh plugin directory:
 
 ```zsh
 mkdir -p "$HOME/.config/zsh/plugin"
@@ -53,158 +34,40 @@ rm -rf "$HOME/.config/zsh/plugin/ii"
 cp -r ./export/ii "$HOME/.config/zsh/plugin/ii"
 ```
 
-Load it from `.zshrc` or your plugin manager. Manual `.zshrc` loading:
+## Load With Antidote
+
+Add the local plugin path to your antidote plugin list, for example
+`~/.zsh_plugins.txt`:
+
+```text
+~/.config/zsh/plugin/ii
+```
+
+Load that file from `.zshrc` with your antidote setup:
+
+```zsh
+antidote load "$HOME/.zsh_plugins.txt"
+```
+
+## Load Manually
+
+Source the plugin directly from `.zshrc`:
 
 ```zsh
 source "$HOME/.config/zsh/plugin/ii/ii.plugin.zsh"
 ```
 
-Reload and verify:
+## Verify
+
+Reload zsh and check the command:
 
 ```zsh
 source ~/.zshrc
 type ii
 ii version
-echo $II_PAYLOAD_DIR
 ```
-
-## Quick Start
-
-Run inside tmux:
-
-```zsh
-ii s lhost 192.168.45.192
-ii s lport 443
-ii s domain example.test
-
-ii ls
-ii i
-ii p linux
-```
-
-## Commands
-
-| Command | Short form | Purpose |
-| --- | --- | --- |
-| `ii set NAME=VALUE` | `ii s NAME=VALUE` | Set a tmux variable and export it into this shell |
-| `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
-| `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
-| `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface |
-| `ii set rhost=VALUE` | `ii s:rhost=VALUE` | Set rhost and automatically detect lhost when enabled |
-| `ii set [FILTER]` | `ii s [FILTER]`, `ii s:FILTER` | Select or match a variable before setting it |
-| `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value |
-| `ii load` | `ii l` | Load non-empty tmux variables into this shell |
-| `ii sync on/off/status` | | Control optional tmux-to-shell prompt auto-sync |
-| `ii clip backend` | | Show or set clipboard backend |
-| `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
-| `ii interactive` | `ii i` | Select, edit, add, and copy variables |
-| `ii ls [PATTERN]` | | List non-empty tmux variables as compact key/value blocks |
-| `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
-| `ii p --input [--copy] [-o [PATH]]` | | Render pasted input; optionally copy or write the result |
-| `ii p --www --file PATH` / `ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | Render a file, list, search, or symlink files under the configured web root |
-| `ii unset NAME [...]` | `ii u NAME [...]` | Remove variables from tmux and this shell |
-| `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables |
-| `ii version` | `ii -v`, `ii --version` | Show installed version |
-| `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
-
-`ii p` starts in normal mode. Use `j`/`k` to move, `/` to search, Esc to return
-to normal mode, `l` to unfold the selected script preview, `h` to return to
-compact normal mode, `y` to copy the selected rendered payload, Enter to
-render/output, and `q` to abort.
-Preview renderable tokens with values are green; missing renderable tokens are
-red.
-Copy reports are printed when the selector exits; aborting without Enter or
-`y` prints nothing.
-
-## Common Configuration
-
-`ii` reads this config file automatically when it exists:
-
-```text
-~/.config/ii/ii.conf
-```
-
-To use another path, set it in `.zshrc` before sourcing `ii.plugin.zsh`:
-
-```zsh
-export II_CONFIG_FILE="$HOME/.config/ii/work.conf"
-source "$HOME/.config/zsh/plugin/ii/ii.plugin.zsh"
-```
-
-Bundled payloads work without extra configuration. Override the payload
-directory only if you keep payloads somewhere else:
-
-```zsh
-export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
-```
-
-`ii p --www ...` defaults to `/www`. Override it from `~/.config/ii/ii.conf`
-when your web root lives somewhere else:
-
-```zsh
-export II_WWW_ROOT="$HOME/www"
-```
-
-Shell export case for `ii set` and `ii load` defaults to lowercase:
-
-```zsh
-export II_EXPORT_CASE=lower
-export II_EXPORT_CASE=upper
-export II_EXPORT_CASE=both
-```
-
-Automatic `lhost` detection after setting `rhost` is enabled by default and
-uses `tun0` unless configured otherwise:
-
-```zsh
-export II_AUTO_DETECT_LHOST=1
-export II_AUTO_DETECT_LHOST_INTERFACE=tun0
-```
-
-Clipboard overrides:
-
-```zsh
-export II_CLIP_BACKEND=osc52
-export II_CLIP_CMD='tmux load-buffer -'
-export II_CLIP_BACKEND=xclip-both
-```
-
-Without an override, active SSH sessions prefer OSC52. Local tmux sessions with
-`DISPLAY` and `xclip` prefer `xclip-both`, even when tmux still has stale SSH
-environment variables. This mirrors a tmux copy-mode binding that writes both X
-primary and clipboard selections. Auto-detection is runtime-only and does not
-export `II_CLIP_BACKEND`.
 
 ## Documentation
 
-| Topic | File | Covers |
-| --- | --- | --- |
-| Documentation index | [doc/README.md](doc/README.md) | User docs, maintainer docs, and file ownership |
-| Usage guide | [doc/usage.md](doc/usage.md) | Command behavior, variables, `ii i`, payload files, pasted input rendering, and payload categories |
-| Payload schema | [doc/payload-schema.md](doc/payload-schema.md) | Plain-text payload format, metadata, combo naming, and renderable variables |
-| Clipboard behavior | [doc/clipboard.md](doc/clipboard.md) | OSC52, tmux buffer copy, `xclip-both`, VMware/Kali notes, and troubleshooting |
-| ii config example | [doc/conf/ii.conf](doc/conf/ii.conf) | Shell export case values and optional `/www` root |
-| tmux clipboard example | [doc/conf/tmux.conf](doc/conf/tmux.conf) | Minimal tmux settings related to `ii` clipboard behavior |
-| Architecture | [doc/architecture.md](doc/architecture.md) | Entrypoint, layer responsibilities, state model, and development boundaries |
-| Design map | [doc/design.html](doc/design.html) | Navigable map for command behavior, layer ownership, help/docs ownership, and maintenance checks |
-| Testing | [doc/testing.md](doc/testing.md) | Syntax checks, tmux smoke tests, cross-pane tests, and regression scenarios |
-| Release process | [doc/release.md](doc/release.md) | Version bumping, build output, and release tagging |
-
-## Help
-
-```zsh
-ii help
-ii help set
-ii help get
-ii help clip
-ii help load
-ii help sync
-ii help interactive
-ii help ls
-ii help payload
-ii help payload-input
-ii help payload-www
-ii help payload-www-file
-ii help unset
-ii help version
-```
+See [doc/README.md](doc/README.md) for usage, configuration, payloads, testing,
+architecture, and release notes.

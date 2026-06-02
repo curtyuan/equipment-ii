@@ -1,1 +1,11 @@
+.env
+*.env
+*.pfx
+*.pem
+*.key
+*.ccache
+__pycache__/
+.venv/
+node_modules/
+.DS_Store
 export/

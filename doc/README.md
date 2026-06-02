@@ -1,6 +1,7 @@
 # Documentation
 
 The docs are split by audience and maintenance task.
+Deployment instructions live in the root [README.md](../README.md).
 
 ## User Docs
 

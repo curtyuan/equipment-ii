@@ -5,11 +5,10 @@ The commands differ in what they copy, not in the final copy layer:
 
 - `ii i` Enter copies the selected variable value and closes.
 - `ii i` `y` copies the selected variable value without leaving the selector.
-- `ii p` `y` copies the selected rendered payload text from the selector.
+- `ii p` `y` copies the selected rendered payload text and closes the selector.
 
-`ii p` `y` stays inside the selector. The render report is delayed until the
-selector exits, so repeated copies only report the last copied payload unless
-an Enter-rendered payload also exits the selector.
+After `ii p` `y`, copy status and the selected payload's render report are
+printed immediately.
 
 ## Configuration
 

@@ -62,10 +62,22 @@ ii_var_print_named_view() {
 ii_var_print_cred_view() {
   ii_var_lines_from_tmux \
     | awk -F= '
-        /^ii_(usert|passt|user[12]|pass[12])=/ {
+        /^ii_(usert|passt|cuser|cpass|tuser|tpass|user[1-5]|pass[1-5])=/ {
           name = $1
           sub(/^ii_/, "", name)
-          if (name == "usert") {
+          if (name == "cuser") {
+            suffix = -2
+            rank = 0
+          } else if (name == "cpass") {
+            suffix = -2
+            rank = 1
+          } else if (name == "tuser") {
+            suffix = -1
+            rank = 0
+          } else if (name == "tpass") {
+            suffix = -1
+            rank = 1
+          } else if (name == "usert") {
             suffix = 0
             rank = 0
           } else if (name == "passt") {
@@ -136,16 +148,23 @@ ii_var_default_names() {
   print domain
   print lhost
   print rhost
-  print file
   print lport
   print rport
-  print mm
-  print usert
-  print passt
   print user1
   print pass1
   print user2
   print pass2
+  print user3
+  print pass3
+  print user4
+  print pass4
+  print user5
+  print pass5
+  print cuser
+  print cpass
+  print tuser
+  print tpass
+  print directs
 }
 
 ii_var_set_candidates() {

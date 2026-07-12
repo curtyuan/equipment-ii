@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+
+setopt no_unset
+
+script_dir="${0:A:h}"
+source "${script_dir:h}/ii.plugin.zsh" || exit
+ii_tmux_pice_popup "$@"

@@ -32,14 +32,14 @@ Field meanings:
 | `stages` | Body metadata scan | No | Each `# stage:` line marks a combo step and is emitted as a paste-safe comment delimiter. |
 | `source_body` | Remaining text | Yes | File content after first-line description metadata. It may include `# stage:` metadata. |
 | `emitted_body` | Render pipeline | Yes | Text printed, copied, or written after `# stage:` conversion and variable rendering. |
-| `variables` | Body scan | No | Lowercase shell-style placeholders used by the renderer. |
+| `variables` | Body scan | No | Lowercase percent or shell-style placeholders used by the renderer. |
 
 Recognized payload file syntax:
 
 ```text
 # description: optional operator-facing description
 # stage: optional combo stage label
-payload body with ${lhost}, $rhost, ${file}, or ${file:t}
+payload body with %lhost%, $rhost, ${file}, or ${file:t}
 ```
 
 Metadata handling:
@@ -48,11 +48,11 @@ Metadata handling:
 - `# stage:` is recognized on any body line and emits `# --- label ---`.
 - Other comment lines are ordinary payload body text.
 
-Payload files render `$name`, `${name}`, and `${name:t}` through the shared
-renderer. New payloads should use lowercase shell-style placeholders only. A
-non-empty lowercase shell variable wins first, then the matching tmux `ii_`
-variable is used. Uppercase shell variables such as `$RHOST` are left unchanged.
-Missing values keep the original token and are reported in red.
+Payload files render lowercase `%name%`, `$name`, `${name}`, and `${name:t}`
+through the shared renderer. A non-empty lowercase shell variable wins first,
+then the matching tmux `ii_` variable is used. Uppercase percent/shell forms and
+legacy `II_NAME` forms are left unchanged. Missing values keep the original
+token and are reported in red.
 
 ## Combo Payload Convention
 

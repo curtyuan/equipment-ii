@@ -28,6 +28,17 @@ usage: ii p --www --file PATH
        ii p --www ln SOURCE_PATH [LINK_NAME]
        ii p --www ls
        ii p --www search [FILTER]
+       ii payload --www --file PATH
+       ii payload --www ln SOURCE_PATH [LINK_NAME]
+       ii payload --www ls
+       ii payload --www search [FILTER]
+
+Aliases:
+  none
+
+Help:
+  ii help payload --www
+  ii help payload-www
 
 Commands:
   --file PATH
@@ -66,6 +77,14 @@ ii_cmd_payload_www_file() {
   if [[ "$source" == "--help" || "$source" == "-h" ]]; then
     cat <<'EOF'
 usage: ii p --www --file PATH
+       ii payload --www --file PATH
+
+Aliases:
+  none
+
+Help:
+  ii help payload --www --file
+  ii help payload-www-file
 
 Read PATH, render it with the normal payload renderer, and print the render
 report and rendered output.
@@ -114,6 +133,24 @@ EOF
 }
 
 ii_cmd_payload_www_ls() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    cat <<'EOF'
+usage: ii p --www ls
+       ii payload --www ls
+
+Aliases:
+  none
+
+Help:
+  ii help payload --www ls
+  ii help payload-www-ls
+
+Print files and directories under the configured web root as a tree. Symlinks
+are shown by name only; their targets are not printed.
+EOF
+    return 0
+  fi
+
   if [[ $# -gt 0 ]]; then
     print -u2 "ii: usage: ii p --www ls"
     return 2
@@ -128,6 +165,25 @@ ii_cmd_payload_www_ls() {
 ii_cmd_payload_www_ln() {
   local source="${1:-}" link_name="${2:-}"
   local root selected source_abs target
+
+  if [[ "$source" == "--help" || "$source" == "-h" ]]; then
+    cat <<'EOF'
+usage: ii p --www ln SOURCE_PATH [LINK_NAME]
+       ii payload --www ln SOURCE_PATH [LINK_NAME]
+
+Aliases:
+  none
+
+Help:
+  ii help payload --www ln
+  ii help payload-www-ln
+
+Select a directory under the configured web root and create a symlink to
+SOURCE_PATH there. With no LINK_NAME, use SOURCE_PATH's basename. Existing
+targets are not overwritten.
+EOF
+    return 0
+  fi
 
   if [[ -z "$source" ]]; then
     print -u2 "ii: usage: ii p --www ln SOURCE_PATH [LINK_NAME]"
@@ -169,6 +225,25 @@ ii_cmd_payload_www_ln() {
 
 ii_cmd_payload_www_search() {
   local filter="${1:-}"
+
+  if [[ "$filter" == "--help" || "$filter" == "-h" ]]; then
+    cat <<'EOF'
+usage: ii p --www search [FILTER]
+       ii payload --www search [FILTER]
+
+Aliases:
+  none
+
+Help:
+  ii help payload --www search
+  ii help payload-www-search
+
+Fuzzy-select a file or directory under the configured web root, then print its
+containing directory relative to /www followed by its absolute path. FILTER
+preselects the first case-insensitive fzf match.
+EOF
+    return 0
+  fi
 
   if [[ $# -gt 1 ]]; then
     print -u2 "ii: usage: ii p --www search [FILTER]"
@@ -370,3 +445,14 @@ ii_www_kind_label() {
     print -r -- "file"
   fi
 }
+
+ii_help_register payload-www ii_cmd_payload_www "payload --www" "payload www" "p --www" "p www"
+ii_help_register payload-www-file ii_cmd_payload_www_file \
+  "payload --www --file" "payload --www file" "payload www --file" "payload www file" \
+  "p --www --file" "p --www file" "p www --file" "p www file"
+ii_help_register payload-www-ln ii_cmd_payload_www_ln \
+  "payload --www ln" "payload www ln" "p --www ln" "p www ln"
+ii_help_register payload-www-ls ii_cmd_payload_www_ls \
+  "payload --www ls" "payload www ls" "p --www ls" "p www ls"
+ii_help_register payload-www-search ii_cmd_payload_www_search \
+  "payload --www search" "payload www search" "p --www search" "p www search"

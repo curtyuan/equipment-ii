@@ -33,6 +33,7 @@ export/ii/
   ii.plugin.zsh
   lib/
   payloads/
+  script/ii-tmux-pice
   README.md
   VERSION
   RELEASE

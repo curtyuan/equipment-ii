@@ -582,17 +582,22 @@
           <summary>Load order</summary>
           <div class="detail-body">
             <pre><code>1. lib/tmux.zsh
-2. lib/clipboard.zsh
-3. lib/fzf.zsh
-4. lib/interact.zsh
-5. lib/var_helpers.zsh
-6. lib/var_interactive.zsh
-7. lib/vars.zsh
-8. lib/www.zsh
-9. lib/payloads.zsh
-10. lib/help.zsh
-11. lib/version.zsh
-12. lib/core.zsh</code></pre>
+2. lib/help_registry.zsh
+3. lib/tmux_integration.zsh
+4. lib/clipboard.zsh
+5. lib/fzf.zsh
+6. lib/interact.zsh
+7. lib/var_helpers.zsh
+8. lib/var_interactive.zsh
+9. lib/vars.zsh
+10. lib/var_output.zsh
+11. lib/payloads.zsh
+12. lib/payload_input.zsh
+13. lib/www.zsh
+14. lib/payload_command.zsh
+15. lib/help.zsh
+16. lib/version.zsh
+17. lib/core.zsh</code></pre>
             <p class="muted">
               core.zsh loads last because it exposes the public dispatcher after
               all command implementations are defined.
@@ -604,6 +609,14 @@
           <div class="card">
             <strong>tmux.zsh</strong>
             <span>Detect tmux, read session identity, and assert required commands.</span>
+          </div>
+          <div class="card">
+            <strong>help_registry.zsh</strong>
+            <span>Collect per-feature help topics and resolve aliases and nested help paths.</span>
+          </div>
+          <div class="card">
+            <strong>tmux_integration.zsh</strong>
+            <span>Manage the session-enabled command-prompt adapter and the isolated <code>ii pice</code> popup-to-pane path.</span>
           </div>
           <div class="card">
             <strong>clipboard.zsh</strong>
@@ -630,16 +643,28 @@
             <span>Implement set, get, load, list, and unset command entrypoints.</span>
           </div>
           <div class="card">
+            <strong>var_output.zsh</strong>
+            <span>Route <code>ii v</code> and securely write sourceable variable files for <code>ii v --out</code> and <code>ii voc</code>.</span>
+          </div>
+          <div class="card">
             <strong>www.zsh</strong>
             <span>Own <code>ii p --www</code> file render, list, search, and symlink helpers.</span>
           </div>
           <div class="card">
             <strong>payloads.zsh</strong>
-            <span>List payloads, run fzf selection, render templates, read pasted input, write output files, and report render sources.</span>
+            <span>List payloads, run fzf selection, render templates, write output files, and report render sources.</span>
+          </div>
+          <div class="card">
+            <strong>payload_input.zsh</strong>
+            <span>Own pasted input, stream compatibility, the ZLE editor, <code>ii pic</code>, and shell <code>ii pice</code> execution.</span>
+          </div>
+          <div class="card">
+            <strong>payload_command.zsh</strong>
+            <span>Route the public payload command to selection, pasted input, or web-root helpers and own aggregate help.</span>
           </div>
           <div class="card">
             <strong>help.zsh</strong>
-            <span>Route ii help topics to the command help close to each implementation.</span>
+            <span>Print top-level help and register that topic; feature help stays with each command layer.</span>
           </div>
           <div class="card">
             <strong>version.zsh</strong>
@@ -665,8 +690,8 @@
           <tbody>
             <tr>
               <td>Set</td>
-              <td><code>ii set</code>, <code>ii s</code>, <code>ii s:FILTER</code></td>
-              <td>Write values, save values from shell with <code>--from-shell</code>, or open fzf with no args.</td>
+              <td><code>ii set NAME VALUE</code>, <code>ii s NAME=VALUE</code>, <code>ii s:NAME=VALUE</code>, <code>ii sr VALUE</code></td>
+              <td>Write explicit CLI values or save shell values with <code>--from-shell</code>. Interactive management belongs to <code>ii i</code>.</td>
             </tr>
             <tr>
               <td>Detect</td>
@@ -685,8 +710,8 @@
             </tr>
             <tr>
               <td>List</td>
-              <td><code>ii ls [PATTERN]</code></td>
-              <td>Print dense key/value blocks, blue keys, no blank separators, optional key filter.</td>
+              <td><code>ii ls [PATTERN]</code>, <code>ii v --out [PATH]</code>, <code>ii voc [PATH]</code></td>
+              <td>Print dense key/value blocks or write non-empty variables to a sourceable environment file.</td>
             </tr>
             <tr>
               <td>Interactive</td>
@@ -695,8 +720,8 @@
             </tr>
             <tr>
               <td>Payload</td>
-              <td><code>ii p [CATEGORY]</code>, <code>ii p --input</code>, <code>ii p --www</code></td>
-              <td>Render payload files, pasted text, or explicit web-root files, and route web-root helper operations.</td>
+              <td><code>ii p [CATEGORY]</code>, <code>ii pc KEYWORD...</code>, <code>ii pe KEYWORD...</code>, <code>ii pce KEYWORD...</code>, <code>ii p --input</code>, <code>ii pic</code>, <code>ii pice</code>, <code>ii p --www</code></td>
+              <td>Select, copy, confirm and execute with or without copy, render pasted text, or route web-root helpers.</td>
             </tr>
             <tr>
               <td>Clipboard</td>
@@ -736,16 +761,23 @@ default shell export: rhost</code></pre>
               <span class="tag">domain</span>
               <span class="tag">lhost</span>
               <span class="tag">rhost</span>
-              <span class="tag">file</span>
               <span class="tag">lport</span>
               <span class="tag">rport</span>
-              <span class="tag">mm</span>
-              <span class="tag">usert</span>
-              <span class="tag">passt</span>
               <span class="tag">user1</span>
               <span class="tag">pass1</span>
               <span class="tag">user2</span>
               <span class="tag">pass2</span>
+              <span class="tag">user3</span>
+              <span class="tag">pass3</span>
+              <span class="tag">user4</span>
+              <span class="tag">pass4</span>
+              <span class="tag">user5</span>
+              <span class="tag">pass5</span>
+              <span class="tag">cuser</span>
+              <span class="tag">cpass</span>
+              <span class="tag">tuser</span>
+              <span class="tag">tpass</span>
+              <span class="tag">directs</span>
             </div>
             <p class="muted">
               Defaults seed interactive choices. Values only appear in lists or
@@ -774,8 +806,10 @@ lport
         <h2>Payload Rendering</h2>
         <div class="callout">
           <code>lib/payloads.zsh</code> owns selector behavior, rendering,
-          copy/write output, pasted input, preview token coloring, and
-          render reports. This page only records ownership and document
+          write output, preview token coloring, and render reports.
+          <code>lib/payload_input.zsh</code> owns pasted input and copy
+          orchestration. <code>lib/payload_command.zsh</code> owns public routing
+          and aggregate help. This page only records ownership and document
           routing; syntax details live in the schema and usage docs.
         </div>
 
@@ -839,9 +873,9 @@ lport
           <summary>Help follows command code</summary>
           <div class="detail-body">
             <p>
-              Command help is registered beside command entrypoints. The
-              central <code>ii help</code> router delegates topics to those
-              implementations. Documentation explains behavior and design, but
+              Command help is defined beside command entrypoints. The
+              shared registry delegates topics to those implementations using
+              aliases and longest-path matching. Documentation explains behavior and design, but
               should not be the only place a live option is described. Options
               such as <code>--from-shell</code> stay inside their command help,
               for example <code>ii s --help</code>.
@@ -857,6 +891,9 @@ ii help payload
 ii help payload-input
 ii help payload-www
 ii help payload-www-file
+ii help payload-www-ln
+ii help payload-www-ls
+ii help payload-www-search
 ii help unset
 ii help version</code></pre>
           </div>
@@ -884,6 +921,10 @@ ii help version</code></pre>
                 <tr>
                   <td><code>doc/architecture.md</code></td>
                   <td>Layer responsibilities, boundaries, and implementation map.</td>
+                </tr>
+                <tr>
+                  <td><code>doc/help.md</code></td>
+                  <td>Help output contract, per-feature registration, and maintenance workflow.</td>
                 </tr>
                 <tr>
                   <td><code>doc/payload-schema.md</code></td>
@@ -916,7 +957,7 @@ ii help version</code></pre>
           </div>
           <div class="card">
             <strong>Help audit</strong>
-            <span><code>script/help</code> sources the plugin and prints registered help topics.</span>
+            <span><code>script/help</code> sources the plugin and prints the canonical topics registered by feature layers.</span>
           </div>
         </div>
 

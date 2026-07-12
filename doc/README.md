@@ -18,6 +18,7 @@ Deployment instructions live in the root [README.md](../README.md).
 | File | Purpose |
 | --- | --- |
 | [architecture.md](architecture.md) | Load order, layer ownership, state model, and deployment boundary. |
+| [help.md](help.md) | Help output contract, per-feature registration, routing, and maintenance workflow. |
 | [testing.md](testing.md) | Syntax checks, smoke tests, and regression scenarios. |
 | [release.md](release.md) | Version bumping, package build output, and release tagging. |
 | [design.html](design.html) | Navigable design map for command behavior, docs ownership, and maintenance checks. |

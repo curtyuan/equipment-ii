@@ -7,9 +7,16 @@ source "${repo_dir}/ii.plugin.zsh"
 for topic in ${(f)"$(ii_help_topics)"}; do
   print "===== ii ${topic} ====="
   if [[ "$topic" == "help" ]]; then
-    ii help
+    output="$(ii help)"
   else
-    ii help "$topic"
+    output="$(ii help "$topic")"
   fi
+  if [[ "$output" != *$'usage:'* || "$output" != *$'Aliases:'* || "$output" != *$'Help:'* ]]; then
+    print -u2 "missing usage, Aliases, or Help section: $topic"
+    exit 1
+  fi
+  print -r -- "$output"
   print
 done
+
+unset output topic

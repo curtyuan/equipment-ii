@@ -23,6 +23,8 @@ cp "${repo_dir}/ii.plugin.zsh" "${export_dir}/"
 cp "${repo_dir}/README.md" "${export_dir}/"
 cp "${repo_dir}/VERSION" "${export_dir}/"
 cp -R "${repo_dir}/lib" "${export_dir}/"
+mkdir -p "${export_dir}/script"
+cp "${repo_dir}/script/ii-tmux-pice" "${export_dir}/script/"
 cp -R "${repo_dir}/payloads" "${export_dir}/"
 
 find "${export_dir}" -type f -name '.gitkeep' -delete

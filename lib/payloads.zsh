@@ -1,95 +1,22 @@
 # Payload selection, filtering, rendering, and reporting.
 
-ii_cmd_payload() {
-  if [[ "${1:-}" == "--help" ]]; then
-    cat <<'EOF'
-usage: ii payload [CATEGORY]
-       ii p [CATEGORY]
-       ii p [CATEGORY] -o [PATH]
-       ii p --www --file PATH
-       ii p --www ln SOURCE_PATH [LINK_NAME]
-       ii p --www ls
-       ii p --www search [FILTER]
-       ii p --input [--copy] [-o [PATH]]
-
-Payload files:
-  Open the payload selector, render the selected template, and print the output.
-
-  The selector shows payload paths in the list and a selected template preview
-  at the bottom, with resolved renderable tokens highlighted green and missing
-  tokens highlighted red.
-  A first-line "# description: ..." metadata line is shown in preview but
-  omitted from copied output.
-  "# stage: ..." metadata lines are emitted as paste-safe "# --- ... ---"
-  comment delimiters for combo payloads.
-  The selector starts in normal mode. Press / to search; Esc returns to normal.
-  Use y to copy the selected rendered payload without leaving the selector.
-  Use l to unfold the selected script into a full preview, and h to
-  return to compact normal mode. In unfolded preview, j and k still move
-  between payloads, Enter still renders and outputs, and q aborts.
-  Payload files render $name, ${name}, and ${name:t}. Shell values win over ii
-  tmux values. Uppercase shell variables such as $RHOST are left unchanged.
-  Missing values keep their original token.
-
-Pasted input:
-  ii p --input [--copy] [-o [PATH]]
-
-  Paste template text below the prompt. Finish with a single ":w" line, or cancel
-  with a single ":q" or ":q!" line. The renderer uses lowercase shell-style
-  variables from this shell first and ii variables second. Use --copy to copy
-  the rendered input to the clipboard.
-
-Output:
-  -o writes the rendered text to a file while keeping the normal terminal
-  output. With no PATH, output goes to /www/p/att.txt. A bare filename writes
-  to /www/FILENAME. Directory paths use att.txt. After rendering, ii prints the
-  output file note and ends with the absolute output path on its own line.
-
-/www helpers:
-  ii p --www --file PATH
-    Read PATH, render it with the normal payload renderer, print the render
-    report and rendered output, then symlink PATH into /www/p and print
-    relative_file, file, and rfile shell commands for manual copy.
-
-  ii p --www ln SOURCE_PATH [LINK_NAME]
-    Select a directory under /www and create a symlink to SOURCE_PATH there.
-
-  ii p --www ls
-    Print files and directories under /www as a tree.
-
-  ii p --www search [FILTER]
-    Fuzzy-select an entry under /www and print its containing directory relative
-    to /www, then its absolute path. FILTER preselects the first
-    case-insensitive fzf match.
-
-Categories:
-  all, shell, script, linux, windows, sqli, xss
-EOF
-    return 0
-  fi
-
-  if [[ "${1:-}" == "--input" ]]; then
-    shift
-    ii_cmd_payload_input "$@"
-    return
-  fi
-
-  if [[ "${1:-}" == "--www" ]]; then
-    shift
-    ii_cmd_payload_www "$@"
-    return
-  fi
-  if [[ "${1:-}" == "-www" || "${1:-}" == "-wwww" ]]; then
-    print -u2 "ii: use --www instead of ${1:-}"
-    return 2
-  fi
-
+ii_cmd_payload_select() {
   ii_tmux_available || return
   ii_require_cmd fzf || return
 
-  local filter="all" output=0 output_spec=""
+  local category="all" query="" execute=0 copy_execute=0 output=0 output_spec=""
+  local -a terms
+  terms=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
+      --execute)
+        execute=1
+        shift
+        ;;
+      --copy)
+        copy_execute=1
+        shift
+        ;;
       -o|--output)
         output=1
         shift
@@ -99,23 +26,23 @@ EOF
         fi
         ;;
       *)
-        if [[ "$filter" == "all" ]]; then
-          filter="$1"
-        else
-          print -u2 "ii: unknown payload option: $1"
-          return 2
-        fi
+        terms+=("$1")
         shift
         ;;
     esac
   done
 
-  local payloads payload selected key line rendered report last_yank_selected last_yank_report last_yank_count footer_status copy_rc
+  if (( $#terms == 1 )); then
+    case "$terms[1]" in
+      all|shell|script|linux|windows|sqli|xss) category="$terms[1]" ;;
+      *) query="$terms[1]" ;;
+    esac
+  elif (( $#terms > 1 )); then
+    query="${(j: :)terms}"
+  fi
+
+  local payloads payload selected key line rendered report copy_status copy_rc execute_selected=0
   typeset -g II_PAYLOAD_OUTPUT_PATH=""
-  last_yank_selected=""
-  last_yank_report=""
-  last_yank_count=0
-  footer_status=""
   payloads="$(ii_payload_list)" || return
   if [[ -z "$payloads" ]]; then
     print -u2 "ii: no payloads found"
@@ -123,19 +50,17 @@ EOF
   fi
 
   while true; do
-    if ! selected="$(print -r -- "$payloads" | ii_payload_filter "$filter" | ii_payload_entries_for_fzf | ii_payload_select_fzf "$filter" "$footer_status")"; then
-      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && ii_payload_print_report "$last_yank_report" "$last_yank_selected"
+    if ! selected="$(print -r -- "$payloads" | ii_payload_filter "$category" | ii_payload_entries_for_fzf | ii_payload_select_fzf "$category" "" "$query")"; then
       return
     fi
     if [[ -z "$selected" ]]; then
-      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && ii_payload_print_report "$last_yank_report" "$last_yank_selected"
       return
     fi
 
     selected="$(ii_fzf_trim_leading_empty_lines "$selected")"
     [[ -n "$selected" ]] || return
     key="${selected%%$'\n'*}"
-    if [[ "$key" == "enter" || "$key" == "y" || "$key" == "q" ]]; then
+    if [[ "$key" == "enter" || "$key" == "e" || "$key" == "y" || "$key" == "q" ]]; then
       line="${selected#*$'\n'}"
     else
       key="enter"
@@ -146,7 +71,6 @@ EOF
     [[ -n "$selected" ]] || return
 
     if [[ "$key" == "q" ]]; then
-      [[ $last_yank_count -gt 0 && -n "$last_yank_report" ]] && print && ii_payload_print_report "$last_yank_report" "$last_yank_selected"
       return
     fi
 
@@ -161,16 +85,14 @@ EOF
       else
         copy_rc=1
       fi
-      footer_status="$(ii_interact_copy_status "$copy_rc" "payload copied successfully" "payload rendered; clipboard copy failed")"
-      last_yank_selected="$selected"
-      last_yank_report="$report"
-      (( last_yank_count++ ))
-      if [[ -n "${II_PAYLOAD_KEY:-}" ]]; then
-        print -r -- "$footer_status"
-        [[ -n "$last_yank_report" ]] && print && ii_payload_print_report "$last_yank_report" "$last_yank_selected"
-        return
-      fi
-      continue
+      copy_status="$(ii_interact_copy_status "$copy_rc" "payload copied successfully" "payload rendered; clipboard copy failed")"
+      print -r -- "$copy_status"
+      [[ -n "$report" ]] && print && ii_payload_print_report "$report" "$selected"
+      return "$copy_rc"
+    fi
+
+    if [[ "$key" == "e" || ( "$key" == "enter" && $execute -eq 1 ) ]]; then
+      execute_selected=1
     fi
 
     break
@@ -179,93 +101,61 @@ EOF
   report="$(ii_payload_render_report)"
 
   if (( output )); then
-    ii_payload_write_output "$rendered" "$output_spec"
+    ii_payload_write_output "$rendered" "$output_spec" || return
   fi
 
   [[ -n "$report" ]] && ii_payload_print_report "$report" "$selected" && print
-  print -r -- "$rendered"
-  if [[ $last_yank_count -gt 0 && "$last_yank_selected" != "$selected" && -n "$last_yank_report" ]]; then
-    print
-    ii_payload_print_report "$last_yank_report" "$last_yank_selected"
+  if (( execute_selected )); then
+    if ! ii_payload_confirm_execute "$rendered"; then
+      print -u2 "ii: execution cancelled"
+      return 1
+    fi
+    if (( copy_execute )); then
+      if ii_clip_copy "$rendered"; then
+        print "payload copied successfully"
+      else
+        print -u2 "ii: clipboard copy failed; executing payload anyway"
+      fi
+    fi
+    ii_color_blue "executing payload in current shell:"
+    print -r -- "$selected"
+    eval "$rendered"
+    return $?
   fi
+  print -r -- "$rendered"
   ii_payload_print_output_report
 }
 
-ii_cmd_payload_input() {
-  local copy=0 output=0 output_spec=""
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --copy) copy=1 ;;
-      -o|--output)
-        output=1
-        shift
-        if [[ $# -gt 0 && "${1:-}" != -* ]]; then
-          output_spec="$1"
-        else
-          continue
-        fi
-        ;;
-      --help|-h)
-        cat <<'EOF'
-usage: ii p --input [--copy] [-o [PATH]]
-
-Paste template text below the prompt, then render variables and print the
-rendered output.
-
-Finish input with a single ":w" line. Cancel with a single ":q" or ":q!" line.
-
-Supported input placeholders:
-  $name       replace lowercase name
-  ${name}     replace lowercase name
-  ${name:t}   replace lowercase name with its trailing path component
-Uppercase variables and PowerShell scope variables such as $env:, $script:,
-$global:, $local:, and $private: are left unchanged.
-
-Shell values win over ii tmux values. Missing values keep the original token and
-are reported in red.
-
--o writes the rendered text to a file while keeping the normal terminal output.
-With no PATH, output goes to /www/p/att.txt. A bare filename writes to
-/www/FILENAME. Directory paths use att.txt. After rendering, ii prints the
-output file note and ends with the absolute output path on its own line.
-EOF
-        return 0
-        ;;
-      *)
-        print -u2 "ii: unknown payload input option: $1"
-        return 2
-        ;;
-    esac
-    shift
-  done
-
-  ii_tmux_available || return
-
-  local input rendered report
-  typeset -g II_PAYLOAD_OUTPUT_PATH=""
-  input="$(ii_payload_read_input)" || return
-  ii_payload_render_text "$input" >/dev/null || return
-  rendered="$II_PAYLOAD_RENDERED_TEXT"
-  report="$(ii_payload_render_report)"
-
-  if (( output )); then
-    ii_payload_write_output "$rendered" "$output_spec"
+ii_payload_confirm_execute() {
+  local rendered="$1" answer
+  local missing="$(ii_payload_missing_names)"
+  if [[ -n "$missing" ]]; then
+    print -u2 "ii: unresolved variables: ${(j:, :)${(f)missing}}"
+    printf 'Unresolved variables may make this payload ineffective. Execute anyway? [y/N] '
+  else
+    printf 'Execute this payload? [y/N] '
   fi
-
-  if (( copy )); then
-    if ii_clip_copy "$rendered"; then
-      print "payload copied successfully"
-    else
-      print "payload rendered; clipboard copy failed"
-    fi
+  if [[ -n "${II_INTERACTIVE_KEY:-}" ]]; then
+    answer="$II_INTERACTIVE_KEY"
+    print -r -- "$answer"
+  elif [[ -t 0 ]]; then
+    read -r -k 1 answer
     print
+  elif [[ -r /dev/tty ]]; then
+    read -r -k 1 answer </dev/tty
+    print
+  else
+    print -u2 "ii: cannot confirm execution without a terminal"
+    return 1
   fi
+  [[ "${(L)answer}" == "y" ]]
+}
 
-  [[ -n "$report" ]] && print -r -- "$report" && print
-  ii_payload_print_separator
-  print -r -- "$rendered"
-  ii_payload_print_output_report
+ii_payload_missing_names() {
+  local name
+  for name in ${(ok)II_PAYLOAD_RENDER_REPORT_SOURCE}; do
+    [[ "${II_PAYLOAD_RENDER_REPORT_SOURCE[$name]}" == "missing" ]] && print -r -- "$name"
+  done
 }
 
 ii_payload_dir() {
@@ -302,28 +192,28 @@ ii_payload_filter() {
 ii_payload_select_fzf() {
   local filter="${1:-all}"
   local footer_status="${2:-}"
+  local query="${3:-}"
   local plugin_file payload_dir compact_footer expanded_footer search_footer normal_keys preview_cmd
   plugin_file="${II_PLUGIN_DIR%/}/ii.plugin.zsh"
   payload_dir="$(ii_payload_dir)"
   compact_footer="$(ii_interact_footer "$(ii_interact_keys_payload_normal)" "$footer_status")"
   expanded_footer="$(ii_interact_footer "$(ii_interact_keys_payload_expanded)" "$footer_status")"
   search_footer="$(ii_interact_footer "$(ii_interact_keys_payload_search)" "$footer_status")"
-  normal_keys="j,k,y,q,l,h,/"
+  normal_keys="j,k,e,y,q,l,h,/"
   preview_cmd="zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
 
   II_FZF_COMPACT_FOOTER="$compact_footer" II_FZF_EXPANDED_FOOTER="$expanded_footer" II_FZF_SEARCH_FOOTER="$search_footer" \
-  fzf --ansi --layout=reverse --prompt="ii payload:${filter}> " --height=80% --border --delimiter=$'\t' --with-nth=1 \
+  fzf --ansi --layout=reverse --prompt="ii payload:${filter}> " --query="$query" --height=80% --border --delimiter=$'\t' --with-nth=1 \
     --expect=enter \
     --bind="start:$(ii_fzf_modal_start_actions)" \
     --bind="/:show-input+enable-search+transform-footer(printf %s \"\$II_FZF_SEARCH_FOOTER\")+unbind($normal_keys)" \
     --bind="esc:clear-query+hide-input+disable-search+transform-footer(printf %s \"\$II_FZF_COMPACT_FOOTER\")+rebind($normal_keys)" \
-    --bind='j:down,k:up,y:print(y)+accept,q:abort' \
-    --bind="l:change-preview-window(up,99%,wrap,noinfo)+transform-footer(printf %s \"\$II_FZF_EXPANDED_FOOTER\")+hide-input+disable-search+unbind(/)+rebind(j,k,y,q,l,h)" \
+    --bind='j:down,k:up,e:print(e)+accept,y:print(y)+accept,q:abort' \
+    --bind="l:change-preview-window(up,99%,wrap,noinfo)+transform-footer(printf %s \"\$II_FZF_EXPANDED_FOOTER\")+hide-input+disable-search+unbind(/,e)+rebind(j,k,y,q,l,h)" \
     --bind="h:change-preview-window(up,50%,nowrap,noinfo)+transform-footer(printf %s \"\$II_FZF_COMPACT_FOOTER\")+hide-input+disable-search+rebind($normal_keys)" \
     --preview="$preview_cmd" \
     --preview-window='up,50%,nowrap,noinfo' \
     --footer="$compact_footer" \
-    --footer-border=line \
     --no-separator
 }
 
@@ -333,6 +223,15 @@ ii_payload_entries_for_fzf() {
     [[ -n "$selected" ]] || continue
     print -r -- "$selected"
   done
+}
+
+ii_payload_best_match() {
+  local query="$1"
+  local selected
+
+  selected="$(ii_payload_list | ii_payload_entries_for_fzf | FZF_DEFAULT_OPTS='' fzf -i --filter="$query" | awk 'NF {print; exit}')" || return
+  [[ -n "$selected" ]] || return 1
+  print -r -- "$selected"
 }
 
 ii_payload_path_for() {
@@ -424,48 +323,10 @@ ii_payload_write_output() {
 }
 
 ii_payload_print_output_report() {
-  [[ -n "${II_PAYLOAD_OUTPUT_PATH:-}" ]] || return
+  [[ -n "${II_PAYLOAD_OUTPUT_PATH:-}" ]] || return 0
   print
   ii_color_blue "payload output written to:"
   print -r -- "$II_PAYLOAD_OUTPUT_PATH"
-}
-
-ii_payload_read_input() {
-  local input line
-
-  if [[ -t 0 ]]; then
-    ii_payload_print_input_intro
-    ii_payload_print_input_prompt
-  fi
-
-  while true; do
-    IFS= read -r line || break
-    ii_payload_input_is_finish_line "$line" && break
-    if ii_payload_input_is_cancel_line "$line"; then
-      print -u2 "ii: input cancelled"
-      return 1
-    fi
-    input+="${line}"$'\n'
-  done
-
-  print -rn -- "$input"
-}
-
-ii_payload_print_input_intro() {
-  print -u2 "paste content below"
-  print -u2 'finish: single ":w" line OR ":q"/":q!" line -> cancel, don'\''t save'
-}
-
-ii_payload_print_input_prompt() {
-  printf 'ii input> ' >&2
-}
-
-ii_payload_input_is_finish_line() {
-  [[ "$1" == ":w" ]]
-}
-
-ii_payload_input_is_cancel_line() {
-  [[ "$1" == ":q" || "$1" == ":q!" ]]
 }
 
 ii_payload_render_text() {
@@ -497,13 +358,6 @@ ii_payload_render_text() {
             rendered+="$II_PAYLOAD_RESOLVED_VALUE"
             i=$(( end + 1 ))
             continue
-          elif [[ "$expr" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
-            name="${(L)match[1]}"
-            original="${text[i,end]}"
-            ii_payload_resolve_render_var "$name" "" "$original"
-            rendered+="$II_PAYLOAD_RESOLVED_VALUE"
-            i=$(( end + 1 ))
-            continue
           fi
         fi
       elif [[ "$next" =~ '[A-Za-z_]' ]]; then
@@ -527,18 +381,17 @@ ii_payload_render_text() {
       fi
     fi
 
-    if [[ "$ch" == "I" && "${text[i,i+2]}" == "II_" && ( i == 1 || ! "${text[i-1]}" =~ '[A-Za-z0-9_$]' ) ]]; then
-      end="$i"
-      while (( end <= length )) && [[ "${text[end]}" =~ '[A-Za-z0-9_]' ]]; do
+    if [[ "$ch" == "%" && "${text[i+1]}" =~ '[a-z_]' ]]; then
+      end=$(( i + 2 ))
+      while (( end <= length )) && [[ "${text[end]}" =~ '[a-z0-9_]' ]]; do
         (( end++ ))
       done
-      token="${text[i,end-1]}"
-      if [[ "$token" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
-        name="${(L)match[1]}"
-        original="$token"
-        ii_payload_resolve_render_var "$name" "" "$original"
+      if (( end <= length )) && [[ "${text[end]}" == "%" ]]; then
+        token="${text[i+1,end-1]}"
+        original="${text[i,end]}"
+        ii_payload_resolve_render_var "$token" "" "$original"
         rendered+="$II_PAYLOAD_RESOLVED_VALUE"
-        i="$end"
+        i=$(( end + 1 ))
         continue
       fi
     fi
@@ -564,7 +417,7 @@ ii_payload_resolve_render_var() {
   local original="$3"
   local ii_name line value render_value source
 
-  if (( ${+parameters[$name]} )) && [[ -n "${(P)name}" ]]; then
+  if [[ -z "${II_PAYLOAD_TMUX_ONLY:-}" ]] && (( ${+parameters[$name]} )) && [[ -n "${(P)name}" ]]; then
     value="${(P)name}"
     source="shell"
   else
@@ -682,12 +535,6 @@ ii_payload_highlight_preview_text() {
             highlighted+="$(ii_payload_highlight_preview_var "$name" "$original")"
             i=$(( end + 1 ))
             continue
-          elif [[ "$expr" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
-            name="${(L)match[1]}"
-            display='${'"$name"'}'
-            highlighted+="$(ii_payload_highlight_preview_var "$name" "$display")"
-            i=$(( end + 1 ))
-            continue
           fi
         fi
       elif [[ "$next" =~ '[A-Za-z_]' ]]; then
@@ -710,17 +557,16 @@ ii_payload_highlight_preview_text() {
       fi
     fi
 
-    if [[ "$ch" == "I" && "${text[i,i+2]}" == "II_" && ( i == 1 || ! "${text[i-1]}" =~ '[A-Za-z0-9_$]' ) ]]; then
-      end="$i"
-      while (( end <= length )) && [[ "${text[end]}" =~ '[A-Za-z0-9_]' ]]; do
+    if [[ "$ch" == "%" && "${text[i+1]}" =~ '[a-z_]' ]]; then
+      end=$(( i + 2 ))
+      while (( end <= length )) && [[ "${text[end]}" =~ '[a-z0-9_]' ]]; do
         (( end++ ))
       done
-      token="${text[i,end-1]}"
-      if [[ "$token" =~ '^II_([A-Za-z_][A-Za-z0-9_]*)$' ]]; then
-        name="${(L)match[1]}"
-        display='$'"$name"
-        highlighted+="$(ii_payload_highlight_preview_var "$name" "$display")"
-        i="$end"
+      if (( end <= length )) && [[ "${text[end]}" == "%" ]]; then
+        token="${text[i+1,end-1]}"
+        original="${text[i,end]}"
+        highlighted+="$(ii_payload_highlight_preview_var "$token" "$original")"
+        i=$(( end + 1 ))
         continue
       fi
     fi

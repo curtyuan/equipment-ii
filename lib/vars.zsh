@@ -4,16 +4,17 @@ ii_cmd_set_usage() {
   cat <<'EOF'
 usage: ii set NAME=VALUE [NAME=VALUE...]
        ii s NAME=VALUE [NAME=VALUE...]
+       ii set NAME VALUE
+       ii s NAME VALUE
+       ii sr VALUE
        ii s:NAME=VALUE[,NAME=VALUE...]
        ii set NAME[,NAME...] [--from-shell]
        ii s:NAME[,NAME...] [--from-shell]
+       ii set --from-shell -a
+       ii s --from-shell -a
        ii s NAME -d [INTERFACE]
        ii s -d [INTERFACE]
        ii s:lhost -d [INTERFACE]
-       ii set
-       ii s
-       ii s FILTER
-       ii s:FILTER
 EOF
 }
 
@@ -21,16 +22,32 @@ ii_cmd_set_help() {
   ii_cmd_set_usage
   cat <<'EOF'
 
+Aliases:
+  s
+  sr
+
+Help:
+  ii help set
+
 Forms:
   NAME=VALUE
     Set NAME=VALUE in the current tmux session and export it into this shell.
     Multiple assignments can be separate arguments or comma-separated shortcut
     entries, such as ii s:usert=alice,passt=secret.
 
+  NAME VALUE
+    Set one variable from explicit command-line arguments. Use NAME=VALUE for
+    batches or when the value could otherwise be confused with an option.
+
   NAME[,NAME...] --from-shell
     Save existing shell variables back into the tmux session. Lowercase shell
     names are checked first, then uppercase names. Missing shell variables print
     red warnings and are skipped.
+
+  --from-shell -a
+    Check every default ii variable name against non-empty lowercase, then
+    uppercase shell variables. Save and print each value found; silently skip
+    unset or empty defaults.
 
   -d [INTERFACE]
     Detect lhost from INTERFACE. The default INTERFACE is tun0. Detect is only
@@ -40,13 +57,6 @@ Forms:
     When rhost or rhosts is set, ii automatically detects lhost from the
     configured interface and prints the detected value. This is controlled by
     II_AUTO_DETECT_LHOST and II_AUTO_DETECT_LHOST_INTERFACE.
-
-  [FILTER]
-    Match variable names before prompting for a value. No matches prints
-    "no matched"; multiple matches prompt for variable selection.
-
-  no arguments
-    Open a TUI to choose a variable and type its value.
 
 Notes:
   User-facing names do not include the internal ii_ prefix. Single-letter
@@ -64,27 +74,43 @@ ii_cmd_set() {
     fi
   done
   if [[ $# -eq 0 ]]; then
-    ii_cmd_set_interactive
-    return
+    ii_cmd_set_usage
+    return 2
   fi
 
-  local from_shell=0 arg args
+  local from_shell=0 from_shell_all=0 arg args
   args=()
   for arg in "$@"; do
     case "$arg" in
       --from-shell) from_shell=1 ;;
+      -a) from_shell_all=1 ;;
       *) args+=("$arg") ;;
     esac
   done
   set -- "$args[@]"
+
+  if (( from_shell_all && ! from_shell )); then
+    print -u2 "ii: -a is only supported with --from-shell"
+    return 2
+  fi
+
+  if (( from_shell_all )); then
+    if [[ $# -ne 0 ]]; then
+      print -u2 "ii: --from-shell -a does not accept variable names"
+      return 2
+    fi
+    ii_tmux_available || return
+    ii_cmd_set_from_shell_all
+    return
+  fi
 
   if [[ $# -eq 0 ]]; then
     if (( from_shell )); then
       print -u2 "ii: --from-shell requires at least one variable name"
       return 2
     fi
-    ii_cmd_set_interactive
-    return
+    ii_cmd_set_usage
+    return 2
   fi
 
   if [[ "$1" == "-d" ]]; then
@@ -104,8 +130,8 @@ ii_cmd_set() {
   fi
 
   if [[ $# -eq 1 ]]; then
-    ii_cmd_set_interactive "$1"
-    return
+    print -u2 "ii: set requires a value; use NAME=VALUE or NAME VALUE"
+    return 2
   fi
 
   if [[ $# -lt 2 ]]; then
@@ -114,11 +140,6 @@ ii_cmd_set() {
   fi
 
   ii_tmux_available || return
-
-  if [[ $# -gt 1 && "${2:-}" != "-d" ]]; then
-    print -u2 "ii: direct values must use name=value"
-    return 2
-  fi
 
   local name value interface
   name="$(ii_var_normalize_name "$(ii_var_shortcut_filter "$1")")" || return
@@ -139,6 +160,46 @@ ii_cmd_set() {
   ii_export_var_line "${name}=${value}" || return
   ii_var_auto_detect_lhost_for_rhost "$name"
   print "$(ii_var_display_line "${name}=${value}")"
+}
+
+ii_cmd_set_from_shell_all() {
+  local name ii_name upper_name value count=0 saw_rhost=0 saw_lhost=0
+
+  for name in ${(f)"$(ii_var_default_names)"}; do
+    upper_name="${(U)name}"
+    if (( ${+parameters[$name]} )) && [[ -n "${(P)name}" ]]; then
+      value="${(P)name}"
+    elif (( ${+parameters[$upper_name]} )) && [[ -n "${(P)upper_name}" ]]; then
+      value="${(P)upper_name}"
+    else
+      continue
+    fi
+    ii_name="$(ii_var_normalize_name "$name")" || return
+    tmux set-environment "$ii_name" "$value" || return
+    ii_export_var_line "${ii_name}=${value}" || return
+    print "$(ii_var_display_line "${ii_name}=${value}")"
+    ii_var_is_rhost_name "$ii_name" && saw_rhost=1
+    [[ "$ii_name" == "ii_lhost" ]] && saw_lhost=1
+    (( count++ ))
+  done
+
+  if (( saw_rhost && ! saw_lhost )); then
+    ii_var_auto_detect_lhost_for_rhost "ii_rhost"
+  fi
+  (( count > 0 )) || print "ii: no non-empty default shell variables found"
+}
+
+ii_cmd_set_rhost() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    ii_cmd_set --help
+    return
+  fi
+  if [[ $# -ne 1 ]]; then
+    print -u2 "ii: usage: ii sr VALUE"
+    return 2
+  fi
+
+  ii_cmd_set "rhost=$1"
 }
 
 ii_cmd_set_from_shell() {
@@ -232,11 +293,17 @@ ii_cmd_set_alias_name() {
 }
 
 ii_cmd_get() {
-  if [[ "${1:-}" == "--help" ]]; then
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'EOF'
 usage: ii get FILTER
        ii g FILTER
        ii g:FILTER
+
+Aliases:
+  g
+
+Help:
+  ii help get
 
 Get a variable value from the current tmux session, copy it, and print it.
 FILTER matches variable names case-insensitively, with the same shortcut
@@ -293,10 +360,16 @@ EOF
 }
 
 ii_cmd_load() {
-  if [[ "${1:-}" == "--help" ]]; then
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'EOF'
 usage: ii load
        ii l
+
+Aliases:
+  l
+
+Help:
+  ii help load
 
 Load non-empty variables from the current tmux session into this shell.
 The current shell exports use names without the internal ii_ prefix.
@@ -336,6 +409,12 @@ ii_cmd_sync() {
       cat <<'EOF'
 usage: ii sync [on|off|status]
 
+Aliases:
+  none
+
+Help:
+  ii help sync
+
 Control optional tmux-to-shell prompt synchronization.
 
 Commands:
@@ -353,9 +432,15 @@ EOF
 }
 
 ii_cmd_list() {
-  if [[ "${1:-}" == "--help" ]]; then
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'EOF'
 usage: ii ls [PATTERN]
+
+Aliases:
+  list, variable, vars, var, v
+
+Help:
+  ii help ls
 
 Print non-empty variables from the current tmux session.
 PATTERN filters variable names only, case-insensitively.
@@ -371,15 +456,21 @@ EOF
 }
 
 ii_cmd_unset() {
-  if [[ "${1:-}" == "--help" || $# -lt 1 ]]; then
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || $# -lt 1 ]]; then
     cat <<'EOF'
 usage: ii unset NAME [NAME...]
        ii unset -a
 
+Aliases:
+  u
+
+Help:
+  ii help unset
+
 Remove ii_name from the current tmux session and unset it in this shell.
 With -a, remove all ii_ variables after confirmation.
 EOF
-    [[ "${1:-}" == "--help" ]] && return 0
+    [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]] && return 0
     return 2
   fi
 
@@ -423,3 +514,10 @@ ii_cmd_unset_all() {
 
   print "unset ${count} variable(s)"
 }
+
+ii_help_register set ii_cmd_set s sr
+ii_help_register get ii_cmd_get g
+ii_help_register load ii_cmd_load l
+ii_help_register sync ii_cmd_sync
+ii_help_register ls ii_cmd_list list variable vars var v
+ii_help_register unset ii_cmd_unset u

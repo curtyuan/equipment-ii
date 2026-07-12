@@ -16,6 +16,12 @@ ii_cmd_version() {
     cat <<'EOF'
 usage: ii version
 
+Aliases:
+  -v, --version
+
+Help:
+  ii help version
+
 Print the installed ii version.
 EOF
     return
@@ -23,3 +29,5 @@ EOF
 
   print "ii $(ii_version)"
 }
+
+ii_help_register version ii_cmd_version -v --version

@@ -139,6 +139,12 @@ usage: ii clip backend
        ii clip backend BACKEND
        ii clip doctor
 
+Aliases:
+  clipboard
+
+Help:
+  ii help clip
+
 Inspect or change clipboard backend settings for this shell and tmux session.
 
 backend prints the effective backend. backend auto clears II_CLIP_BACKEND and
@@ -274,3 +280,5 @@ ii_clip_osc52_sequence() {
 
   print -rn -- "$sequence"
 }
+
+ii_help_register clip ii_cmd_clip clipboard

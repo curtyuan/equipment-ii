@@ -12,11 +12,13 @@ ii_interact_footer() {
 }
 
 ii_interact_hint_line() {
-  local key label line line_len unit unit_len width
+  local key label line line_len unit unit_len separator separator_len width
 
   width="${II_INTERACT_COLUMNS:-${FZF_PREVIEW_COLUMNS:-${COLUMNS:-80}}}"
   [[ "$width" == <-> ]] || width=80
   (( width > 0 )) || width=80
+  width=$(( width - 2 ))
+  (( width > 0 )) || width=1
 
   line=$'\033[48;5;236m'
   line_len=0
@@ -24,22 +26,30 @@ ii_interact_hint_line() {
     key="$1"
     label="$2"
     shift 2
-    unit=$' \033[1;97m'"${key}"$'\033[22;2;37m '"${label}"$'  '
-    unit_len=$(( ${#key} + 1 + ${#label} + 3 ))
-    if (( line_len > 0 && line_len + unit_len > width )); then
+    unit=$'\033[1;97m'"${key}"$'\033[22;2;37m '"${label}"
+    unit_len=$(( ${#key} + 1 + ${#label} ))
+    separator=""
+    separator_len=0
+    if (( line_len > 0 )); then
+      separator="  "
+      separator_len=2
+    fi
+    if (( line_len > 0 && line_len + separator_len + unit_len > width )); then
       print -r -- "$line"$'\033[0m'
       line=$'\033[48;5;236m'
       line_len=0
+      separator=""
+      separator_len=0
     fi
-    line+="$unit"
-    line_len=$(( line_len + unit_len ))
+    line+="${separator}${unit}"
+    line_len=$(( line_len + separator_len + unit_len ))
   done
   print -r -- "$line"$'\033[0m'
 }
 
 ii_interact_status_line() {
   local message="$1"
-  print -r -- $'\033[48;5;238;97m '"$message"$' \033[0m'
+  print -r -- $'\033[48;5;238;97m'"$message"$'\033[0m'
 }
 
 ii_interact_copy_status() {
@@ -63,11 +73,11 @@ ii_interact_keys_vars_search() {
 }
 
 ii_interact_keys_payload_normal() {
-  ii_interact_hint_line "j/k" "move" "/" "search" "l" "expand" "Enter" "render" "y" "copy" "q" "quit"
+  ii_interact_hint_line "j/k" "move" "/" "search" "l" "expand" "Enter" "render" "e" "execute" "y" "copy+quit" "q" "quit"
 }
 
 ii_interact_keys_payload_expanded() {
-  ii_interact_hint_line "j/k" "move" "h" "back" "Enter" "render" "y" "copy" "q" "quit"
+  ii_interact_hint_line "j/k" "move" "h" "back" "Enter" "render" "y" "copy+quit" "q" "quit"
 }
 
 ii_interact_keys_payload_search() {

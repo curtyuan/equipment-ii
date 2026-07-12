@@ -15,14 +15,19 @@ by the plugin entrypoint in dependency order.
 ii.plugin.zsh
 lib/
   tmux.zsh
+  help_registry.zsh
+  tmux_integration.zsh
   clipboard.zsh
   fzf.zsh
   interact.zsh
   var_helpers.zsh
   var_interactive.zsh
   vars.zsh
+  var_output.zsh
   www.zsh
   payloads.zsh
+  payload_input.zsh
+  payload_command.zsh
   help.zsh
   version.zsh
   core.zsh
@@ -35,6 +40,7 @@ doc/
   architecture.md
   clipboard.md
   design.html
+  help.md
   payload-schema.md
   release.md
   usage.md
@@ -44,6 +50,7 @@ doc/
 script/
   make
   help
+  ii-tmux-pice
 export/
   ii/
 ```
@@ -54,17 +61,22 @@ export/
 
 ```text
 1. lib/tmux.zsh
-2. lib/clipboard.zsh
-3. lib/fzf.zsh
-4. lib/interact.zsh
-5. lib/var_helpers.zsh
-6. lib/var_interactive.zsh
-7. lib/vars.zsh
-8. lib/www.zsh
-9. lib/payloads.zsh
-10. lib/help.zsh
-11. lib/version.zsh
-12. lib/core.zsh
+2. lib/help_registry.zsh
+3. lib/tmux_integration.zsh
+4. lib/clipboard.zsh
+5. lib/fzf.zsh
+6. lib/interact.zsh
+7. lib/var_helpers.zsh
+8. lib/var_interactive.zsh
+9. lib/vars.zsh
+10. lib/var_output.zsh
+11. lib/payloads.zsh
+12. lib/payload_input.zsh
+13. lib/www.zsh
+14. lib/payload_command.zsh
+15. lib/help.zsh
+16. lib/version.zsh
+17. lib/core.zsh
 ```
 
 `core.zsh` is loaded last because it exposes the public dispatcher. The
@@ -114,6 +126,54 @@ ii_tmux_session_name
 ii_require_cmd
 ```
 
+### `lib/tmux_integration.zsh`
+
+Optional tmux command-prompt adapter.
+
+Responsibilities:
+
+- Install one server-wide `Prefix + :` binding while enabling it per session.
+- Preserve non-ii tmux commands and restore the previous binding after the last
+  enabled session is disabled.
+- Whitelist only the exact `ii pice` dispatcher command.
+- Open an isolated popup for pasted input, render only from tmux `ii_` values,
+  report unresolved lowercase placeholders, and confirm before sending.
+- Copy best-effort, literal-paste to the originating pane, and send one final
+  Enter while treating pane readiness as the user's responsibility.
+
+Public commands:
+
+```text
+ii tmux enable
+ii tmux status
+ii tmux disable
+```
+
+The popup process enters through `script/ii-tmux-pice`; it does not read an
+existing tmux buffer as payload input. An ii-owned named buffer is only the
+internal literal-paste transport after confirmation.
+
+### `lib/help_registry.zsh`
+
+Thin help registration and routing infrastructure. The detailed output contract
+and registration workflow live in [help.md](help.md).
+
+Responsibilities:
+
+- Let each command layer register its canonical help topic, handler, aliases,
+  and nested help paths beside the implementation.
+- Resolve `ii help ...` with longest-path matching.
+- Expose the canonical topic list used by `script/help`.
+- Keep live help text in the feature layer rather than the registry.
+
+Functions:
+
+```text
+ii_help_register
+ii_help_dispatch
+ii_help_topics
+```
+
 ### `lib/fzf.zsh`
 
 Shared fzf helpers.
@@ -146,6 +206,8 @@ Responsibilities:
 - Build selector preview footers with an optional status line.
 - Keep width-aware normal/search selector key text shared for `ii i` and
   `ii p`; wrap only between complete key prompt units.
+- Keep selector footers compact: no footer border, no outer padding, and only
+  two spaces between action units.
 - Build reusable fzf modal start actions.
 - Keep copy-success and copy-failure wording shared across selector commands.
 - Leave domain actions in the variable and payload command layers.
@@ -179,6 +241,21 @@ Responsibilities:
 - Control optional loaded-variable prompt auto-sync for `ii sync`.
 - Build default variable candidates for interactive commands.
 
+Helpers:
+
+```text
+ii_color_wrap
+ii_color_blue
+ii_color_red
+ii_color_green
+ii_var_normalize_name
+ii_var_lines_from_tmux
+ii_var_filter_by_name
+ii_var_print_name_value
+ii_var_print_list
+ii_export_var_line
+```
+
 ### `lib/var_interactive.zsh`
 
 Interactive variable UI.
@@ -186,6 +263,7 @@ Interactive variable UI.
 Responsibilities:
 
 - Open fzf flows for variable selection, add, and edit.
+- Keep `ii set` CLI-only; interactive variable management belongs to `ii i`.
 - Keep populated variables before empty default names in the selector.
 - Keep vim-style selector keys isolated from command dispatch.
 - Store interactive edits in tmux without implicitly loading shell variables.
@@ -212,19 +290,25 @@ ii_cmd_list
 ii_cmd_unset
 ```
 
-Helpers:
+### `lib/var_output.zsh`
+
+Variable command routing and shell-sourceable file output.
+
+Responsibilities:
+
+- Keep `ii v` compatible with variable listing while routing `ii v --out` to
+  file output.
+- Implement the fixed `ii voc` alias.
+- Serialize non-empty variables with shell-safe quoting.
+- Atomically replace the destination through a securely created temporary file
+  and clean it on every function exit.
+- Own the `variables-output` help registration.
+
+Commands:
 
 ```text
-ii_color_wrap
-ii_color_blue
-ii_color_red
-ii_color_green
-ii_var_normalize_name
-ii_var_lines_from_tmux
-ii_var_filter_by_name
-ii_var_print_name_value
-ii_var_print_list
-ii_export_var_line
+ii_cmd_variable
+ii_cmd_vars_output
 ```
 
 ### `lib/www.zsh`
@@ -283,8 +367,7 @@ Responsibilities:
 Commands:
 
 ```text
-ii_cmd_payload
-ii_cmd_payload_input
+ii_cmd_payload_select
 ```
 
 Helpers:
@@ -300,8 +383,67 @@ ii_payload_render_text
 ii_payload_render_report
 ii_payload_output_path
 ii_payload_write_output
-ii_payload_read_input
 ii_payload_body
+```
+
+### `lib/payload_input.zsh`
+
+Pasted payload input command and input UI.
+
+Responsibilities:
+
+- Implement `ii p --input` and the fixed `ii pic` alias behavior.
+- Keep interactive ZLE editing, Enter submit, Ctrl-J newline insertion, and the
+  persistent bottom key hint together.
+- Preserve the `:w`, `:q`, and `:q!` stream protocol for pipelines.
+- Pass collected text to the renderer and output helpers owned by
+  `payloads.zsh`.
+- Own the `payload-input` help registration.
+
+Commands:
+
+```text
+ii_cmd_payload_input
+```
+
+Helpers:
+
+```text
+ii_payload_read_input
+ii_payload_read_input_interactive
+ii_payload_read_input_stream
+ii_payload_input_zle_setup
+ii_payload_input_newline
+ii_payload_input_zle_init
+ii_payload_input_strip_finish_line
+ii_payload_input_is_finish_line
+ii_payload_input_is_cancel_line
+```
+
+### `lib/payload_command.zsh`
+
+Public payload command facade.
+
+Responsibilities:
+
+- Own the public `ii payload` / `ii p` entrypoint.
+- Route normal category selection to `payloads.zsh`, `--input` to
+  `payload_input.zsh`, and `--www` to `www.zsh`.
+- Route `--execute` and `pe` to confirmed current-shell execution after
+  selection, and route `--copy --execute` and `pce` to copy-before-execute.
+- Route `--input --copy --execute` and `pice` to confirmed input execution.
+- Route `--copy` and `pc` to non-interactive best-match rendering and copy.
+- Join multiple positional keywords into the selector's initial fzf query.
+- Print aggregate payload help without moving feature-specific help away from
+  its owning layer.
+- Own the canonical `payload` help registration.
+
+Commands:
+
+```text
+ii_cmd_payload
+ii_cmd_payload_execute
+ii_cmd_payload_copy_best
 ```
 
 Render boundary:
@@ -319,10 +461,10 @@ Output:
 
 The render layer checks the current shell first, then falls back to tmux session
 `ii_` variables. This keeps one-command shell overrides useful while preserving
-tmux as the shared fallback when a pane has not run `ii l`. It leaves uppercase
-variables and PowerShell scope variables unchanged, supports `${name:t}` for
-trailing path components, and reports missing variables in red while keeping the
-original token in rendered output.
+tmux as the shared fallback when a pane has not run `ii l`. It renders lowercase
+`%name%`, `$name`, `${name}`, and `${name:t}`; leaves uppercase, legacy
+`II_NAME`, and PowerShell scope forms unchanged; and reports missing variables
+in red while keeping the original token in rendered output.
 
 Payload previews use the same shell-then-tmux availability check for color only:
 tokens with values are green, missing tokens are red. The preview color check
@@ -410,20 +552,17 @@ selections.
 
 ### `lib/help.zsh`
 
-Help routing.
+Top-level help command.
 
 Responsibilities:
 
-- Route `ii help COMMAND` to each command's own `--help` implementation.
-- Register the help topics used by `script/help`.
 - Print the top-level command summary.
+- Register the `help` topic with the shared registry.
 
 Functions:
 
 ```text
 ii_cmd_help
-ii_help_dispatch
-ii_help_topics
 ```
 
 ### `lib/core.zsh`
@@ -489,7 +628,7 @@ payload render layer:
   - read selected template
   - read lowercase shell values first
   - read tmux ii_ values as the shared fallback
-  - render lowercase $name, ${name}, and ${name:t} placeholders without
+  - render lowercase %name%, $name, ${name}, and ${name:t} placeholders without
     touching uppercase $NAME
   - turn # stage: metadata into paste-safe comment delimiters
   - return rendered text
@@ -522,6 +661,7 @@ export/ii/
   ii.plugin.zsh
   lib/
   payloads/
+  script/ii-tmux-pice
   README.md
 ```
 
@@ -531,7 +671,9 @@ and then copied into `export/ii` by rerunning `script/make`.
 ## Development Helpers
 
 `script/help` is a repo-only audit helper. It sources the local plugin entrypoint
-and asks `ii_help_topics` for the registered help topics before calling the
-matching `ii help` implementations.
+and asks `ii_help_topics` for the canonical topics collected from command-layer
+registrations before calling the matching `ii help` implementations. Command
+dispatch remains independent in `lib/core.zsh`.
 This keeps command help as the single source of truth while making spec/help
-comparison easy.
+comparison easy. See [help.md](help.md) for the help ownership and formatting
+contract, and [testing.md](testing.md) for executable checks.

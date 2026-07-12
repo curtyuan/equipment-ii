@@ -1,31 +1,16 @@
 # Interactive variable selection and editing.
 
-ii_cmd_set_interactive() {
-  ii_tmux_available || return
-  ii_require_cmd fzf || return
-
-  local filter selected value
-  filter="${1:-${II_SET_VAR_FILTER:-}}"
-  filter="$(ii_var_shortcut_filter "$filter")"
-
-  if [[ -n "$filter" ]]; then
-    selected="$(ii_var_match_candidate "$filter")" || return
-  else
-    selected="$(ii_var_set_candidates | fzf -i --prompt='ii set var> ' --height=40% --border)" || return
-  fi
-  [[ -n "$selected" ]] || return
-
-  value="$(ii_fzf_input_value "${II_SET_VALUE_FILTER:-}" --prompt="${selected} value> " --height=40% --border)"
-  [[ -n "$value" ]] || return
-
-  ii_cmd_set "$selected" "$value"
-}
-
 ii_cmd_interactive() {
-  if [[ "${1:-}" == "--help" ]]; then
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'EOF'
 usage: ii interactive
        ii i
+
+Aliases:
+  i
+
+Help:
+  ii help interactive
 
 Select variables with fzf, edit values, and copy values.
 Default variable names are shown even before they have values.
@@ -63,7 +48,6 @@ EOF
             --preview="$preview_cmd" \
             --preview-window='up,5,wrap,noinfo' \
             --footer="$footer" \
-            --footer-border=line \
             --no-separator
     )" || return
     [[ -n "$selected" ]] || return
@@ -195,3 +179,5 @@ ii_var_set_tmux_only() {
   fi
   print "$(ii_var_display_line "${name}=${value}")"
 }
+
+ii_help_register interactive ii_cmd_interactive i

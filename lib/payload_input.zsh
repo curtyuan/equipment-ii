@@ -76,7 +76,8 @@ EOF
 
   local input rendered report
   typeset -g II_PAYLOAD_OUTPUT_PATH=""
-  input="$(ii_payload_read_input)" || return
+  ii_payload_read_input || return
+  input="$II_PAYLOAD_INPUT_TEXT"
   ii_payload_render_text "$input" >/dev/null || return
   rendered="$II_PAYLOAD_RENDERED_TEXT"
   report="$(ii_payload_render_report)"
@@ -156,6 +157,7 @@ EOF
 }
 
 ii_payload_read_input() {
+  typeset -g II_PAYLOAD_INPUT_TEXT=""
   if [[ -t 0 ]]; then
     ii_payload_read_input_interactive
     return $?
@@ -178,7 +180,7 @@ ii_payload_read_input_interactive() {
     return 1
   fi
   input="$(ii_payload_input_strip_finish_line "$input")"
-  print -rn -- "$input"
+  typeset -g II_PAYLOAD_INPUT_TEXT="$input"
 }
 
 ii_payload_input_zle_setup() {
@@ -229,7 +231,7 @@ ii_payload_read_input_stream() {
     input+="${line}"$'\n'
   done
 
-  print -rn -- "$input"
+  typeset -g II_PAYLOAD_INPUT_TEXT="${input%$'\n'}"
 }
 
 ii_payload_input_is_finish_line() {

@@ -25,6 +25,9 @@ The sections have distinct meanings:
   positional arguments, complete invocations, registry topics, or help routes.
 - `Help` contains representative `ii help ...` routes. A canonical audit topic
   may appear here, but it is not presented as a command alias.
+- A parent command's help enumerates every direct child path and fixed alias.
+  For example, `ii p --help` lists each input flag combination together with
+  `pic` and `pice`; each child route then provides its own detailed help.
 
 For example:
 
@@ -50,7 +53,10 @@ forwarded to the same payload-input handler.
 
 The same rule applies to a fixed operand. `ii sr VALUE` means
 `ii set rhost=VALUE`; it does not expose a general variable-name argument.
-`ii voc [PATH]` similarly means `ii v --out [PATH]`.
+Likewise, `ii gr` and `ii gl` mean `ii g r` and `ii g l`, selecting rhost and
+lhost respectively.
+`ii vo [PATH]` similarly means `ii v --out [PATH]`. The older `ii voc [PATH]`
+form remains available as a compatibility alias.
 `ii pe [KEYWORD ...]` means `ii p --execute [KEYWORD ...]`.
 `ii pce [KEYWORD ...]` means
 `ii p --copy --execute [KEYWORD ...]`; `c` always means copy.
@@ -101,12 +107,16 @@ registration reports an error.
 
 When a command changes:
 
-1. Update the command's `--help` heredoc in the same feature file.
+1. Update the command's `--help` heredoc in the same feature file. Every public
+   command and fixed child path must expose the same help through both `-h` and
+   `--help` without entering normal execution.
 2. Keep `usage`, `Aliases`, and `Help` semantically separate.
 3. Add or update the nearby `ii_help_register` call when its topic or routes
    change.
 4. Update user-facing behavior in `usage.md` or the relevant focused document.
-5. Run `./script/help` and the checks in `testing.md`.
+5. Run `./script/help` and the checks in `testing.md`. The audit covers
+   canonical `ii help ...` routes plus `-h` and `--help` for dispatcher aliases
+   and fixed child paths.
 
 Do not add feature-specific routing branches to `lib/help.zsh` or duplicate live
 help text in `script/help`.

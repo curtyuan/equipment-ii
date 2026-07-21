@@ -616,7 +616,7 @@
           </div>
           <div class="card">
             <strong>tmux_integration.zsh</strong>
-            <span>Manage the session-enabled command-prompt adapter and the isolated <code>ii pice</code> popup-to-pane path.</span>
+            <span>Install the default conflict-aware command-prompt adapter and manage the isolated <code>ii pice</code> popup-to-pane path.</span>
           </div>
           <div class="card">
             <strong>clipboard.zsh</strong>
@@ -644,7 +644,7 @@
           </div>
           <div class="card">
             <strong>var_output.zsh</strong>
-            <span>Route <code>ii v</code> and securely write sourceable variable files for <code>ii v --out</code> and <code>ii voc</code>.</span>
+            <span>Route <code>ii v</code> and securely write sourceable variable files for <code>ii v --out</code>, <code>ii vo</code>, and the compatibility alias <code>ii voc</code>.</span>
           </div>
           <div class="card">
             <strong>www.zsh</strong>
@@ -690,8 +690,8 @@
           <tbody>
             <tr>
               <td>Set</td>
-              <td><code>ii set NAME VALUE</code>, <code>ii s NAME=VALUE</code>, <code>ii s:NAME=VALUE</code>, <code>ii sr VALUE</code></td>
-              <td>Write explicit CLI values or save shell values with <code>--from-shell</code>. Interactive management belongs to <code>ii i</code>.</td>
+              <td><code>ii set NAME VALUE</code>, <code>ii s NAME=VALUE</code>, <code>ii s:NAME=VALUE</code>, <code>ii s --from-shell</code>, <code>ii s --from-file [PATH]</code>, <code>ii sr VALUE</code></td>
+              <td>Write explicit CLI values, save shell values, or safely import dotenv values. Interactive management belongs to <code>ii i</code>.</td>
             </tr>
             <tr>
               <td>Detect</td>
@@ -710,7 +710,7 @@
             </tr>
             <tr>
               <td>List</td>
-              <td><code>ii ls [PATTERN]</code>, <code>ii v --out [PATH]</code>, <code>ii voc [PATH]</code></td>
+              <td><code>ii ls [PATTERN]</code>, <code>ii v [PATTERN]</code>, <code>ii v --out [PATH]</code>, <code>ii vo [PATH]</code>, <code>ii voc [PATH]</code></td>
               <td>Print dense key/value blocks or write non-empty variables to a sourceable environment file.</td>
             </tr>
             <tr>
@@ -725,8 +725,13 @@
             </tr>
             <tr>
               <td>Clipboard</td>
-              <td><code>ii clip backend</code>, <code>ii clip doctor</code></td>
+              <td><code>ii clip backend</code>, <code>ii clip doctor</code>, <code>ii clipboard ...</code></td>
               <td>Inspect, configure, and diagnose copy behavior for local, tmux, SSH, and Kali contexts.</td>
+            </tr>
+            <tr>
+              <td>Tmux</td>
+              <td><code>ii tmux status</code></td>
+              <td>Diagnose the default Prefix+: dispatcher; static configuration may disable setup or force replacement of a custom binding.</td>
             </tr>
             <tr>
               <td>Other</td>
@@ -883,19 +888,16 @@ lport
             <pre><code>ii help
 ii help set
 ii help get
-ii help clip
-ii help load
-ii help interactive
-ii help ls
-ii help payload
-ii help payload-input
-ii help payload-www
-ii help payload-www-file
-ii help payload-www-ln
-ii help payload-www-ls
-ii help payload-www-search
-ii help unset
-ii help version</code></pre>
+ii help payload --input
+ii help payload --www ln
+ii help tmux
+ii COMMAND -h
+ii COMMAND --help</code></pre>
+            <p class="muted">
+              Canonical topics and aliases come from the live help registry;
+              <code>script/help</code> audits every registered topic and public
+              command route instead of maintaining a second topic list here.
+            </p>
           </div>
         </details>
 
@@ -957,7 +959,7 @@ ii help version</code></pre>
           </div>
           <div class="card">
             <strong>Help audit</strong>
-            <span><code>script/help</code> sources the plugin and prints the canonical topics registered by feature layers.</span>
+            <span><code>script/help</code> checks canonical topics, aliases, fixed child paths, and both <code>-h</code> and <code>--help</code>.</span>
           </div>
         </div>
 

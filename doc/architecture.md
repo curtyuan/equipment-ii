@@ -45,7 +45,10 @@ doc/
   release.md
   usage.md
   testing.md
+  pending/
+    combo-function.md
   conf/
+    ii.conf
     tmux.conf
 script/
   make
@@ -128,30 +131,36 @@ ii_require_cmd
 
 ### `lib/tmux_integration.zsh`
 
-Optional tmux command-prompt adapter.
+Default tmux command-prompt adapter.
 
 Responsibilities:
 
-- Install one server-wide `Prefix + :` binding while enabling it per session.
-- Preserve non-ii tmux commands and restore the previous binding after the last
-  enabled session is disabled.
+- Idempotently install one server-wide `Prefix + :` adapter when the plugin
+  loads inside tmux, unless static configuration disables it.
+- Preserve a non-standard custom binding unless force configuration explicitly
+  authorizes replacement.
 - Whitelist only the exact `ii pice` dispatcher command.
 - Open an isolated popup for pasted input, render only from tmux `ii_` values,
   report unresolved lowercase placeholders, and confirm before sending.
 - Copy best-effort, literal-paste to the originating pane, and send one final
   Enter while treating pane readiness as the user's responsibility.
 
-Public commands:
+Public command:
 
 ```text
-ii tmux enable
 ii tmux status
-ii tmux disable
 ```
+
+`II_TMUX_INTEGRATION=0` disables automatic setup and
+`II_TMUX_INTEGRATION_FORCE=1` authorizes replacement of a custom Prefix+:
+binding. There is no per-session runtime enable/disable state.
 
 The popup process enters through `script/ii-tmux-pice`; it does not read an
 existing tmux buffer as payload input. An ii-owned named buffer is only the
-internal literal-paste transport after confirmation.
+internal literal-paste transport after confirmation. The helper re-executes in
+a clean interactive zsh so the shared ZLE input reader is available. A failed
+popup remains open and reports whether buffer creation, paste, or the final
+Enter failed.
 
 ### `lib/help_registry.zsh`
 
@@ -268,13 +277,24 @@ Responsibilities:
 - Keep vim-style selector keys isolated from command dispatch.
 - Store interactive edits in tmux without implicitly loading shell variables.
 
+Commands:
+
+```text
+ii_cmd_interactive
+```
+
 ### `lib/vars.zsh`
 
 Tmux session variable commands.
 
 Responsibilities:
 
-- Set, load, print, and unset `ii_` variables.
+- Set, load, print, and unset `ii_` variables, including safe dotenv imports
+  through `ii set --from-file`.
+- Discover panes in the current tmux window for `ii load --all-pane` / `ii la`,
+  preselect `likely ready` zsh panes, revalidate selections, and dispatch the
+  fixed `ii l` command after user confirmation.
+- Control optional prompt-time synchronization through `ii sync`.
 - Get one tmux variable value through the copy layer without shell loading.
 - Print `ii ls` as dense key/value blocks with blue keys and no blank separator
   lines.
@@ -284,8 +304,12 @@ Commands:
 
 ```text
 ii_cmd_set
+ii_cmd_set_from_file
+ii_cmd_set_rhost
 ii_cmd_get
 ii_cmd_load
+ii_cmd_load_all_panes
+ii_cmd_sync
 ii_cmd_list
 ii_cmd_unset
 ```
@@ -298,7 +322,7 @@ Responsibilities:
 
 - Keep `ii v` compatible with variable listing while routing `ii v --out` to
   file output.
-- Implement the fixed `ii voc` alias.
+- Implement the `ii vo` alias and retain `ii voc` for compatibility.
 - Serialize non-empty variables with shell-safe quoting.
 - Atomically replace the destination through a securely created temporary file
   and clean it on every function exit.
@@ -392,18 +416,21 @@ Pasted payload input command and input UI.
 
 Responsibilities:
 
-- Implement `ii p --input` and the fixed `ii pic` alias behavior.
-- Keep interactive ZLE editing, Enter submit, Ctrl-J newline insertion, and the
+- Implement `ii p --input`, its copy and execute combinations, and the fixed
+  `ii pic` and `ii pice` aliases.
+- Keep interactive ZLE editing, Enter submit, Alt+Enter newline insertion, and the
   persistent bottom key hint together.
 - Preserve the `:w`, `:q`, and `:q!` stream protocol for pipelines.
 - Pass collected text to the renderer and output helpers owned by
   `payloads.zsh`.
-- Own the `payload-input` help registration.
+- Own the payload-input base, copy, execute, and copy-execute help
+  registrations.
 
 Commands:
 
 ```text
 ii_cmd_payload_input
+ii_cmd_payload_input_copy_execute
 ```
 
 Helpers:
@@ -414,6 +441,7 @@ ii_payload_read_input_interactive
 ii_payload_read_input_stream
 ii_payload_input_zle_setup
 ii_payload_input_newline
+ii_payload_input_cancel
 ii_payload_input_zle_init
 ii_payload_input_strip_finish_line
 ii_payload_input_is_finish_line
@@ -565,6 +593,24 @@ Functions:
 ii_cmd_help
 ```
 
+### `lib/version.zsh`
+
+Installed-version command and help registration.
+
+Responsibilities:
+
+- Read the deployed `VERSION` file from `II_PLUGIN_DIR`.
+- Print `unknown` when the version file is unavailable.
+- Implement `ii version`, `ii -v`, and `ii --version`.
+- Register the canonical `version` help topic and aliases.
+
+Functions:
+
+```text
+ii_version
+ii_cmd_version
+```
+
 ### `lib/core.zsh`
 
 Public command interface.
@@ -613,7 +659,7 @@ Keep these responsibilities separate:
 variable loading layer:
   - read tmux ii_ values
   - validate names
-  - strip ii_ only for variable TUI display
+  - strip ii_ for user-facing display and shell exports
   - export all values into current shell through ii l
   - keep loaded values synchronized after prompt hooks run only when `ii sync on` is active
 
@@ -663,6 +709,8 @@ export/ii/
   payloads/
   script/ii-tmux-pice
   README.md
+  VERSION
+  RELEASE
 ```
 
 `export/` is generated output. Source changes should be made in the project root
@@ -670,10 +718,11 @@ and then copied into `export/ii` by rerunning `script/make`.
 
 ## Development Helpers
 
-`script/help` is a repo-only audit helper. It sources the local plugin entrypoint
-and asks `ii_help_topics` for the canonical topics collected from command-layer
-registrations before calling the matching `ii help` implementations. Command
-dispatch remains independent in `lib/core.zsh`.
+`script/help` is a repo-only audit helper. It sources the local plugin entrypoint,
+asks `ii_help_topics` for canonical topics, calls their `ii help`
+implementations, and verifies `-h` plus `--help` across direct dispatcher
+spellings and fixed child paths. Command dispatch remains independent in
+`lib/core.zsh`.
 This keeps command help as the single source of truth while making spec/help
 comparison easy. See [help.md](help.md) for the help ownership and formatting
 contract, and [testing.md](testing.md) for executable checks.

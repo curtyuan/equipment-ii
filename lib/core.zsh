@@ -11,14 +11,17 @@ ii() {
     s:*) ii_cmd_set "${cmd#s:}" "$@" ;;
     sr) ii_cmd_set_rhost "$@" ;;
     get|g) ii_cmd_get "$@" ;;
+    gr) ii_cmd_get r "$@" ;;
+    gl) ii_cmd_get l "$@" ;;
     g:*) ii_cmd_get "${cmd#g:}" "$@" ;;
     clip|clipboard) ii_cmd_clip "$@" ;;
     load|l) ii_cmd_load "$@" ;;
+    la) ii_cmd_load --all-pane "$@" ;;
     sync) ii_cmd_sync "$@" ;;
     interactive|i) ii_cmd_interactive "$@" ;;
     ls|list|variable|vars|var) ii_cmd_list "$@" ;;
     v) ii_cmd_variable "$@" ;;
-    voc) ii_cmd_vars_output "$@" ;;
+    vo|voc) ii_cmd_vars_output "$@" ;;
     payload|p) ii_cmd_payload "$@" ;;
     pc) ii_cmd_payload_copy_best "$@" ;;
     pe) ii_cmd_payload_execute "$@" ;;

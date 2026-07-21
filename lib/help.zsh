@@ -23,43 +23,58 @@ Variables:
   set|s NAME[,NAME...] --from-shell
                           Save current shell variables back to tmux
   set|s --from-shell -a  Save all non-empty default shell variables
+  set|s --from-file [PATH]
+                          Import variables from PATH, default .env
   set|s -d [IFACE]       Detect lhost from an interface, default tun0
   set|s rhost=VALUE      Set rhost and auto-detect lhost when enabled
   sr VALUE               Set rhost and trigger the same lhost auto-detection
   get|g FILTER           Copy and print one tmux variable value
   g:FILTER               Shortcut form of ii g FILTER
+  gr                     Copy and print rhost (ii g r)
+  gl                     Copy and print lhost (ii g l)
   load|l                 Load variables into this shell
+  load --all-pane|la     Review panes, then load selected shells
   sync [on|off|status]   Control optional tmux-to-shell prompt auto-sync
   interactive|i          Select, edit, add, and copy variables
-  ls [PATTERN]           List non-empty variables, optionally filtered by key
+  ls|list|variable|vars|var [PATTERN]
+                          List non-empty variables, optionally filtered by key
+  v [PATTERN]            List variables; --out writes them to a file
   v --out [PATH]         Write non-empty variables to .env or PATH
-  voc [PATH]             Alias for ii v --out
+  vo [PATH]              Alias for ii v --out
+  voc [PATH]             Compatibility alias for ii v --out
   unset|u NAME [...]     Remove ii_ variables
   unset|u -a             Prompt, then remove all ii_ variables
 
 Payloads:
   payload|p [CATEGORY]   Select, render, print, and optionally write a payload
   payload|p KEYWORD ...  Fuzzy-search using all keyword arguments
-  pc KEYWORD ...         Copy the best payload match without opening the UI
-  pe [KEYWORD ...]       Select, confirm, and execute without copying
-  pce [KEYWORD ...]      Select, confirm, copy, and execute in this shell
-  payload|p --input      Render input; optionally copy, execute, or write it
-  pic [-o [PATH]]        Alias for ii p --input --copy
-  pice                    Input, render, confirm, copy, and execute
+  payload|p --copy KEYWORD ... | pc KEYWORD ...
+                          Copy the best payload match without opening the UI
+  payload|p --execute [KEYWORD ...] | pe [KEYWORD ...]
+                          Select, confirm, and execute without copying
+  payload|p --copy --execute [KEYWORD ...] | pce [KEYWORD ...]
+                          Select, confirm, copy, and execute in this shell
+  payload|p --input [-o [PATH]]
+                          Render pasted or standard input
+  payload|p --input --copy [-o [PATH]] | pic [-o [PATH]]
+                          Render and copy input
+  payload|p --input --execute [-o [PATH]]
+                          Render, confirm, and execute input
+  payload|p --input --copy --execute [-o [PATH]] | pice
+                          Render, confirm, copy, and execute input
   payload|p --www        Render a file, list, search, or symlink under /www
 
 Clipboard:
-  clip backend           Show or set clipboard backend
-  clip doctor            Diagnose clipboard backend behavior
+  clip|clipboard backend Show or set clipboard backend
+  clip|clipboard doctor  Diagnose clipboard backend behavior
 
 Tmux integration:
-  tmux enable            Enable Prefix+: ii pice for this session
-  tmux status            Inspect the tmux dispatcher state
-  tmux disable           Disable it and restore : when no session uses it
+  tmux status            Diagnose the default Prefix+: ii pice integration
 
 Other:
-  version                Show installed version
-  help|h [COMMAND]       Show help
+  version|-v|--version   Show installed version
+  help|h|-h|--help [COMMAND]
+                          Show help
 EOF
 }
 

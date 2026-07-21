@@ -103,7 +103,7 @@ ii g
 ii l
 ii i
 ii ls
-ii voc
+ii vo
 ii p
 ii pc
 ii pe
@@ -123,7 +123,7 @@ ii g = ii get
 ii l = ii load
 ii i = ii interactive
 ii ls = variable list
-ii voc [PATH] = ii v --out [PATH]
+ii vo [PATH] = ii v --out [PATH] (`ii voc` remains compatible)
 ii p = ii payload
 ii pc KEYWORD [...] = ii payload --copy KEYWORD [...]
 ii pe [KEYWORD ...] = ii payload --execute [KEYWORD ...]
@@ -147,6 +147,7 @@ ii s NAME=VALUE
 ii s:NAME=VALUE[,NAME=VALUE...]
 ii s:NAME[,NAME...] --from-shell
 ii s --from-shell -a
+ii s --from-file [PATH]
 ```
 
 `ii set` is CLI-only. With no arguments or with a name but no value, it prints
@@ -177,6 +178,13 @@ and silently skips unset or empty defaults. The default list is:
 domain lhost rhost lport rport user1 pass1 user2 pass2 user3 pass3 user4 pass4
 user5 pass5 cuser cpass tuser tpass directs
 ```
+
+`ii s --from-file [PATH]` safely parses dotenv `NAME=VALUE` entries without
+sourcing or evaluating the file. PATH defaults to `.env` in the current
+directory. Blank lines, comments, an optional `export ` prefix, and quoted
+values are supported. Valid values are stored in tmux, exported into the
+current shell, and printed like `--from-shell`; missing files and malformed
+entries are reported on stdout.
 
 `-d` means detect. It is only supported for `LHOST` and detects the IPv4 address
 from an interface. The default interface is `tun0`.
@@ -351,7 +359,7 @@ ii ls 443    does not match lport=443 unless the variable name contains 443
 Alias:
 
 ```text
-ii voc [PATH]
+ii vo [PATH]
 ```
 
 Behavior:
@@ -878,7 +886,7 @@ Implemented:
 - plugin entrypoint: ii.plugin.zsh
 - plugin-provided default II_PLUGIN_DIR, II_PAYLOAD_DIR, and II_WWW_ROOT
 - layered lib/ structure
-- ii dispatcher with short subcommands: s, sr, g, l, i, v, voc, p, pc, pe, pce, pic, pice, u, h
+- ii dispatcher with short subcommands: s, sr, g, l, i, v, vo, voc, p, pc, pe, pce, pic, pice, u, h
 - tmux session variable source of truth
 - argument-based payload filtering
 - fzf payload and variable selection
@@ -887,7 +895,7 @@ Implemented:
 - payload multi-keyword initial queries and current-shell execution through e,
   --execute, pe, and copy-before-execute pce
 - interactive variable edit, add, and copy flows
-- interactive payload input with Enter submit, Ctrl-J newline, and a persistent
+- interactive payload input with Enter submit, Alt+Enter newline, and a persistent
   bottom key hint
 - input-copy-execute through `ii pice`, plus the tmux popup-only `ii pice`
   dispatcher path for sending confirmed payloads to the originating pane

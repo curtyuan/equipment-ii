@@ -38,15 +38,24 @@ zsh -fc 'source ./ii.plugin.zsh; ii help pic | grep -Fq "ii pic [-o [PATH]]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pe | grep -Fq "ii pe [KEYWORD ...]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pce | grep -Fq "ii pce [KEYWORD ...]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pice | grep -Fq "ii pice"'
-zsh -fc 'source ./ii.plugin.zsh; ii help tmux | grep -Fq "ii tmux enable"'
+zsh -fc 'source ./ii.plugin.zsh; ii help tmux | grep -Fq "ii tmux status"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pc | grep -Fq "ii pc KEYWORD [KEYWORD ...]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help sr | grep -Fq "ii sr VALUE"'
+zsh -fc 'source ./ii.plugin.zsh; ii v --help | grep -Fq "ii v --out [PATH]"'
+zsh -fc 'source ./ii.plugin.zsh; ii help vo | grep -Fq "ii vo [PATH]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help voc | grep -Fq "ii voc [PATH]"'
+zsh -fc 'source ./ii.plugin.zsh; ii la --help | grep -Fq "likely ready"'
 ```
 
 Each command must return zero without requiring tmux, fzf, a source path, or a
-configured web root. `script/help` also fails when any canonical topic is
-missing its `usage`, `Aliases`, or `Help` section.
+configured web root. `script/help` also fails when any canonical topic or
+direct dispatcher alias is missing its `usage`, `Aliases`, or `Help` section.
+It also verifies that parent help enumerates every direct child path and fixed
+alias for the top-level dispatcher, payload, input, `/www`, variable-output,
+and tmux command trees. Both `-h` and `--help` are exercised for every direct
+dispatcher spelling and fixed child path, including sync actions, clipboard
+actions, tmux actions, and `unset -a`; the same paths are also checked through
+`ii help ...`.
 
 Registry conflicts must be rejected without partially adding the failed topic:
 
@@ -60,18 +69,28 @@ Run `ii pic` in a terminal and verify the status line remains below the edit
 buffer:
 
 ```text
-Enter Finish    Ctrl-J New line    :q Cancel
+Enter Finish    Alt-Enter New line    Esc Cancel
 ```
 
-Type `first`, press Ctrl-J, type `second`, and press Enter. The rendered and
-copied body must contain two lines. Enter submits; Ctrl-J inserts a newline.
-Entering `:q` or `:q!` as the complete buffer cancels.
+Type `first`, press Alt+Enter, type `second`, and press Enter. The rendered and
+copied body must contain two lines. Enter submits; Alt+Enter inserts a newline;
+Esc cancels. Entering `:q` or `:q!` as the complete buffer also cancels.
+Interactive cancellation returns status 130; the tmux popup treats it as a
+normal user cancellation and closes without entering preview or sending input.
 
 The non-interactive protocol remains available for pipelines:
 
 ```zsh
 printf 'first\nsecond\n:w\n' | ii pic
+echo 'single line' | ii pic
+ii pic <<'EOF'
+first
+second
+EOF
 ```
+
+The pipe and here-document forms must read through EOF, render the complete
+standard input, and copy it without opening the interactive ZLE editor.
 
 ## Payload Execute Routing
 
@@ -101,19 +120,25 @@ Clipboard failure must be reported without preventing confirmed execution.
 
 ## Tmux Popup Input Execution
 
-After `ii tmux enable`, `Prefix + :` followed by the exact `ii pice` command
-must open an isolated popup. The popup path is:
+Loading the plugin inside tmux must install the Prefix+: adapter by default.
+`Prefix + :` followed by the exact `ii pice` command must open an isolated
+popup. The popup path is:
 
 ```text
 popup input -> tmux-only render -> preview and [y/N] -> copy -> originating pane -> Enter
 ```
 
-Paste input into the popup and press Ctrl-D to render. Verify that the
+Paste input into the popup, use Alt+Enter for manual newlines, and press Enter
+to render. Verify that the
 originating pane receives no input before `y`, that unresolved lowercase
 variables remain unchanged and produce an execute-anyway warning, and that
 uppercase variables do not produce that warning. Non-ii command-prompt input
-must retain normal tmux behavior. `ii tmux disable` must restore the prior `:`
-binding after no enabled session remains.
+must retain normal tmux behavior. Repeated plugin loads must be silent and
+idempotent. `II_TMUX_INTEGRATION=0` must leave the binding unchanged. A custom
+binding must be preserved with one conflict notice unless
+`II_TMUX_INTEGRATION_FORCE=1` is set. `ii tmux status` must remain read-only.
+If buffer creation, paste, or the final Enter fails, the popup must remain open
+and show the failed stage.
 
 ## Payload Best-match Copy
 
@@ -655,6 +680,16 @@ arbitrary names.
 
 The default-name source for this test is `ii_var_default_names`; it must include
 `directs` and exclude `file`, `usert`, `passt`, and `mm`.
+
+## Set From File Test
+
+Inside tmux, create a dotenv file containing blank lines, comments, optional
+`export ` prefixes, quoted values, and one malformed line. Run
+`ii s --from-file PATH` and verify that valid values are printed, stored in
+tmux, and exported into the current shell while the malformed line is reported
+on stdout. Also verify that `ii s --from-file` defaults to `.env` and that a
+missing explicit or default file prints `ii: variable file not found` on
+stdout.
 
 ## Interactive Add Variable Test
 

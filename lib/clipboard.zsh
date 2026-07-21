@@ -131,6 +131,14 @@ ii_clip_context() {
 }
 
 ii_cmd_clip() {
+  local help_arg
+  for help_arg in "$@"; do
+    if [[ "$help_arg" == "--help" || "$help_arg" == "-h" ]]; then
+      set -- --help
+      break
+    fi
+  done
+
   case "${1:-backend}" in
     --help|-h|help)
       cat <<'EOF'

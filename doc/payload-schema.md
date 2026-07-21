@@ -120,3 +120,8 @@ unrendered. Use them when the target shell should expand or assign the value at
 runtime. Use lowercase render tokens such as `$file`, `${file:t}`, `$lhost`,
 `$lport`, `$rhost`, and `$rport` only for values that `ii` should resolve before
 copying.
+
+Executable host/remote combo orchestration is not part of the current payload
+schema or command surface. Its pending design is documented separately in
+[pending/combo-function.md](pending/combo-function.md); current `# stage:`
+metadata remains presentation-only.

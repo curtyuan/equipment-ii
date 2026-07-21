@@ -35,4 +35,6 @@ if (( II_HELP_REGISTRY_ERROR )); then
 fi
 source "${ii_plugin_dir}/lib/core.zsh"
 
+ii_tmux_dispatch_ensure || true
+
 unset ii_plugin_dir

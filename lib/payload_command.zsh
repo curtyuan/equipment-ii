@@ -17,7 +17,11 @@ usage: ii payload [CATEGORY]
        ii p --www ln SOURCE_PATH [LINK_NAME]
        ii p --www ls
        ii p --www search [FILTER]
-       ii p --input [--copy] [--execute] [-o [PATH]]
+       ii p --input [-o [PATH]]
+       ii p --input --copy [-o [PATH]]
+       ii pic [-o [PATH]]
+       ii p --input --execute [-o [PATH]]
+       ii p --input --copy --execute [-o [PATH]]
        ii pice
 
 Aliases:
@@ -25,6 +29,7 @@ Aliases:
   pc
   pe
   pce
+  pic
   pice
 
 Help:
@@ -32,7 +37,11 @@ Help:
   ii help pc
   ii help pe
   ii help pce
+  ii help payload --input
+  ii help pic
+  ii help payload --input --execute
   ii help pice
+  ii help payload --www
 
 Payload files:
   Open the payload selector, render the selected template, and print the output.
@@ -56,17 +65,22 @@ Payload files:
   compact normal mode. In unfolded preview, j and k still move between
   payloads, Enter still renders and outputs, and q aborts.
   Payload files render lowercase %name%, $name, ${name}, and ${name:t}. Shell
-  values win over ii tmux values. Uppercase variables and legacy II_NAME forms
-  are left unchanged. Missing values keep their original token.
+  values win over ii tmux values. Uppercase placeholders are left unchanged.
+  Missing values keep their original token.
 
 Pasted input:
-  ii p --input [--copy] [--execute] [-o [PATH]]
+  ii p --input [-o [PATH]]
+  ii p --input --copy [-o [PATH]] = ii pic [-o [PATH]]
+  ii p --input --execute [-o [PATH]]
+  ii p --input --copy --execute [-o [PATH]] = ii pice
 
-  Paste template text below the prompt. In a terminal, Enter finishes, Ctrl-J
-  inserts a newline, and a bottom status line keeps the keys visible. Piped
-  input finishes with a single ":w" line. The renderer uses lowercase
-  shell-style variables from this shell first and ii variables second. Use
-  --copy to copy the rendered input to the clipboard.
+  Paste template text below the prompt. In a terminal, Enter finishes,
+  Alt+Enter inserts a newline, Esc cancels, and a bottom status line keeps
+  the keys visible. Piped input finishes with a single ":w" line. The renderer
+  uses lowercase shell-style variables from this shell first and ii variables
+  second. Use --copy to copy the rendered input to the clipboard. Here-documents and pipes
+  read standard input through EOF, so `ii pic <<EOF` and `COMMAND | ii pic`
+  both render and copy the complete input.
   With --copy --execute or pice, ii confirms, copies, and executes the rendered
   input in the current shell. pice accepts no positional arguments.
 
@@ -120,7 +134,11 @@ EOF
   done
   if (( execute )); then
       if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-        ii_cmd_payload --help
+        if (( copy )); then
+          ii_cmd_payload_copy_execute_help
+        else
+          ii_cmd_payload_execute_help
+        fi
       else
         local -a opts
         opts=(--execute)

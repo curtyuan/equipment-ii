@@ -1,6 +1,10 @@
 # Variable command routing and shell-sourceable file output.
 
 ii_cmd_variable() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    ii_cmd_variable_help
+    return 0
+  fi
   if [[ "${1:-}" == "--out" ]]; then
     shift
     ii_cmd_vars_output "$@"
@@ -9,18 +13,44 @@ ii_cmd_variable() {
   ii_cmd_list "$@"
 }
 
+ii_cmd_variable_help() {
+  cat <<'EOF'
+usage: ii v [PATTERN]
+       ii v --out [PATH]
+       ii vo [PATH]
+       ii voc [PATH]
+
+Aliases:
+  vo
+  voc
+
+Help:
+  ii help v
+  ii help v --out
+  ii help vo
+  ii help voc
+
+Without --out, list non-empty variables using the same optional key filter as
+ii ls. With --out, write all non-empty variables to PATH in shell-sourceable
+name='value' format. PATH defaults to .env in the current directory.
+EOF
+}
+
 ii_cmd_vars_output() {
   if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'EOF'
 usage: ii v --out [PATH]
+       ii vo [PATH]
        ii voc [PATH]
 
 Aliases:
+  vo
   voc
 
 Help:
   ii help v --out
   ii help variables-output
+  ii help vo
   ii help voc
 
 Write all non-empty ii variables to PATH in shell-sourceable name='value'
@@ -30,7 +60,7 @@ EOF
     return 0
   fi
   if [[ $# -gt 1 ]]; then
-    print -u2 "ii: usage: ii v --out [PATH]"
+    print -u2 "ii: usage: ii v --out [PATH] | ii vo [PATH]"
     return 2
   fi
 
@@ -83,4 +113,5 @@ EOF
   print "wrote ${count} variable(s) to ${output_abs}"
 }
 
-ii_help_register variables-output ii_cmd_vars_output voc "v --out"
+ii_help_register v ii_cmd_variable_help
+ii_help_register variables-output ii_cmd_vars_output vo voc "v --out"

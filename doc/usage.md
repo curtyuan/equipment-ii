@@ -26,30 +26,35 @@ while preserving tmux as the shared fallback across panes.
 | `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
 | `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
 | `ii set --from-shell -a` | `ii s --from-shell -a` | Save every non-empty default shell variable into tmux |
+| `ii set --from-file [PATH]` | `ii s --from-file [PATH]` | Import variables from PATH, defaulting to `.env` in the current directory |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface, defaulting to `tun0` |
 | `ii set rhost=VALUE` | `ii s:rhost=VALUE` | Set rhost and automatically detect lhost when enabled |
 | `ii set rhost=VALUE` | `ii sr VALUE` | Set only rhost and run the same optional lhost auto-detection |
-| `ii get FILTER` | `ii g FILTER`, `ii g:FILTER` | Copy and print one tmux variable value without loading |
+| `ii get FILTER` | `ii g FILTER`, `ii g:FILTER`, `ii gr` (rhost), `ii gl` (lhost) | Copy and print one tmux variable value without loading |
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `ii_` prefix |
+| `ii load --all-pane` | `ii la` | Review panes in the current window, then load the selected shells |
 | `ii sync on/off/status` | | Control optional prompt-time auto-sync from tmux into this shell |
-| `ii clip backend` | | Show or set clipboard backend |
-| `ii clip doctor` | | Diagnose clipboard behavior and suggest a backend |
+| `ii clip backend` | `ii clipboard backend` | Show or set clipboard backend |
+| `ii clip doctor` | `ii clipboard doctor` | Diagnose clipboard behavior and suggest a backend |
 | `ii interactive` | `ii i` | Select variable names with fzf, preview values, edit, add, and copy values |
-| `ii ls [PATTERN]` | | List non-empty tmux variables as key/value blocks, optionally filtered by key |
-| `ii v --out [PATH]` | `ii voc [PATH]` | Write non-empty variables to a shell-sourceable `.env` file |
+| `ii ls [PATTERN]` | `ii list`, `ii variable`, `ii vars`, `ii var` | List non-empty tmux variables as key/value blocks, optionally filtered by key |
+| `ii v [PATTERN]` | | List variables using the same behavior as `ii ls` |
+| `ii v --out [PATH]` | `ii vo [PATH]`, `ii voc [PATH]` | Write non-empty variables to a shell-sourceable `.env` file |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
 | `ii p KEYWORD [...]` | | Join all keywords into the initial payload fuzzy-search query |
 | `ii p --copy KEYWORD [...]` | `ii pc KEYWORD [...]` | Copy the highest-ranked payload match without opening the UI |
 | `ii p --execute [KEYWORD ...]` | `ii pe [KEYWORD ...]` | Select, confirm, and execute a rendered payload in the current shell |
 | `ii p --copy --execute [KEYWORD ...]` | `ii pce [KEYWORD ...]` | Select, confirm, copy, and execute a rendered payload in the current shell |
-| `ii p --input [--copy] [-o [PATH]]` | | Render pasted input, optionally copy it, and optionally write it |
+| `ii p --input [-o [PATH]]` | | Render pasted input and optionally write it |
 | `ii p --input --copy [-o [PATH]]` | `ii pic [-o [PATH]]` | Render pasted input and always copy it |
-| `ii p --input --copy --execute` | `ii pice` | Render input, confirm, copy, and execute it in the current shell |
+| `ii p --input --execute [-o [PATH]]` | | Render input, confirm, and execute without copying |
+| `ii p --input --copy --execute [-o [PATH]]` | `ii pice` | Render input, confirm, copy, and execute it in the current shell; `pice` accepts no arguments |
 | `ii p --www --file PATH` / `ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | Render a file, list, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
+| `ii tmux status` | | Diagnose the default Prefix+: dispatcher |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
-| `ii help [COMMAND]` | `ii h [COMMAND]` | Show help |
+| `ii help [COMMAND]` | `ii h`, `ii -h`, `ii --help` | Show help |
 
 ## Basic Workflow
 
@@ -169,10 +174,29 @@ names. It imports and prints only defaults with a non-empty lowercase or
 uppercase shell value, preferring lowercase. Unset and empty defaults are
 silently skipped. Arbitrary non-default shell variables are not imported.
 
+Use `ii s --from-file [PATH]` to import `NAME=VALUE` entries from a dotenv file.
+PATH defaults to `.env` in the current directory. Blank lines, `#` comments, an
+optional `export ` prefix, unquoted values, and single-line single- or
+double-quoted values are supported. Multiline dotenv values are not supported.
+The file is parsed as data and is never sourced or evaluated. Each imported
+variable is written to tmux, exported into the current shell, and printed in the
+same style as `--from-shell`. Missing or unreadable files and malformed entries
+are reported on stdout.
+
 `ii l` is a one-time load from tmux into the current shell. It does not enable
 ongoing synchronization. Use `ii sync on` only when this shell should keep
 refreshing loaded variables from tmux before each prompt; use `ii sync off` to
 stop that refresh.
+
+`ii load --all-pane`, or `ii la`, opens a multi-select prompt for every pane in
+the current tmux window. Alive zsh panes that are not in a tmux mode are
+preselected and labeled `likely ready`; this is a best-effort hint, not a
+guarantee that the prompt has no partial input. Space toggles a pane, Enter
+confirms, and Esc or q aborts. The current pane loads directly. Other selected
+panes receive the fixed command `ii l` followed by Enter, so they must already
+have the plugin loaded. The final summary distinguishes local loads,
+dispatched commands, user skips, and failures; `dispatched` confirms delivery,
+not successful execution in the destination shell.
 
 When auto-sync is on, use inline assignments for local values that should be
 saved back immediately:
@@ -221,12 +245,13 @@ dense while still making variable names visually distinct from values.
 ### Variable File Output
 
 `ii v --out` writes all non-empty tmux `ii_` variables to `.env` in the current
-directory. `ii voc` is the fixed alias. Pass one path to write elsewhere:
+directory. `ii vo` is the short alias; `ii voc` remains available for
+compatibility. Pass one path to write elsewhere:
 
 ```zsh
 ii v --out
 ii v --out ./target.env
-ii voc ./target.env
+ii vo ./target.env
 source ./.env
 ```
 
@@ -365,10 +390,10 @@ output.
 The payload selector list shows payload paths only. The selected payload
 preview reserves a description block above the template body, highlights
 renderable tokens with values in green, highlights missing renderable tokens in
-red, normalizes any legacy internal `II_` payload tokens to lowercase
-user-facing names, and shows selector controls and copy status at the bottom of
-the preview. The bottom controls use a compact borderless layout with no outer
-padding and wrap only between complete action units.
+red, leaves uppercase and legacy `II_` payload tokens unchanged, and shows
+selector controls and copy status at the bottom of the preview. The bottom
+controls use a compact borderless layout with no outer padding and wrap only
+between complete action units.
 
 In the selector, `j` and `k` move between payloads. `/` enters search mode and
 Esc returns to normal mode. `y` copies the selected rendered payload and closes
@@ -453,16 +478,17 @@ ii p --input -o
 ii p --input -o ./payload.txt
 ```
 
-In an interactive terminal, `ii p --input` and `ii pic` use Enter to finish and
-Ctrl-J to insert a newline. A status line remains below the edit buffer while
-the command is waiting:
+In an interactive terminal, `ii p --input` and `ii pic` use Enter to finish,
+Alt+Enter to insert a newline, and Esc to cancel. A status line remains below the
+edit buffer while the command is waiting:
 
 ```text
-Enter Finish    Ctrl-J New line    :q Cancel
+Enter Finish    Alt-Enter New line    Esc Cancel
 ```
 
-Bracketed multi-line paste remains one edit buffer. Enter submits it after the
-paste completes. Enter `:q` or `:q!` as the complete buffer to cancel.
+With bracketed paste, multi-line paste remains one edit buffer and Enter submits
+it after the paste completes. Enter `:q` or `:q!` as the complete buffer to
+cancel.
 
 Piped input retains the line protocol: a standalone `:w` finishes, while a
 standalone `:q` or `:q!` cancels. Both modes use the shared render rules above.
@@ -476,12 +502,16 @@ Clipboard failure is reported but does not prevent confirmed execution.
 
 ### Tmux Popup Input Execution
 
-`ii tmux enable` installs a server-wide `Prefix + :` adapter and enables it for
-the current session. The exact `ii pice` command is the only ii command accepted
-by that tmux dispatcher; all non-ii input retains normal tmux command behavior.
-`ii tmux status` reports the current session state, and `ii tmux disable`
-disables the session and restores the previous `:` binding after no enabled
-session remains.
+Loading the plugin inside tmux automatically installs a server-wide
+`Prefix + :` adapter. The exact `ii pice` command is the only ii command
+accepted by that tmux dispatcher; all non-ii input retains normal tmux command
+behavior. Repeated plugin loads are silent and idempotent. `ii tmux status` is
+read-only and reports the configuration, binding state, and popup helper path.
+
+Set `II_TMUX_INTEGRATION=0` before loading the plugin to skip automatic setup.
+If Prefix+: already has a non-standard custom binding, ii preserves it and
+prints one conflict notice. Set `II_TMUX_INTEGRATION_FORCE=1` to explicitly
+replace it; force mode does not preserve the custom binding's behavior.
 
 The tmux execution path is:
 
@@ -490,7 +520,8 @@ popup input -> tmux-variable render -> popup confirmation -> clipboard copy
 -> literal paste to the originating pane -> one final Enter
 ```
 
-The popup accepts pasted input and uses Ctrl-D to finish or Ctrl-C to cancel.
+The popup accepts pasted input, uses Enter to finish, Alt+Enter for newlines,
+and Esc to cancel.
 It does not read an existing tmux buffer as the payload source. Rendering uses
 only the current tmux session's `ii_` values and ignores shell-local overrides.
 Missing lowercase placeholders remain unchanged and produce an explicit

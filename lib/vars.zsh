@@ -12,6 +12,8 @@ usage: ii set NAME=VALUE [NAME=VALUE...]
        ii s:NAME[,NAME...] [--from-shell]
        ii set --from-shell -a
        ii s --from-shell -a
+       ii set --from-file [PATH]
+       ii s --from-file [PATH]
        ii s NAME -d [INTERFACE]
        ii s -d [INTERFACE]
        ii s:lhost -d [INTERFACE]
@@ -49,6 +51,12 @@ Forms:
     uppercase shell variables. Save and print each value found; silently skip
     unset or empty defaults.
 
+  --from-file [PATH]
+    Read NAME=VALUE entries from PATH, defaulting to .env in the current
+    directory. Blank lines, comments, an optional export prefix, and the
+    quoting written by ii v --out are supported. Each imported value is saved
+    to tmux, exported into this shell, and printed.
+
   -d [INTERFACE]
     Detect lhost from INTERFACE. The default INTERFACE is tun0. Detect is only
     supported for lhost.
@@ -78,16 +86,35 @@ ii_cmd_set() {
     return 2
   fi
 
-  local from_shell=0 from_shell_all=0 arg args
+  local from_shell=0 from_shell_all=0 from_file=0 arg args
   args=()
   for arg in "$@"; do
     case "$arg" in
       --from-shell) from_shell=1 ;;
+      --from-file) from_file=1 ;;
       -a) from_shell_all=1 ;;
       *) args+=("$arg") ;;
     esac
   done
   set -- "$args[@]"
+
+  if (( from_shell && from_file )); then
+    print -u2 "ii: --from-shell and --from-file cannot be used together"
+    return 2
+  fi
+
+  if (( from_file )); then
+    if (( from_shell_all )); then
+      print -u2 "ii: -a is only supported with --from-shell"
+      return 2
+    fi
+    if [[ $# -gt 1 ]]; then
+      print -u2 "ii: --from-file accepts at most one path"
+      return 2
+    fi
+    ii_cmd_set_from_file "${1:-.env}"
+    return
+  fi
 
   if (( from_shell_all && ! from_shell )); then
     print -u2 "ii: -a is only supported with --from-shell"
@@ -187,6 +214,84 @@ ii_cmd_set_from_shell_all() {
     ii_var_auto_detect_lhost_for_rhost "ii_rhost"
   fi
   (( count > 0 )) || print "ii: no non-empty default shell variables found"
+}
+
+ii_cmd_set_from_file() {
+  local file="$1" line entry name value ii_name
+  local line_number=0 count=0 invalid=0 saw_rhost=0 saw_lhost=0
+
+  if [[ ! -f "$file" ]]; then
+    print -r -- "ii: variable file not found: $file"
+    return 1
+  fi
+  if [[ ! -r "$file" ]]; then
+    print -r -- "ii: variable file is not readable: $file"
+    return 1
+  fi
+  ii_tmux_available || return
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    (( ++line_number ))
+    line="${line%$'\r'}"
+    entry="${line#${line%%[![:space:]]*}}"
+    [[ -n "$entry" && "$entry" != \#* ]] || continue
+    if [[ "$entry" == export[[:space:]]* ]]; then
+      entry="${entry#export}"
+      entry="${entry#${entry%%[![:space:]]*}}"
+    fi
+
+    if [[ "$entry" != *=* ]]; then
+      print -r -- "ii: invalid variable entry in $file at line $line_number: expected NAME=VALUE"
+      invalid=1
+      continue
+    fi
+
+    name="${entry%%=*}"
+    value="${entry#*=}"
+    if [[ -z "$name" || "$name" == *[[:space:]]* ]]; then
+      print -r -- "ii: invalid variable name in $file at line $line_number: $name"
+      invalid=1
+      continue
+    fi
+
+    case "$value" in
+      \'*)
+        if [[ "$value" != *\' ]]; then
+          print -r -- "ii: invalid quoted value in $file at line $line_number"
+          invalid=1
+          continue
+        fi
+        value="${(Q)value}"
+        ;;
+      \"*)
+        if [[ "$value" != *\" ]]; then
+          print -r -- "ii: invalid quoted value in $file at line $line_number"
+          invalid=1
+          continue
+        fi
+        value="${(Q)value}"
+        ;;
+    esac
+    name="$(ii_cmd_set_alias_name "$name")"
+    if ! ii_name="$(ii_var_normalize_name "$(ii_var_shortcut_filter "$name")" 2>/dev/null)"; then
+      print -r -- "ii: invalid variable name in $file at line $line_number: $name"
+      invalid=1
+      continue
+    fi
+
+    tmux set-environment "$ii_name" "$value" || return
+    ii_export_var_line "${ii_name}=${value}" || return
+    print "$(ii_var_display_line "${ii_name}=${value}")"
+    ii_var_is_rhost_name "$ii_name" && saw_rhost=1
+    [[ "$ii_name" == "ii_lhost" ]] && saw_lhost=1
+    (( ++count ))
+  done < "$file"
+
+  if (( saw_rhost && ! saw_lhost )); then
+    ii_var_auto_detect_lhost_for_rhost "ii_rhost"
+  fi
+  (( count > 0 )) || print -r -- "ii: no variable entries found in $file"
+  return "$invalid"
 }
 
 ii_cmd_set_rhost() {
@@ -293,17 +398,24 @@ ii_cmd_set_alias_name() {
 }
 
 ii_cmd_get() {
-  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-    cat <<'EOF'
+  local help_arg
+  for help_arg in "$@"; do
+    if [[ "$help_arg" == "--help" || "$help_arg" == "-h" ]]; then
+      cat <<'EOF'
 usage: ii get FILTER
        ii g FILTER
        ii g:FILTER
+       ii gr
+       ii gl
 
 Aliases:
   g
+  gr (ii g r)
+  gl (ii g l)
 
 Help:
   ii help get
+  ii help g
 
 Get a variable value from the current tmux session, copy it, and print it.
 FILTER matches variable names case-insensitively, with the same shortcut
@@ -311,8 +423,9 @@ handling as ii set. No matches prints "no matched". One match copies the value.
 Multiple matches open a prompt; Enter or Space selects one value. q, Esc, or
 Ctrl-C aborts without changing variables or copying anything.
 EOF
-    return 0
-  fi
+      return 0
+    fi
+  done
 
   ii_tmux_available || return
   ii_require_cmd fzf || return
@@ -322,6 +435,8 @@ EOF
 usage: ii get FILTER
        ii g FILTER
        ii g:FILTER
+       ii gr
+       ii gl
 EOF
     return 2
   fi
@@ -360,27 +475,65 @@ EOF
 }
 
 ii_cmd_load() {
-  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  local help_arg
+  for help_arg in "$@"; do
+    if [[ "$help_arg" == "--help" || "$help_arg" == "-h" ]]; then
+      set -- --help
+      break
+    fi
+  done
+
+  if [[ "${1:-}" == "--help" ]]; then
     cat <<'EOF'
 usage: ii load
        ii l
+       ii load --all-pane
+       ii la
 
 Aliases:
   l
+  la    ii load --all-pane
 
 Help:
   ii help load
+  ii help load --all-pane
 
 Load non-empty variables from the current tmux session into this shell.
 The current shell exports use names without the internal ii_ prefix.
 II_EXPORT_CASE controls exported shell names: lower, upper, or both.
 The default is lower.
+
+With --all-pane or la, show every pane in the current tmux window in a
+multi-select prompt. Panes that appear to be idle zsh shells are preselected
+as "likely ready". Review the selection with Space, then press Enter to load
+the current shell directly and dispatch `ii l` to the other selected panes.
+Other panes must already have ii loaded. "dispatched" means the command was
+sent successfully; it does not confirm that the destination shell ran it.
 EOF
     return 0
   fi
 
-  ii_tmux_available || return
+  if [[ "${1:-}" == "--all-pane" ]]; then
+    if [[ $# -gt 1 ]]; then
+      print -u2 "ii: --all-pane does not accept arguments"
+      return 2
+    fi
+    ii_cmd_load_all_panes
+    return
+  fi
 
+  if [[ $# -gt 0 ]]; then
+    print -u2 "ii: unknown load option: $1"
+    ii_cmd_load --help
+    return 2
+  fi
+
+  ii_load_current_shell
+}
+
+ii_load_current_shell() {
+  local quiet="${1:-0}"
+  ii_tmux_available || return
   local line count=0
   while IFS= read -r line; do
     [[ -n "$line" ]] || continue
@@ -389,10 +542,176 @@ EOF
     (( count++ ))
   done < <(ii_var_lines_from_tmux)
 
-  print "loaded ${count} variable(s)"
+  (( quiet )) || print "loaded ${count} variable(s)"
+}
+
+ii_load_pane_snapshot() {
+  local target="$1" format
+  format='#{pane_id}'$'\t''#{session_id}'$'\t''#{window_id}'$'\t''#{pane_dead}'$'\t''#{pane_in_mode}'$'\t''#{pane_current_command}'
+  tmux display-message -p -t "$target" "$format" 2>/dev/null
+}
+
+ii_load_pane_entries() {
+  local window_id="$1" format line pane dead in_mode command pane_path title pane_status current display
+  local -a ready_entries other_entries
+
+  format='#{pane_id}'$'\t''#{pane_dead}'$'\t''#{pane_in_mode}'$'\t''#{pane_current_command}'$'\t''#{pane_current_path}'$'\t''#{pane_title}'
+  while IFS= read -r line; do
+    IFS=$'\t' read -r pane dead in_mode command pane_path title <<< "$line"
+    [[ -n "$pane" ]] || continue
+
+    current=""
+    [[ "$pane" == "${TMUX_PANE:-}" ]] && current="current"
+    if [[ "$dead" == "1" ]]; then
+      pane_status="dead pane"
+    elif [[ "$in_mode" == "1" ]]; then
+      pane_status="tmux mode"
+    elif [[ "$command" == "zsh" ]]; then
+      pane_status="likely ready"
+    elif [[ "$command" == "ssh" ]]; then
+      pane_status="remote session"
+    else
+      pane_status="active program"
+    fi
+
+    display="$(printf '%-5s %-8s %-14s %-18s %s' "$pane" "$current" "$command" "$pane_status" "$pane_path")"
+    [[ -n "$title" && "$title" != "$command" ]] && display+="  ${title}"
+    line="$pane"$'\t'"$dead"$'\t'"$in_mode"$'\t'"$command"$'\t'"$display"
+    if [[ "$pane_status" == "likely ready" ]]; then
+      ready_entries+=("$line")
+    else
+      other_entries+=("$line")
+    fi
+  done < <(tmux list-panes -t "$window_id" -F "$format")
+
+  print -rl -- "$ready_entries[@]" "$other_entries[@]"
+}
+
+ii_load_pane_select() {
+  local likely_count="$1" bind="" index
+
+  if (( likely_count > 0 )); then
+    bind='start:pos(1)+select'
+    for (( index = 2; index <= likely_count; index++ )); do
+      bind+="+pos(${index})+select"
+    done
+  fi
+
+  local -a args
+  args=(
+    -i --ansi --multi --sync --no-sort --height=80% --border
+    --prompt='ii load panes> '
+    --header='SPACE toggle · ENTER load · ESC cancel · preselected panes are likely ready'
+    --bind='space:toggle,enter:accept,esc:abort,q:abort'
+    --marker='☑' --pointer='  '
+    --delimiter=$'\t' --with-nth=5
+  )
+  [[ -n "$bind" ]] && args+=(--bind="$bind")
+  FZF_DEFAULT_OPTS='' fzf "$args[@]"
+}
+
+ii_cmd_load_all_panes() {
+  ii_tmux_available || return
+  ii_require_cmd fzf || return
+
+  local session_id window_id entries selected line pane dead in_mode command display snapshot
+  local selected_dead selected_mode selected_command
+  local current_session current_window current_dead current_mode current_command
+  local likely_count=0 loaded=0 dispatched=0 skipped=0 failed=0
+  local -A chosen
+  local -a all_panes
+
+  session_id="$(tmux display-message -p '#{session_id}')" || return
+  window_id="$(tmux display-message -p '#{window_id}')" || return
+  entries="$(ii_load_pane_entries "$window_id")" || return
+  [[ -n "$entries" ]] || { print -u2 "ii: no panes found in current tmux window"; return 1; }
+
+  while IFS= read -r line; do
+    IFS=$'\t' read -r pane dead in_mode command display <<< "$line"
+    all_panes+=("$pane")
+    [[ "$dead" == "0" && "$in_mode" == "0" && "$command" == "zsh" ]] && (( likely_count++ ))
+  done <<< "$entries"
+
+  selected="$(print -r -- "$entries" | ii_load_pane_select "$likely_count")" || {
+    print "aborted"
+    return 1
+  }
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    IFS=$'\t' read -r pane selected_dead selected_mode selected_command display <<< "$line"
+    chosen[$pane]="$selected_dead"$'\t'"$selected_mode"$'\t'"$selected_command"
+  done <<< "$selected"
+
+  print "Load summary"
+  print
+  for pane in "$all_panes[@]"; do
+    if [[ -z "${chosen[$pane]-}" ]]; then
+      printf '%-5s skipped by user\n' "$pane"
+      (( skipped++ ))
+      continue
+    fi
+
+    IFS=$'\t' read -r selected_dead selected_mode selected_command <<< "${chosen[$pane]}"
+    snapshot="$(ii_load_pane_snapshot "$pane")"
+    if [[ -z "$snapshot" ]]; then
+      printf '%-5s failed: pane disappeared\n' "$pane"
+      (( failed++ ))
+      continue
+    fi
+    IFS=$'\t' read -r pane current_session current_window current_dead current_mode current_command <<< "$snapshot"
+    if [[ "$current_session" != "$session_id" ]]; then
+      printf '%-5s failed: pane changed session\n' "$pane"
+      (( failed++ ))
+      continue
+    fi
+    if [[ "$current_window" != "$window_id" ]]; then
+      printf '%-5s failed: pane changed window\n' "$pane"
+      (( failed++ ))
+      continue
+    fi
+    if [[ "$current_dead" != "$selected_dead" || "$current_mode" != "$selected_mode" || "$current_command" != "$selected_command" ]]; then
+      printf '%-5s failed: pane state changed (%s)\n' "$pane" "$current_command"
+      (( failed++ ))
+      continue
+    fi
+    if [[ "$current_dead" == "1" ]]; then
+      printf '%-5s failed: dead pane\n' "$pane"
+      (( failed++ ))
+      continue
+    fi
+
+    if [[ "$pane" == "${TMUX_PANE:-}" ]]; then
+      if ii_load_current_shell 1; then
+        printf '%-5s loaded locally\n' "$pane"
+        (( loaded++ ))
+      else
+        printf '%-5s failed: local load failed\n' "$pane"
+        (( failed++ ))
+      fi
+    elif tmux send-keys -t "$pane" -l 'ii l' && tmux send-keys -t "$pane" Enter; then
+      printf '%-5s dispatched\n' "$pane"
+      (( dispatched++ ))
+    else
+      printf '%-5s failed: dispatch failed\n' "$pane"
+      (( failed++ ))
+    fi
+  done
+
+  print
+  print "${loaded} loaded locally, ${dispatched} dispatched, ${skipped} skipped, ${failed} failed"
+  (( failed == 0 ))
 }
 
 ii_cmd_sync() {
+  local help_arg
+  for help_arg in "$@"; do
+    if [[ "$help_arg" == "--help" || "$help_arg" == "-h" ]]; then
+      set -- --help
+      break
+    fi
+  done
+
   case "${1:-status}" in
     on)
       ii_enable_auto_sync
@@ -437,7 +756,7 @@ ii_cmd_list() {
 usage: ii ls [PATTERN]
 
 Aliases:
-  list, variable, vars, var, v
+  list, variable, vars, var
 
 Help:
   ii help ls
@@ -445,6 +764,8 @@ Help:
 Print non-empty variables from the current tmux session.
 PATTERN filters variable names only, case-insensitively.
 Output format is blue key, then value, without blank lines between entries.
+ii v [PATTERN] uses this same listing behavior; see ii v --help for its --out
+file-output mode.
 EOF
     return 0
   fi
@@ -456,7 +777,14 @@ EOF
 }
 
 ii_cmd_unset() {
-  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || $# -lt 1 ]]; then
+  local help_arg help_requested=0
+  for help_arg in "$@"; do
+    if [[ "$help_arg" == "--help" || "$help_arg" == "-h" ]]; then
+      help_requested=1
+      break
+    fi
+  done
+  if (( help_requested )) || [[ $# -lt 1 ]]; then
     cat <<'EOF'
 usage: ii unset NAME [NAME...]
        ii unset -a
@@ -466,11 +794,12 @@ Aliases:
 
 Help:
   ii help unset
+  ii help u
 
 Remove ii_name from the current tmux session and unset it in this shell.
 With -a, remove all ii_ variables after confirmation.
 EOF
-    [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]] && return 0
+    (( help_requested )) && return 0
     return 2
   fi
 
@@ -516,8 +845,8 @@ ii_cmd_unset_all() {
 }
 
 ii_help_register set ii_cmd_set s sr
-ii_help_register get ii_cmd_get g
-ii_help_register load ii_cmd_load l
+ii_help_register get ii_cmd_get g gr gl
+ii_help_register load ii_cmd_load l la "load --all-pane" "l --all-pane"
 ii_help_register sync ii_cmd_sync
-ii_help_register ls ii_cmd_list list variable vars var v
+ii_help_register ls ii_cmd_list list variable vars var
 ii_help_register unset ii_cmd_unset u

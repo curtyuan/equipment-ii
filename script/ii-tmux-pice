@@ -1,5 +1,9 @@
 #!/usr/bin/env zsh
 
+if [[ ! -o interactive ]]; then
+  exec zsh -f -i "$0" "$@"
+fi
+
 setopt no_unset
 
 script_dir="${0:A:h}"

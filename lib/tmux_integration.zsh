@@ -172,7 +172,7 @@ ii_tmux_dispatch_status() {
 
 ii_tmux_pice_popup() {
   ii_tmux_available || return
-  local target="${1:-${TMUX_PANE:-}}" session="${2:-}" input rendered report missing answer buffer copy_rc=0
+  local target="${1:-${TMUX_PANE:-}}" session="${2:-}" input rendered report missing answer copy_rc=0
   [[ -n "$target" ]] || { print -u2 "ii: cannot determine originating pane"; return 1; }
   [[ -n "$session" ]] || session="$(tmux display-message -p -t "$target" '#{session_id}')"
   local II_PAYLOAD_TMUX_ONLY=1
@@ -211,23 +211,8 @@ ii_tmux_pice_popup() {
   [[ "${(L)answer}" == y ]] || { print "cancelled"; return 1; }
 
   ii_clip_copy "$rendered" || copy_rc=1
-  if [[ "$(tmux display-message -p -t "$target" '#{session_id}' 2>/dev/null)" != "$session" ]]; then
-    print -u2 "ii: target pane is no longer available"
+  if ! ii_tmux_send_literal "$session" "$target" "$rendered"; then
     (( copy_rc )) && print -u2 "ii: clipboard copy also failed"
-    return 1
-  fi
-  buffer="ii-pice-${$}-${RANDOM}"
-  if ! print -rn -- "$rendered" | tmux load-buffer -b "$buffer" -; then
-    print -u2 "ii: failed to create tmux send buffer"
-    return 1
-  fi
-  if ! tmux paste-buffer -b "$buffer" -t "$target" -d; then
-    print -u2 "ii: failed to paste payload into target pane: $target"
-    tmux delete-buffer -b "$buffer" 2>/dev/null
-    return 1
-  fi
-  if ! tmux send-keys -t "$target" Enter; then
-    print -u2 "ii: payload was pasted but final Enter failed for pane: $target"
     return 1
   fi
   (( copy_rc )) && print -u2 "ii: clipboard copy failed; payload sent and executed anyway" || print "payload copied, sent, and executed"

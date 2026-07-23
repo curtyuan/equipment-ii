@@ -34,6 +34,7 @@ export/ii/
   lib/
   payloads/
   script/ii-tmux-pice
+  script/ii-tmux-workflow
   README.md
   VERSION
   RELEASE

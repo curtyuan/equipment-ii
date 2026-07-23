@@ -1,0 +1,11 @@
+#!/usr/bin/env zsh
+
+if [[ ! -o interactive ]]; then
+  exec zsh -f -i "$0" "$@"
+fi
+
+setopt no_unset
+
+script_dir="${0:A:h}"
+II_TMUX_INTEGRATION=0 source "${script_dir:h}/ii.plugin.zsh" || exit
+ii_workflow_popup "$@"

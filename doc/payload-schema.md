@@ -29,7 +29,7 @@ Field meanings:
 | `$schema` | Documentation/tooling | No | Identifies this logical schema. It is not written into payload files. |
 | `path` | Relative file path | Yes | Also used as the fzf selector entry and category filter input. |
 | `description` | First line | No | Only recognized when line 1 starts with `# description:`. It is shown in preview and omitted from copied output. |
-| `stages` | Body metadata scan | No | Each `# stage:` line marks a combo step and is emitted as a paste-safe comment delimiter. |
+| `stages` | Body metadata scan | No | Legacy stage labels are presentation metadata; opted-in workflows use structured stages. |
 | `source_body` | Remaining text | Yes | File content after first-line description metadata. It may include `# stage:` metadata. |
 | `emitted_body` | Render pipeline | Yes | Text printed, copied, or written after `# stage:` conversion and variable rendering. |
 | `variables` | Body scan | No | Lowercase percent or shell-style placeholders used by the renderer. |
@@ -57,8 +57,9 @@ token and are reported in red.
 ## Combo Payload Convention
 
 Combo payloads are multi-stage payload files for paired operator/target actions
-such as file transfer. Store them under `script/combo/` so they remain ordinary
-payload files and continue to use the shared renderer.
+such as file transfer. Files without `# flow: 1` remain ordinary legacy
+payloads. Files with the marker use strict workflow parsing and confirmed tmux
+pane routing.
 
 Recommended path shape:
 
@@ -88,32 +89,48 @@ script/combo/trans/powercat-K2T-KLTC
 script/combo/trans/powercat-T2K-TLKC
 ```
 
-Combo files should keep executable command text in the body and avoid Markdown
-fences or long prose in copied output. Use concise `# stage:` metadata to mark
-each operator/target step:
+Executable combo files keep command text in the body and avoid Markdown fences
+or prose. The complete first-version form is:
 
 ```text
 # description: Kali send to Target
-# stage: Target PowerShell: receive file to TEMP
+# flow: 1
+# note: Target must already have powercat.
+
+# stage: powershell | Receive file to TEMP
+# lane: remote-transfer
+# advance: confirm
 $RFILE="${file:t}"
 $OUTFILE = Join-Path $env:TEMP "$RFILE"
 powercat -l -p $rport -of $OUTFILE
 
-# stage: Kali shell: send file and close connection
+# stage: zsh | Send file from Kali
+# lane: kali-transfer
+# advance: confirm
 nc -q 0 $rhost $rport < $file
-nc -N $rhost $rport < $file
 ```
 
-`# stage:` lines are not emitted literally. During preview, print, copy, and
-file output, each stage becomes a paste-safe shell comment delimiter:
+Workflow rules:
 
-```text
-# --- Target PowerShell: receive file to TEMP ---
-```
+- `# flow: 1` appears exactly once before the first stage.
+- Every `# stage: SHELL | TITLE` is immediately followed by a valid
+  `# lane: kali-NAME|remote-NAME` and `# advance: confirm`.
+- Complete lane names determine sharing. At most three distinct lanes are
+  accepted and each is pinned to one distinct pane before execution.
+- The parser validates the complete file before preview, render, copy, output,
+  or execution. Errors include the source line and never fall back to legacy
+  handling.
+- Shell metadata is advisory. It does not rewrite commands or prove the shell
+  behind a remote connection.
+- Preview and ordinary output retain distinct stage headers. Copy replaces the
+  clipboard one confirmed stage at a time.
+- Execute selection opens a tmux popup. Enter confirms all lane assignments;
+  every stage then requires `y` before literal buffer transport and Enter.
+- Workflow execution requires tmux and never evaluates the combined body in the
+  originating shell.
 
-The emitted delimiter uses `#` because it is valid in both PowerShell and common
-Linux shells. Keep stage labels short and action-oriented, and name the side and
-shell when that matters.
+Legacy combo files without `# flow: 1` retain the original free-form
+`# stage: LABEL` conversion to paste-safe `# --- LABEL ---` comments.
 
 Uppercase shell variables such as `$RFILE` and `$OUTFILE` intentionally stay
 unrendered. Use them when the target shell should expand or assign the value at
@@ -121,7 +138,5 @@ runtime. Use lowercase render tokens such as `$file`, `${file:t}`, `$lhost`,
 `$lport`, `$rhost`, and `$rport` only for values that `ii` should resolve before
 copying.
 
-Executable host/remote combo orchestration is not part of the current payload
-schema or command surface. Its pending design is documented separately in
-[pending/combo-function.md](pending/combo-function.md); current `# stage:`
-metadata remains presentation-only.
+Detailed selector, lane memory, and execution semantics are documented in
+[workflow.md](workflow.md).

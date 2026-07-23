@@ -42,7 +42,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii v --out [PATH]` | `ii vo [PATH]`, `ii voc [PATH]` | Write non-empty variables to a shell-sourceable `.env` file |
 | `ii payload [CATEGORY]` | `ii p [CATEGORY]` | Select, render, print, and optionally write a payload |
 | `ii p KEYWORD [...]` | | Join all keywords into the initial payload fuzzy-search query |
-| `ii p --copy KEYWORD [...]` | `ii pc KEYWORD [...]` | Copy the highest-ranked payload match without opening the UI |
+| `ii p --copy [KEYWORD ...]` | `ii pc [KEYWORD ...]` | Open the selector with an initial query and copy the reviewed selection |
 | `ii p --execute [KEYWORD ...]` | `ii pe [KEYWORD ...]` | Select, confirm, and execute a rendered payload in the current shell |
 | `ii p --copy --execute [KEYWORD ...]` | `ii pce [KEYWORD ...]` | Select, confirm, copy, and execute a rendered payload in the current shell |
 | `ii p --input [-o [PATH]]` | | Render pasted input and optionally write it |
@@ -361,16 +361,20 @@ target and `TLKC` means target listens while Kali connects. See
 [payload-schema.md](payload-schema.md) for the combo naming table and stage
 metadata convention.
 
-Combo payloads may use `# stage:` metadata to split operator/target steps. The
-renderer emits those stages as paste-safe comment delimiters such as:
+Legacy combo payloads may use presentation-only `# stage:` metadata. Executable
+combos opt in with `# flow: 1` and give every stage a lane and confirmation rule:
 
 ```text
-# --- Target PowerShell: receive file to TEMP ---
-# --- Kali shell: send file and close connection ---
+# flow: 1
+# stage: powershell | Receive file to TEMP
+# lane: remote-transfer
+# advance: confirm
 ```
 
-These delimiter lines can be pasted with the commands because `#` is a valid
-comment marker in both PowerShell and common Linux shells.
+Selecting an executable combo with `e`, or through `ii pe`, opens the workflow
+popup. It assigns each named lane to a distinct pane, previews every stage, and
+sends confirmed stages in file order. Workflow execution never falls back to
+local `eval`.
 
 Payload files use a small plain-text schema:
 
@@ -410,16 +414,16 @@ ii p linux
 ii p power shell reverse
 ```
 
-For a non-interactive copy, `ii pc` and `ii p --copy` join all keywords, ask
-fzf to rank matches without opening its UI, and copy the first result:
+`ii pc` and `ii p --copy` join all keywords into the selector's initial query.
+Review the preview and press `y` to copy:
 
 ```zsh
 ii pc power shell reverse
 ii p --copy power shell reverse
 ```
 
-No selector or confirmation prompt is shown. A missing match or clipboard
-failure returns nonzero.
+For a workflow, copy proceeds one stage at a time and replaces the clipboard
+with each confirmed stage. It never flattens mixed-lane commands into one body.
 
 `ii p --execute [KEYWORD ...]` opens the same selector but makes Enter confirm
 and execute the selected rendered payload. `ii pe` is its fixed alias.

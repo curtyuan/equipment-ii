@@ -23,7 +23,7 @@ ii() {
     v) ii_cmd_variable "$@" ;;
     vo|voc) ii_cmd_vars_output "$@" ;;
     payload|p) ii_cmd_payload "$@" ;;
-    pc) ii_cmd_payload_copy_best "$@" ;;
+    pc) ii_cmd_payload_copy "$@" ;;
     pe) ii_cmd_payload_execute "$@" ;;
     pce) ii_cmd_payload_execute --copy "$@" ;;
     pic) ii_cmd_payload_input --copy "$@" ;;

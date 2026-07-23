@@ -85,9 +85,8 @@ to receive the originating pane ID and session ID, render from tmux-session
 variables only, confirm, literal-paste through an ii-owned tmux buffer, and send
 one final Enter.
 
-The default adapter also provides the popup boundary needed by executable combo
-workflows described in `combo-function.md`. Adding workflow routing must not
-broaden the accepted free-form dispatcher input without a separate decision.
+The same popup boundary is used by executable combo workflows selected through
+`ii p`; workflow routing does not broaden the exact free-form dispatcher input.
 
 ## Installation Marker and Refresh
 
@@ -177,8 +176,8 @@ dispatcher adapter          -> exact command routing
 popup runner                -> input, render, confirm, copy, and literal send
 ```
 
-The combo workflow pane selector and orchestrator may reuse the popup boundary,
-but they must not own or duplicate adapter installation.
+The combo workflow pane selector and orchestrator reuse the popup boundary, but
+do not own or duplicate adapter installation.
 
 ## Regression Coverage
 

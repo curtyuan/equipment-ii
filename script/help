@@ -93,7 +93,7 @@ ii_help_require_fragments "ii --help" "$output" \
   "set|s --from-file [PATH]" \
   "load|l" "load --all-pane|la" "sync [on|off|status]" "interactive|i" \
   "ls|list|variable|vars|var [PATTERN]" "v --out [PATH]" "vo [PATH]" \
-  "voc [PATH]" "unset|u NAME" "payload|p --copy" "pc KEYWORD" \
+  "voc [PATH]" "unset|u NAME" "payload|p --copy" "pc [KEYWORD" \
   "payload|p --execute" "pe [KEYWORD" "payload|p --copy --execute" \
   "pce [KEYWORD" "payload|p --input --copy" "pic [-o [PATH]]" \
   "payload|p --input --execute" "payload|p --input --copy --execute" \
@@ -102,7 +102,7 @@ ii_help_require_fragments "ii --help" "$output" \
 
 output="$(ii p --help)"
 ii_help_require_fragments "ii p --help" "$output" \
-  "ii p --copy KEYWORD" "ii pc KEYWORD" "ii p --execute [KEYWORD" \
+  "ii p --copy [KEYWORD" "ii pc [KEYWORD" "ii p --execute [KEYWORD" \
   "ii pe [KEYWORD" "ii p --copy --execute [KEYWORD" "ii pce [KEYWORD" \
   "ii p --input [-o [PATH]]" "ii p --input --copy [-o [PATH]]" \
   "ii pic [-o [PATH]]" "ii p --input --execute [-o [PATH]]" \

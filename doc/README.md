@@ -11,6 +11,7 @@ Deployment instructions live in the root [README.md](../README.md).
 | [clipboard.md](clipboard.md) | Clipboard backend behavior, configuration, diagnostics, and VMware/Kali notes. |
 | [tmux-integration.md](tmux-integration.md) | Default Prefix+: popup integration, custom-binding policy, configuration, and status diagnostics. |
 | [payload-schema.md](payload-schema.md) | Payload file format, metadata, combo conventions, and renderable variables. |
+| [workflow.md](workflow.md) | Executable combo parser, lane selector, memory, safety, and tmux execution model. |
 | [conf/ii.conf](conf/ii.conf) | Example `ii` shell configuration. |
 | [conf/tmux.conf](conf/tmux.conf) | Minimal tmux clipboard configuration. |
 
@@ -26,9 +27,5 @@ Deployment instructions live in the root [README.md](../README.md).
 
 ## Pending Designs
 
-Files under `pending/` describe proposals that are not implemented and are not
-part of the live command contract.
-
-| File | Purpose |
-| --- | --- |
-| [pending/combo-function.md](pending/combo-function.md) | Proposed parser and tmux orchestration model for executable named-lane combo workflows. |
+Files under `pending/`, when present, describe proposals that are not
+implemented and are not part of the live command contract.

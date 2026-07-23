@@ -48,8 +48,8 @@ Variables:
 Payloads:
   payload|p [CATEGORY]   Select, render, print, and optionally write a payload
   payload|p KEYWORD ...  Fuzzy-search using all keyword arguments
-  payload|p --copy KEYWORD ... | pc KEYWORD ...
-                          Copy the best payload match without opening the UI
+  payload|p --copy [KEYWORD ...] | pc [KEYWORD ...]
+                          Review and copy a selection from an initial query
   payload|p --execute [KEYWORD ...] | pe [KEYWORD ...]
                           Select, confirm, and execute without copying
   payload|p --copy --execute [KEYWORD ...] | pce [KEYWORD ...]

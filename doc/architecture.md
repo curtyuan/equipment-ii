@@ -24,6 +24,8 @@ lib/
   var_interactive.zsh
   vars.zsh
   var_output.zsh
+  workflow.zsh
+  workflow_tmux.zsh
   www.zsh
   payloads.zsh
   payload_input.zsh
@@ -45,8 +47,7 @@ doc/
   release.md
   usage.md
   testing.md
-  pending/
-    combo-function.md
+  workflow.md
   conf/
     ii.conf
     tmux.conf
@@ -54,6 +55,10 @@ script/
   make
   help
   ii-tmux-pice
+  ii-tmux-workflow
+  test-workflow
+  test-workflow-parser
+  test-workflow-tmux
 export/
   ii/
 ```
@@ -73,13 +78,15 @@ export/
 8. lib/var_interactive.zsh
 9. lib/vars.zsh
 10. lib/var_output.zsh
-11. lib/payloads.zsh
-12. lib/payload_input.zsh
-13. lib/www.zsh
-14. lib/payload_command.zsh
-15. lib/help.zsh
-16. lib/version.zsh
-17. lib/core.zsh
+11. lib/workflow.zsh
+12. lib/workflow_tmux.zsh
+13. lib/payloads.zsh
+14. lib/payload_input.zsh
+15. lib/www.zsh
+16. lib/payload_command.zsh
+17. lib/help.zsh
+18. lib/version.zsh
+19. lib/core.zsh
 ```
 
 `core.zsh` is loaded last because it exposes the public dispatcher. The
@@ -410,6 +417,34 @@ ii_payload_write_output
 ii_payload_body
 ```
 
+### `lib/workflow.zsh`
+
+Strict executable combo parsing and stage rendering.
+
+Responsibilities:
+
+- Classify stored payloads as legacy, valid workflow, or invalid opted-in
+  workflow.
+- Parse complete workflow metadata and bodies before any output or side effect.
+- Preserve ordered stages and first-appearance lane order with source lines.
+- Render and preview stages independently and copy them one at a time.
+- Prevent malformed workflow content from reaching legacy rendering or eval.
+
+### `lib/workflow_tmux.zsh`
+
+Workflow-specific tmux interaction.
+
+Responsibilities:
+
+- Discover all panes in the pinned session and render one window's spatial pane
+  geometry at a time.
+- Maintain lane assignment toggle, move, swap, validation, and session-scoped
+  remembered suggestions.
+- Revalidate only pinned pane identity and distinctness during execution.
+- Preview, confirm, and literal-send ordered stages through the shared tmux
+  transport.
+- Launch the isolated workflow popup from the payload execute boundary.
+
 ### `lib/payload_input.zsh`
 
 Pasted payload input command and input UI.
@@ -460,7 +495,9 @@ Responsibilities:
 - Route `--execute` and `pe` to confirmed current-shell execution after
   selection, and route `--copy --execute` and `pce` to copy-before-execute.
 - Route `--input --copy --execute` and `pice` to confirmed input execution.
-- Route `--copy` and `pc` to non-interactive best-match rendering and copy.
+- Route `--copy` and `pc` to the payload selector with an initial query.
+- Route opted-in workflow execution to the tmux popup without exposing a public
+  workflow command or allowing local-eval fallback.
 - Join multiple positional keywords into the selector's initial fzf query.
 - Print aggregate payload help without moving feature-specific help away from
   its owning layer.
@@ -471,7 +508,7 @@ Commands:
 ```text
 ii_cmd_payload
 ii_cmd_payload_execute
-ii_cmd_payload_copy_best
+ii_cmd_payload_copy
 ```
 
 Render boundary:
@@ -708,6 +745,7 @@ export/ii/
   lib/
   payloads/
   script/ii-tmux-pice
+  script/ii-tmux-workflow
   README.md
   VERSION
   RELEASE

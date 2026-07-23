@@ -1,0 +1,69 @@
+#!/usr/bin/env zsh
+
+set -eu
+setopt pipefail
+
+root="${0:A:h:h}"
+source "${root}/lib/workflow.zsh"
+
+tmp="$(mktemp -d)"
+trap 'rm -rf -- "$tmp"' EXIT
+
+fail() {
+  print -u2 -r -- "workflow parser test failed: $*"
+  exit 1
+}
+
+write_fixture() {
+  local name="$1" content="$2"
+  print -rn -- "$content" > "${tmp}/${name}"
+}
+
+expect_valid() {
+  local name="$1"
+  ii_workflow_classify "${tmp}/${name}" || fail "$name should parse"
+  [[ "$II_WORKFLOW_CLASS" == workflow ]] || fail "$name should classify as workflow"
+}
+
+expect_invalid() {
+  local name="$1" pattern="$2"
+  ii_workflow_classify "${tmp}/${name}" >/dev/null 2>&1 && fail "$name should fail"
+  [[ "$II_WORKFLOW_CLASS" == invalid ]] || fail "$name should classify as invalid"
+  [[ "$II_WORKFLOW_ERROR" == *"$pattern"* ]] || fail "$name error should contain: $pattern"
+}
+
+write_fixture valid $'# description: transfer\n# flow: 1\n# note: ready\n\n# stage: powershell | Receive\n# lane: remote-receiver\n# advance: confirm\n\n$PORT = $rport\n# ordinary\npowercat -l -p $PORT\n\n# stage: zsh | Send\n# lane: kali-sender\n# advance: confirm\nnc "$rhost" "$rport"\n\n# stage: zsh | Verify\n# lane: kali-sender\n# advance: confirm\nprint done\n'
+expect_valid valid
+[[ "$II_WORKFLOW_DESCRIPTION" == transfer ]] || fail "description"
+[[ "${(j:,:)II_WORKFLOW_NOTES}" == ready ]] || fail "notes"
+[[ "${(j:,:)II_WORKFLOW_LANES}" == remote-receiver,kali-sender ]] || fail "lane order"
+[[ "${#II_WORKFLOW_STAGE_BODIES}" == 3 ]] || fail "stage count"
+[[ "${II_WORKFLOW_STAGE_BODIES[1]}" == *'powercat -l -p $PORT'* ]] || fail "body preservation"
+[[ "${II_WORKFLOW_STAGE_LANES[3]}" == kali-sender ]] || fail "repeated lane"
+[[ "${II_WORKFLOW_STAGE_LINES[1]}" == 5 ]] || fail "source line"
+
+write_fixture legacy $'# description: old\n# stage: Target PowerShell\necho ok\n'
+ii_workflow_classify "${tmp}/legacy" || fail "legacy classification"
+[[ "$II_WORKFLOW_CLASS" == legacy ]] || fail "legacy should stay legacy"
+
+write_fixture crlf $'# flow: 1\r\n# stage: zsh | Run\r\n# lane: kali-main\r\n# advance: confirm\r\nprint ok\r\n'
+expect_valid crlf
+
+write_fixture duplicate $'# flow: 1\n# flow: 1\n# stage: zsh | Run\n# lane: kali-main\n# advance: confirm\nprint ok\n'
+expect_invalid duplicate 'duplicate flow marker'
+write_fixture version $'# flow: 2\n# stage: zsh | Run\n# lane: kali-main\n# advance: confirm\nprint ok\n'
+expect_invalid version 'unsupported flow version'
+write_fixture lane $'# flow: 1\n# stage: zsh | Run\n# lane: target-main\n# advance: confirm\nprint ok\n'
+expect_invalid lane 'invalid lane name'
+write_fixture adjacency $'# flow: 1\n# stage: zsh | Run\n\n# lane: kali-main\n# advance: confirm\nprint ok\n'
+expect_invalid adjacency 'lane must immediately follow stage'
+write_fixture advance $'# flow: 1\n# stage: zsh | Run\n# lane: kali-main\n# advance: delay 1\nprint ok\n'
+expect_invalid advance 'unsupported advance mode'
+write_fixture empty $'# flow: 1\n# stage: zsh | Run\n# lane: kali-main\n# advance: confirm\n# only a comment\n'
+expect_invalid empty 'stage body is empty'
+write_fixture prefix $'# flow: 1\necho unsafe\n# stage: zsh | Run\n# lane: kali-main\n# advance: confirm\nprint ok\n'
+expect_invalid prefix 'executable text appears before the first stage'
+write_fixture four $'# flow: 1\n# stage: zsh | 1\n# lane: kali-one\n# advance: confirm\nprint 1\n# stage: zsh | 2\n# lane: kali-two\n# advance: confirm\nprint 2\n# stage: sh | 3\n# lane: remote-three\n# advance: confirm\necho 3\n# stage: bash | 4\n# lane: remote-four\n# advance: confirm\necho 4\n'
+expect_invalid four 'more than three distinct lanes'
+
+print "workflow parser tests passed"

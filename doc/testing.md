@@ -39,7 +39,7 @@ zsh -fc 'source ./ii.plugin.zsh; ii help pe | grep -Fq "ii pe [KEYWORD ...]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pce | grep -Fq "ii pce [KEYWORD ...]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pice | grep -Fq "ii pice"'
 zsh -fc 'source ./ii.plugin.zsh; ii help tmux | grep -Fq "ii tmux status"'
-zsh -fc 'source ./ii.plugin.zsh; ii help pc | grep -Fq "ii pc KEYWORD [KEYWORD ...]"'
+zsh -fc 'source ./ii.plugin.zsh; ii help pc | grep -Fq "ii pc [KEYWORD ...]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help sr | grep -Fq "ii sr VALUE"'
 zsh -fc 'source ./ii.plugin.zsh; ii v --help | grep -Fq "ii v --out [PATH]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help vo | grep -Fq "ii vo [PATH]"'
@@ -140,18 +140,46 @@ binding must be preserved with one conflict notice unless
 If buffer creation, paste, or the final Enter fails, the popup must remain open
 and show the failed stage.
 
-## Payload Best-match Copy
+## Payload Selector Copy
 
-`ii pc` and `ii p --copy` must not open the selector. Both join all keywords,
-use non-interactive fzf ranking, render the first match, and copy it:
+`ii pc` and `ii p --copy` open the selector. Both join all keywords into its
+initial query and require `y` on the reviewed selection:
 
 ```zsh
 ii pc power shell reverse
 ii p --copy power shell reverse
 ```
 
-No match, missing keywords, render failure, or clipboard failure must return
-nonzero.
+They may be called without keywords. No selection, render failure, or clipboard
+failure returns nonzero.
+
+## Executable Combo Workflows
+
+Run the deterministic parser, render, staged-copy, and assignment-state tests:
+
+```zsh
+./script/test-workflow-parser
+./script/test-workflow
+./script/test-workflow-tmux
+```
+
+Every file under `payloads/script/combo/trans/` must classify as a valid
+two-stage, two-lane workflow:
+
+```zsh
+zsh -fc 'source ./ii.plugin.zsh; for f in payloads/script/combo/trans/*; do ii_workflow_classify "$f" || exit; [[ "$II_WORKFLOW_CLASS" == workflow ]] || exit; done'
+```
+
+Inside an isolated tmux session, select a powercat combo with `e`. Verify the
+popup preassigns `kali-transfer` and `remote-transfer`, displays each assignment
+above its pane rectangle, supports Space and direct `1`/`2` reassignment with
+swap, and accepts only a complete distinct assignment with Enter. Escape and
+`q` must send nothing. A later run in the same session should label confirmed
+targets `remembered` while still requiring Enter.
+
+Confirm stages in order and verify only the pinned destination receives each
+body. Changing pane title, foreground command, window, or layout must not abort.
+Killing a pinned pane must abort before the pending stage with no substitution.
 
 ## Payload Category Filter Check
 

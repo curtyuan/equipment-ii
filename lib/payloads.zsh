@@ -1,7 +1,6 @@
 # Payload selection, filtering, rendering, and reporting.
 
 ii_cmd_payload_select() {
-  ii_tmux_available || return
   ii_require_cmd fzf || return
 
   local category="all" query="" execute=0 copy_execute=0 output=0 output_spec=""
@@ -80,7 +79,10 @@ ii_cmd_payload_select() {
 
     if [[ "$key" == "y" ]]; then
       report="$(ii_payload_render_report)"
-      if ii_clip_copy "$rendered"; then
+      if ii_workflow_is_workflow; then
+        ii_workflow_copy_stages
+        return $?
+      elif ii_clip_copy "$rendered"; then
         copy_rc=0
       else
         copy_rc=1
@@ -106,6 +108,10 @@ ii_cmd_payload_select() {
 
   [[ -n "$report" ]] && ii_payload_print_report "$report" "$selected" && print
   if (( execute_selected )); then
+    if ii_workflow_is_workflow; then
+      ii_workflow_launch_popup "$payload" "$copy_execute"
+      return $?
+    fi
     if ! ii_payload_confirm_execute "$rendered"; then
       print -u2 "ii: execution cancelled"
       return 1
@@ -251,6 +257,11 @@ ii_payload_path_for() {
 ii_payload_render() {
   local payload_path="$1"
   local rendered
+  ii_workflow_classify "$payload_path" || return
+  if ii_workflow_is_workflow; then
+    ii_workflow_render_file "$payload_path"
+    return
+  fi
   rendered="$(ii_payload_body "$payload_path")"
   ii_payload_render_text "$rendered"
 }
@@ -509,6 +520,11 @@ ii_payload_path_tail() {
 
 ii_payload_preview_text() {
   local payload_path="$1"
+  ii_workflow_classify "$payload_path" || return
+  if ii_workflow_is_workflow; then
+    ii_workflow_preview_text
+    return
+  fi
   ii_payload_body "$payload_path"
 }
 

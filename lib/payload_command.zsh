@@ -7,8 +7,8 @@ usage: ii payload [CATEGORY]
        ii p [CATEGORY]
        ii p [CATEGORY] -o [PATH]
        ii p [KEYWORD ...]
-       ii p --copy KEYWORD [KEYWORD ...]
-       ii pc KEYWORD [KEYWORD ...]
+       ii p --copy [KEYWORD ...]
+       ii pc [KEYWORD ...]
        ii p --execute [KEYWORD ...]
        ii pe [KEYWORD ...]
        ii p --copy --execute [KEYWORD ...]
@@ -55,8 +55,8 @@ Payload files:
   comment delimiters for combo payloads.
   The selector starts in normal mode. Press / to search; Esc returns to normal.
   Use y to copy the selected rendered payload and close the selector.
-  Use --copy or pc with one or more keywords to skip the UI, render the best
-  fzf match, and copy it immediately.
+  Use --copy or pc to open the same selector in copy mode. Keywords initialize
+  its query; they never select or copy a best match without review.
   Use e in normal mode to execute the selected rendered payload in the current
   shell. With --execute or pe, Enter confirms execution instead of printing.
   With --copy --execute or pce, confirmed execution also copies first. Execution
@@ -148,7 +148,11 @@ EOF
       return
   fi
   if (( copy )); then
-      ii_cmd_payload_copy_best "$@"
+      if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        ii_cmd_payload_copy --help
+      else
+        ii_cmd_payload_select --copy "$@"
+      fi
       return
   fi
   case "${1:-}" in
@@ -226,11 +230,11 @@ confirmed execution. The letter c in pce always means copy.
 EOF
 }
 
-ii_cmd_payload_copy_best() {
+ii_cmd_payload_copy() {
   if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'EOF'
-usage: ii p --copy KEYWORD [KEYWORD ...]
-       ii pc KEYWORD [KEYWORD ...]
+usage: ii p --copy [KEYWORD ...]
+       ii pc [KEYWORD ...]
 
 Aliases:
   pc
@@ -239,40 +243,16 @@ Help:
   ii help payload-copy
   ii help pc
 
-Join all keywords into one non-interactive fzf query, render the highest-ranked
-payload match, copy it, print copy status and the render report, then exit.
-No selector or confirmation prompt is opened.
+Open the payload selector with all keywords joined as its initial query. Review
+the preview, then press y to copy the selected payload.
 EOF
     return 0
   fi
-  if [[ $# -lt 1 ]]; then
-    print -u2 "ii: usage: ii pc KEYWORD [KEYWORD ...]"
-    return 2
-  fi
+  ii_cmd_payload_select --copy "$@"
+}
 
-  ii_tmux_available || return
-  ii_require_cmd fzf || return
-
-  local query="${(j: :)@}"
-  local selected payload rendered report copy_status copy_rc
-  selected="$(ii_payload_best_match "$query")" || {
-    print -u2 "ii: no payload matched: $query"
-    return 1
-  }
-  payload="$(ii_payload_path_for "$selected")" || return
-  ii_payload_render "$payload" >/dev/null || return
-  rendered="$II_PAYLOAD_RENDERED_TEXT"
-  report="$(ii_payload_render_report)"
-
-  if ii_clip_copy "$rendered"; then
-    copy_rc=0
-  else
-    copy_rc=1
-  fi
-  copy_status="$(ii_interact_copy_status "$copy_rc" "payload copied successfully" "payload rendered; clipboard copy failed")"
-  print -r -- "$copy_status"
-  [[ -n "$report" ]] && print && ii_payload_print_report "$report" "$selected"
-  return "$copy_rc"
+ii_cmd_payload_copy_best() {
+  ii_cmd_payload_copy "$@"
 }
 
 ii_help_register payload ii_cmd_payload p
@@ -281,4 +261,4 @@ ii_help_register payload-execute ii_cmd_payload_execute_help pe \
 ii_help_register payload-copy-execute ii_cmd_payload_copy_execute_help pce \
   "payload --copy --execute" "payload --execute --copy" \
   "p --copy --execute" "p --execute --copy"
-ii_help_register payload-copy ii_cmd_payload_copy_best pc "payload --copy" "p --copy"
+ii_help_register payload-copy ii_cmd_payload_copy pc "payload --copy" "p --copy"

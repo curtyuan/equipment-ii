@@ -1,8 +1,8 @@
-# Pending: Executable Combo Workflows
+# Executable Combo Workflows
 
-Status: design only; not implemented.
+Status: implemented.
 
-This document proposes a file format and execution model for sending ordered
+This document defines the file format and execution model for sending ordered
 payload stages through as many as three named `kali-*` or `remote-*` lanes,
 each pinned to a distinct tmux pane. Existing combo payloads remain ordinary
 render/copy payloads unless they explicitly opt into the workflow schema.
@@ -59,6 +59,29 @@ render/copy payloads unless they explicitly opt into the workflow schema.
 - Lane assignment may search every pane in the current tmux session. The popup
   selects a window and shows that window's spatial pane layout; it never crosses
   into another session.
+- The selector initially assigns lanes in first-appearance order from detected
+  and remembered candidates. These are editable suggestions and never bypass
+  the final confirmation.
+- Each assigned pane has an extra status line immediately above its rectangle.
+  The line shows the lane ordinal, complete lane name, and suggestion source,
+  for example `[1/lane1] kali-sender · detected`. Remembered and manually
+  adjusted assignments use `remembered` and `manual` respectively. The active
+  lane also has a non-color-only marker such as `>` in addition to highlighting.
+- Space toggles the active lane on the pane under the cursor. Number keys `1`,
+  `2`, and `3` directly assign that lane ordinal to the pane under the cursor.
+  Assigning a lane to a pane already occupied by another lane swaps the two
+  assignments; assigning it to an empty pane moves it and clears its old pane.
+- Enter confirms the complete lane assignment only when every lane has one
+  distinct pane. Escape or `q` aborts without sending anything.
+- A manually confirmed assignment is remembered within the current tmux
+  session by complete lane name and concrete pane ID. A valid remembered pane
+  is preferred over fresh detection but remains an editable suggestion. Missing,
+  cross-session, or conflicting remembered panes are ignored and cleared.
+- During execution, a workflow aborts only when a pinned destination identity
+  is no longer safe: the pane disappears, leaves the pinned session, aliases
+  another lane unexpectedly, or literal buffer transport cannot complete.
+  Foreground command, title, visible content, window placement, and layout size
+  changes do not abort a workflow.
 
 ## Goals
 
@@ -457,43 +480,53 @@ the popup's tmux-only rule.
 
 - Whether a separate public command is needed later for direct one-pane send;
   workflow execution itself uses the existing payload selector actions.
-- The exact session option used for remembered lane suggestions and whether the
-  key should use a complete lane name, role, or ordinal.
-- The exact keys and visual marks used to identify, assign, unassign, and move
-  between lanes inside the spatial pane selector. The spatial layout and
-  one-distinct-pane-per-lane rule are decided; this UI notation is intentionally
-  deferred.
-- Which pane state changes should abort execution. Pane ID and original session
-  must remain fixed, but a foreground-command change may be normal for a remote
-  shell and should not necessarily be treated like a disappeared pane.
 - Exact timeout and matching syntax for a future `output` advancement mode.
 - Whether completion-marker wrapping is useful enough to justify shell-specific
   behavior in a later schema version.
 - Whether control-key stages such as sending Ctrl-C should ever share the same
   workflow schema or remain a separate, more privileged action.
 
-## Next Discussion Checkpoint
+None of these decisions blocks the first implementation. The concrete tmux
+session-option encoding for remembered assignments is an implementation detail;
+its semantic key is the complete lane name and its value is the concrete pane
+ID.
 
-Resume design discussion here before implementation. Decisions already reached
-are recorded above; only explicitly deferred interaction details remain open.
+## Implemented Interaction Contract
 
-### Deferred selector notation
+The first-version behavior below is implemented. Later advancement modes,
+completion wrapping, control-key stages, and a separate one-pane public command
+remain deferred.
 
-The pane map will display and assign lanes, but the precise keys and visual
-notation for lane identity are intentionally left for a later UI discussion.
-This includes how `lane1`, `lane2`, and `lane3` appear inside pane rectangles,
-how the active lane is indicated, and which keys assign, clear, or cycle lanes.
+### Selector notation
+
+The spatial pane map displays one status line above every assigned pane. Its
+minimum content is the ordinal, generated label, complete lane name, and source:
+
+```text
+> [1/lane1] kali-sender · detected
+┌──────────────────────────┐
+│ %3  zsh                  │
+└──────────────────────────┘
+```
+
+`>` marks the active lane without relying on color. Space toggles the active
+lane at the cursor. Number keys assign a specific ordinal; a conflict swaps
+assignments. Enter confirms all assignments, while Escape and `q` abort.
 
 #### Remembered lane suggestions
 
-The current recommendation is:
+The required behavior is:
 
-- A pane chosen manually may be remembered as a suggestion for that complete
-  lane name.
+- Only an assignment included in a completed Enter confirmation is remembered.
+- The complete lane name is the lookup key and the concrete pane ID is its
+  session-scoped value.
 - A valid remembered pane is preselected next time, but still requires operator
-  confirmation and cannot already belong to another lane.
-- A missing pane or one outside the pinned session clears the binding.
-- Remembering stores the resolved concrete pane ID, not a relative direction.
+  confirmation and cannot already belong to another lane. It takes precedence
+  over a newly detected suggestion.
+- A missing pane, a pane outside the pinned session, or a conflicting binding
+  clears the invalid binding and falls back to detection or manual selection.
+- A confirmed manual change replaces the remembered value. Merely opening or
+  aborting the selector never writes remembered state.
 - The first version does not need `--remember`.
 
 ### Safety requirements
@@ -532,12 +565,11 @@ a clear message. It must not fall back to local `eval`. Ordinary render/copy
 remains available outside tmux, and non-workflow payloads keep their existing
 behavior.
 
-## Pending Implementation Boundaries
+## Implementation Boundaries
 
 Workflow support integrates with the existing payload selector only at the
 execute-routing boundary and remains internally separable from ordinary payload
-rendering and `ii load --all-pane`. A possible module boundary, still to be
-confirmed during implementation planning, is:
+rendering and `ii load --all-pane`. The implementation boundary is:
 
 ```text
 workflow parser       parse and validate metadata and stage bodies
@@ -610,3 +642,120 @@ while assigning a `remote-*` lane. They must not automatically execute a stage,
 override an explicit target, or treat captured pane output as trusted data. The
 preview must always show the resolved concrete pane, foreground command, and
 the reason for the suggestion before the operator confirms it.
+
+## Implementation Record
+
+Implementation was divided so parsing and ordinary render/copy safety could be
+verified without tmux before interactive workflow execution was introduced.
+
+### Phase 1: Parser and data contract
+
+- Add `lib/workflow.zsh` and source it before `lib/payloads.zsh`.
+- Implement an exact, line-oriented parser for `# flow: 1`, file metadata,
+  structured stage/lane/advance headers, bodies, and source line numbers.
+- Store ordered stages and first-appearance lane order in workflow-owned global
+  arrays/maps. Reject duplicate or unsupported flow markers, malformed header
+  adjacency, empty bodies, invalid lane names, unsupported
+  advancement modes, and more than three distinct lanes.
+- Provide a cheap classification entrypoint that distinguishes legacy payloads,
+  valid workflows, and malformed opted-in workflows without invoking tmux.
+- Add shell-level parser fixtures covering valid one/two/three-lane workflows,
+  repeated lanes, CRLF input, metadata placement, every required parse failure,
+  and proof that legacy `# stage:` comments remain legacy.
+
+Exit criterion: parser tests assert stage text, lane ordering, metadata, line
+numbers, and nonzero diagnostics for every invalid opted-in file.
+
+### Phase 2: Render, preview, and staged copy integration
+
+- Route `ii_payload_preview_text`, `ii_payload_render`, and selector copy through
+  the workflow classifier before legacy `ii_payload_body` processing.
+- Render each parsed stage independently with `ii_payload_render_text`; preserve
+  blank lines and ordinary stage comments and aggregate variable reports without
+  merging stage bodies.
+- Format workflow previews with description, notes, ordinal, complete lane name,
+  shell, title, advancement mode, and separately rendered bodies.
+- Implement sequential copy confirmation. Each accepted stage replaces the
+  clipboard; cancellation never copies a later stage.
+- Change `ii pc` and `ii p --copy` without `--input` to open the normal selector
+  with keywords as the initial query, matching the decided payload-file action
+  behavior. Keep `--input` behavior independent.
+- Ensure every malformed opted-in workflow aborts preview, render, copy, output,
+  and execute paths with no legacy fallback.
+
+Exit criterion: non-tmux tests prove legacy output is unchanged, workflow stages
+stay separate, copy order is deterministic, and malformed workflow content
+cannot reach output, clipboard, or `eval`.
+
+### Phase 3: Shared tmux primitives
+
+- Extract general pane/session snapshot and discovery helpers from the narrow
+  concepts in `ii_load_pane_snapshot` and `ii_load_pane_entries`; keep `ii la`
+  selection policy and its current-window restriction unchanged.
+- Extract the literal buffer send sequence from `ii_tmux_pice_popup` into a
+  helper accepting only pinned session ID, pane ID, and rendered text. It owns
+  unique buffer creation, paste, final Enter, cleanup, and precise failures.
+- Reuse that helper from `ii pice` first to prove no behavior regression.
+- Make workflow revalidation identity-based: same pane ID, same session,
+  distinct lane targets, and successful transport. Do not reject command,
+  title, content, window, position, or size changes.
+
+Exit criterion: existing pice smoke behavior passes through the extracted
+transport, including pane disappearance and buffer/paste/Enter failures.
+
+### Phase 4: Spatial selector and session memory
+
+- Add a workflow-specific popup selector rather than extending the linear fzf
+  policy used by `ii la`.
+- Enumerate windows in the pinned session, select one window at a time, and draw
+  pane rectangles from `pane_left`, `pane_top`, `pane_width`, and `pane_height`.
+- Build initial assignments in lane order: valid remembered complete-lane
+  binding first, then role-based detection, then the best remaining candidate.
+- Render the extra assignment line above each assigned pane, including ordinal,
+  generated label, complete lane name, source, and a non-color active marker.
+- Implement cursor movement, Space toggle, direct `1`/`2`/`3` assignment,
+  occupied-pane swap, empty-pane move, window navigation, Enter validation, and
+  Escape/`q` abort.
+- Store confirmed complete-lane-to-pane bindings in one session-scoped tmux user
+  option with an encoding that round-trips valid lane names safely. Clear stale,
+  cross-session, duplicate, and conflicting values while loading suggestions.
+
+Exit criterion: deterministic selector-state tests cover initialization,
+toggle/move/swap, incomplete confirmation, abort-without-write, confirmed memory
+updates, stale cleanup, and layouts with one through three lanes.
+
+### Phase 5: Workflow orchestrator and execute routing
+
+- Add a workflow popup entrypoint that receives the selected absolute file,
+  originating pane, and session ID. The selected file is reparsed inside the
+  popup and is the sole authority for workflow routing.
+- At the existing selector execute boundary, route a valid opted-in combo to the
+  popup; continue executing legacy payloads in the current shell. Never route
+  from a guessed keyword or free-form popup command.
+- Pin all confirmed pane IDs before stage 1. For each stage, render using
+  tmux-session variables only, show target and command preview, obtain its
+  `confirm` authorization, revalidate every pinned destination, and literal-send
+  the stage.
+- Starting at stage 2, word the confirmation so it also records that the
+  preceding stage is ready. Do not add a post-send completion prompt.
+- Abort on any rejected confirmation or identity/transport failure, report the
+  failed and pending stage, and never substitute or recalculate a target.
+- Keep workflow execution unavailable outside tmux with a clear error and no
+  local-eval fallback.
+
+Exit criterion: isolated tmux smoke tests exercise alternating lanes, repeated
+lane reuse, user abort before every stage, pane disappearance, harmless command
+and layout changes, unresolved variables, and exact ordered pane input.
+
+### Phase 6: Documentation and regression completion
+
+- Update payload schema, usage, help, architecture, tmux integration, and testing
+  documentation together with representative executable combo payloads.
+- Extend `script/help` expectations for the changed selector-copy semantics
+  without adding a public workflow command.
+- Run syntax checks, plugin-load and help audits, legacy payload render/copy
+  checks, pice regression tests, parser tests, and isolated multi-pane tmux smoke
+  tests.
+- Move or rename this pending document only after all first-version exit
+  criteria pass; retain deferred decisions in the permanent workflow design
+  documentation.

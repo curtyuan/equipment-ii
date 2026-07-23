@@ -61,7 +61,7 @@ form remains available as a compatibility alias.
 `ii pce [KEYWORD ...]` means
 `ii p --copy --execute [KEYWORD ...]`; `c` always means copy.
 `ii pice` means `ii p --input --copy --execute` and accepts no arguments.
-`ii pc KEYWORD [...]` means `ii p --copy KEYWORD [...]`.
+`ii pc [KEYWORD ...]` means `ii p --copy [KEYWORD ...]`.
 
 ## Registration Model
 

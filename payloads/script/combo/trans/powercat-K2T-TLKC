@@ -1,5 +1,10 @@
 # description: Kali sends file to Windows TEMP; target listens and Kali connects
-# stage: Target PowerShell: receive file to TEMP
+# flow: 1
+# note: Windows target must already have powercat.
+
+# stage: powershell | Listen and receive file into Windows TEMP
+# lane: remote-transfer
+# advance: confirm
 $PORT = $rport
 $RFILE = "${file:t}"
 $OUTFILE = Join-Path $env:TEMP $RFILE
@@ -7,6 +12,7 @@ Remove-Item $OUTFILE -Force -ErrorAction SilentlyContinue
 powercat -l -p $PORT -of $OUTFILE
 Write-Output $OUTFILE
 
-# stage: Kali shell: send file and close connection
-nc -q 0 $rhost $rport < "$file"
-nc -N $rhost $rport < "$file"
+# stage: zsh | Connect and send file from Kali
+# lane: kali-transfer
+# advance: confirm
+nc -q 0 $rhost $rport < "$file" || nc -N $rhost $rport < "$file"

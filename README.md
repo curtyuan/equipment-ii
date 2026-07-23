@@ -2,7 +2,8 @@
 
 ![ii icon](doc/asset/ii-icon2.png)
 
-`ii` is a zsh plugin for tmux-scoped workflow variables and payload rendering.
+`ii` is a zsh plugin for tmux-scoped variables, payload rendering, and confirmed
+multi-pane combo workflows.
 
 ## Requirements
 

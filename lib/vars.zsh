@@ -546,9 +546,7 @@ ii_load_current_shell() {
 }
 
 ii_load_pane_snapshot() {
-  local target="$1" format
-  format='#{pane_id}'$'\t''#{session_id}'$'\t''#{window_id}'$'\t''#{pane_dead}'$'\t''#{pane_in_mode}'$'\t''#{pane_current_command}'
-  tmux display-message -p -t "$target" "$format" 2>/dev/null
+  ii_tmux_pane_snapshot "$1"
 }
 
 ii_load_pane_entries() {

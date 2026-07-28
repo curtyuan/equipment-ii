@@ -1,11 +1,13 @@
 #!/usr/bin/env zsh
 
-if [[ ! -o interactive ]]; then
-  exec zsh -f -i "$0" "$@"
-fi
-
-setopt no_unset
-
 script_dir="${0:A:h}"
-source "${script_dir:h}/ii.plugin.zsh" || exit
-ii_tmux_pice_popup "$@"
+if [[ "${1:-}" == "--version" ]]; then
+  version_file="${script_dir:h}/VERSION"
+  if [[ -r "$version_file" ]]; then
+    print "ii-tmux-pice $(<"$version_file")"
+  else
+    print "ii-tmux-pice unknown"
+  fi
+  exit
+fi
+exec zsh "${script_dir}/ii-tmux-input" copy-execute "$@"

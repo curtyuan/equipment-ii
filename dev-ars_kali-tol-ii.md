@@ -147,7 +147,9 @@ ii s NAME=VALUE
 ii s:NAME=VALUE[,NAME=VALUE...]
 ii s:NAME[,NAME...] --from-shell
 ii s --from-shell -a
+ii sha
 ii s --from-file [PATH]
+ii sf [PATH]
 ```
 
 `ii set` is CLI-only. With no arguments or with a name but no value, it prints
@@ -417,8 +419,9 @@ Behavior:
     the fixed alias. Adding `--copy`, or using `pce`, copies after confirmation
     and before execution. Execution is not isolated, so shell side effects
     persist.
-14. `--copy` and `pc` skip the selector, use all keywords as one
-    non-interactive fzf query, and copy the highest-ranked rendered match.
+14. `--copy` and `pc` open the normal selector with all keywords joined as the
+    initial query. The operator reviews the selected payload and presses `y`
+    before copying.
 ```
 
 Categories:
@@ -538,7 +541,7 @@ shell/linux/bash-tcp
 shell/linux/sh-tcp
 shell/linux/nc-mkfifo
 shell/windows/powershell-rev
-script/config/hosts
+script/config/add-hosts
 script/tool/ii/detect-lhost
 script/tool/nmap/nmap
 xss/basic-alert
@@ -790,6 +793,7 @@ Layer files:
 ```text
 lib/tmux.zsh        tmux and external command checks
 lib/help_registry.zsh shared help topic registration and longest-path routing
+lib/color.zsh       shared ANSI policy, TTY detection, and named color helpers
 lib/clipboard.zsh   copy backend detection and copy
 lib/fzf.zsh         shared fzf input and preview helpers
 lib/var_helpers.zsh variable helpers and candidate generation
@@ -810,21 +814,24 @@ Load order:
 ```text
 1. tmux.zsh
 2. help_registry.zsh
-3. tmux_integration.zsh
-4. clipboard.zsh
-5. fzf.zsh
-6. interact.zsh
-7. var_helpers.zsh
-8. var_interactive.zsh
-9. vars.zsh
-10. var_output.zsh
-11. payloads.zsh
-12. payload_input.zsh
-13. www.zsh
-14. payload_command.zsh
-15. help.zsh
-16. version.zsh
-17. core.zsh
+3. color.zsh
+4. tmux_integration.zsh
+5. clipboard.zsh
+6. fzf.zsh
+7. interact.zsh
+8. var_helpers.zsh
+9. var_interactive.zsh
+10. vars.zsh
+11. var_output.zsh
+12. workflow.zsh
+13. workflow_tmux.zsh
+14. payloads.zsh
+15. payload_input.zsh
+16. www.zsh
+17. payload_command.zsh
+18. help.zsh
+19. version.zsh
+20. core.zsh
 ```
 
 ## Deployment Package
@@ -886,7 +893,8 @@ Implemented:
 - plugin entrypoint: ii.plugin.zsh
 - plugin-provided default II_PLUGIN_DIR, II_PAYLOAD_DIR, and II_WWW_ROOT
 - layered lib/ structure
-- ii dispatcher with short subcommands: s, sr, g, l, i, v, vo, voc, p, pc, pe, pce, pic, pice, u, h
+- ii dispatcher with short subcommands: s, sr, sf, sha, g, gr, gl, l, la, i, v,
+  vo, voc, p, pc, pe, pce, pic, pie, pice, tmux, u, h
 - tmux session variable source of truth
 - argument-based payload filtering
 - fzf payload and variable selection
@@ -897,8 +905,9 @@ Implemented:
 - interactive variable edit, add, and copy flows
 - interactive payload input with Enter submit, Alt+Enter newline, and a persistent
   bottom key hint
-- input-copy-execute through `ii pice`, plus the tmux popup-only `ii pice`
-  dispatcher path for sending confirmed payloads to the originating pane
+- input execute through `ii pie` and input-copy-execute through `ii pice`, plus
+  the native tmux `:ii` command alias for opening a non-copying popup that sends
+  confirmed input to the originating pane
 - fresh tmux-based payload rendering
 - payload description metadata
 - deterministic non-interactive fzf filter behavior

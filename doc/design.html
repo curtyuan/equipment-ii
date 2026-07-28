@@ -583,21 +583,25 @@
           <div class="detail-body">
             <pre><code>1. lib/tmux.zsh
 2. lib/help_registry.zsh
-3. lib/tmux_integration.zsh
-4. lib/clipboard.zsh
-5. lib/fzf.zsh
-6. lib/interact.zsh
-7. lib/var_helpers.zsh
-8. lib/var_interactive.zsh
-9. lib/vars.zsh
-10. lib/var_output.zsh
-11. lib/payloads.zsh
-12. lib/payload_input.zsh
-13. lib/www.zsh
-14. lib/payload_command.zsh
-15. lib/help.zsh
-16. lib/version.zsh
-17. lib/core.zsh</code></pre>
+3. lib/color.zsh
+4. lib/tmux_integration.zsh
+5. lib/clipboard.zsh
+6. lib/fzf.zsh
+7. lib/interact.zsh
+8. lib/var_helpers.zsh
+9. lib/var_interactive.zsh
+10. lib/vars.zsh
+11. lib/var_output.zsh
+12. lib/workflow.zsh
+13. lib/workflow_tmux.zsh
+14. lib/payloads.zsh
+15. lib/payload_input.zsh
+16. lib/tmux_input.zsh
+17. lib/www.zsh
+18. lib/payload_command.zsh
+19. lib/help.zsh
+20. lib/version.zsh
+21. lib/core.zsh</code></pre>
             <p class="muted">
               core.zsh loads last because it exposes the public dispatcher after
               all command implementations are defined.
@@ -615,8 +619,16 @@
             <span>Collect per-feature help topics and resolve aliases and nested help paths.</span>
           </div>
           <div class="card">
+            <strong>color.zsh</strong>
+            <span>Apply shared ANSI policy with TTY detection, <code>II_COLOR</code>, and <code>NO_COLOR</code>.</span>
+          </div>
+          <div class="card">
             <strong>tmux_integration.zsh</strong>
-            <span>Install the default conflict-aware command-prompt adapter and manage the isolated <code>ii pice</code> popup-to-pane path.</span>
+            <span>Install and migrate the native conflict-aware tmux <code>:ii</code> command alias.</span>
+          </div>
+          <div class="card">
+            <strong>tmux_input.zsh</strong>
+            <span>Manage the isolated single-pane pie/pice popup controller and delegate validated delivery.</span>
           </div>
           <div class="card">
             <strong>clipboard.zsh</strong>
@@ -632,7 +644,7 @@
           </div>
           <div class="card">
             <strong>var_helpers.zsh</strong>
-            <span>Normalize names, list tmux ii_ variables, format output, export shell values, and provide color helpers.</span>
+            <span>Normalize names, list tmux ii_ variables, format output, and export shell values.</span>
           </div>
           <div class="card">
             <strong>var_interactive.zsh</strong>
@@ -690,7 +702,7 @@
           <tbody>
             <tr>
               <td>Set</td>
-              <td><code>ii set NAME VALUE</code>, <code>ii s NAME=VALUE</code>, <code>ii s:NAME=VALUE</code>, <code>ii s --from-shell</code>, <code>ii s --from-file [PATH]</code>, <code>ii sr VALUE</code></td>
+              <td><code>ii set NAME VALUE</code>, <code>ii s NAME=VALUE</code>, <code>ii s:NAME=VALUE</code>, <code>ii s --from-shell</code>, <code>ii sha</code>, <code>ii s --from-file [PATH]</code>, <code>ii sf [PATH]</code>, <code>ii sr VALUE</code></td>
               <td>Write explicit CLI values, save shell values, or safely import dotenv values. Interactive management belongs to <code>ii i</code>.</td>
             </tr>
             <tr>
@@ -720,7 +732,7 @@
             </tr>
             <tr>
               <td>Payload</td>
-              <td><code>ii p [CATEGORY]</code>, <code>ii pc KEYWORD...</code>, <code>ii pe KEYWORD...</code>, <code>ii pce KEYWORD...</code>, <code>ii p --input</code>, <code>ii pic</code>, <code>ii pice</code>, <code>ii p --www</code></td>
+              <td><code>ii p [CATEGORY]</code>, <code>ii pc KEYWORD...</code>, <code>ii pe KEYWORD...</code>, <code>ii pce KEYWORD...</code>, <code>ii p --input</code>, <code>ii pic</code>, <code>ii pie</code>, <code>ii pice</code>, <code>ii p --www</code></td>
               <td>Select, copy, confirm and execute with or without copy, render pasted text, or route web-root helpers.</td>
             </tr>
             <tr>
@@ -731,7 +743,7 @@
             <tr>
               <td>Tmux</td>
               <td><code>ii tmux status</code></td>
-              <td>Diagnose the default Prefix+: dispatcher; static configuration may disable setup or force replacement of a custom binding.</td>
+              <td>Diagnose the native tmux <code>:ii</code> command alias; static configuration may disable setup or force replacement of a conflicting alias.</td>
             </tr>
             <tr>
               <td>Other</td>

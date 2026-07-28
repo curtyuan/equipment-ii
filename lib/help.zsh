@@ -22,8 +22,9 @@ Variables:
                           Set one or more variables with "="
   set|s NAME[,NAME...] --from-shell
                           Save current shell variables back to tmux
-  set|s --from-shell -a  Save all non-empty default shell variables
-  set|s --from-file [PATH]
+  set|s --from-shell -a | sha
+                          Save all non-empty default shell variables
+  set|s --from-file [PATH] | sf [PATH]
                           Import variables from PATH, default .env
   set|s -d [IFACE]       Detect lhost from an interface, default tun0
   set|s rhost=VALUE      Set rhost and auto-detect lhost when enabled
@@ -58,7 +59,7 @@ Payloads:
                           Render pasted or standard input
   payload|p --input --copy [-o [PATH]] | pic [-o [PATH]]
                           Render and copy input
-  payload|p --input --execute [-o [PATH]]
+  payload|p --input --execute [-o [PATH]] | pie
                           Render, confirm, and execute input
   payload|p --input --copy --execute [-o [PATH]] | pice
                           Render, confirm, copy, and execute input
@@ -69,7 +70,7 @@ Clipboard:
   clip|clipboard doctor  Diagnose clipboard backend behavior
 
 Tmux integration:
-  tmux status            Diagnose the default Prefix+: ii pice integration
+  tmux status            Diagnose the default tmux :ii command alias
 
 Other:
   version|-v|--version   Show installed version

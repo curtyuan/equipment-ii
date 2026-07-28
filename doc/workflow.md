@@ -41,7 +41,7 @@ render/copy payloads unless they explicitly opt into the workflow schema.
   second post-send advancement prompt. Submitted input is not treated as
   process completion.
 - Workflow popup rendering uses tmux-session variables only, matching the
-  existing `ii pice` popup boundary.
+  existing isolated ii popup boundary.
 - Workflow execution is entered through the existing payload selector rather
   than a new public `workflow` command. Selecting an opted-in combo and pressing
   `e`, or selecting it through `ii pe KEYWORD...`, routes to the workflow popup.
@@ -333,7 +333,7 @@ Rendering must reuse the current lowercase placeholder rules:
 
 - Render `%name%`, `$name`, `${name}`, and `${name:t}`.
 - For workflow execution in a popup, resolve from the selected tmux session's
-  `ii_` variables only, matching the current `ii pice` popup boundary. The
+  `ii_` variables only, matching the current isolated popup boundary. The
   popup cannot reliably inherit pane-local shell overrides.
 - Leave uppercase variables and legacy `II_NAME` forms unchanged.
 - Leave PowerShell scope expressions such as `$env:TEMP` unchanged.
@@ -354,7 +354,7 @@ rendered text -> tmux load-buffer -> paste-buffer to pane -> final Enter
 ```
 
 The popup command adapter is available by default according to
-[tmux-integration.md](../tmux-integration.md). Workflow support reuses that
+[tmux-integration.md](tmux-integration.md). Workflow support reuses that
 popup boundary and does not reintroduce per-session enable/disable state.
 
 Workflow execution should extract this into a shared literal-send helper. It
@@ -480,11 +480,30 @@ the popup's tmux-only rule.
 
 - Whether a separate public command is needed later for direct one-pane send;
   workflow execution itself uses the existing payload selector actions.
-- Exact timeout and matching syntax for a future `output` advancement mode.
 - Whether completion-marker wrapping is useful enough to justify shell-specific
   behavior in a later schema version.
 - Whether control-key stages such as sending Ctrl-C should ever share the same
   workflow schema or remain a separate, more privileged action.
+
+### Pending: pane-output advancement and branching
+
+Discuss before implementation:
+
+- Add a bounded `output PATTERN timeout SECONDS` advancement mode before
+  introducing general branching.
+- Capture a pane baseline before sending the stage and match only output
+  observed afterward, so text already in pane history cannot satisfy the rule.
+- Treat patterns as data, never shell code; define whether the first version
+  uses literal matching or a restricted regular-expression syntax.
+- On timeout, provide explicit retry, continue, and abort choices. A missing or
+  replaced pinned pane still aborts immediately.
+- Show the matched output and rule before advancing so the operator can audit
+  the decision.
+- Defer `case` branching until stages have stable, unique IDs. Branch targets
+  should use those IDs rather than positional stage numbers.
+- Before enabling branches, define validation for missing targets, duplicate
+  IDs, match priority, default behavior, cycles, and a maximum transition
+  count.
 
 None of these decisions blocks the first implementation. The concrete tmux
 session-option encoding for remembered assignments is an implementation detail;
@@ -692,10 +711,11 @@ cannot reach output, clipboard, or `eval`.
 - Extract general pane/session snapshot and discovery helpers from the narrow
   concepts in `ii_load_pane_snapshot` and `ii_load_pane_entries`; keep `ii la`
   selection policy and its current-window restriction unchanged.
-- Extract the literal buffer send sequence from `ii_tmux_pice_popup` into a
+- Extract the literal buffer send sequence from the popup input path into a
   helper accepting only pinned session ID, pane ID, and rendered text. It owns
   unique buffer creation, paste, final Enter, cleanup, and precise failures.
-- Reuse that helper from `ii pice` first to prove no behavior regression.
+- Reuse that helper from the generic tmux input popup first to prove no behavior
+  regression.
 - Make workflow revalidation identity-based: same pane ID, same session,
   distinct lane targets, and successful transport. Do not reject command,
   title, content, window, position, or size changes.

@@ -25,8 +25,8 @@ while preserving tmux as the shared fallback across panes.
 | `ii set NAME VALUE` | `ii s NAME VALUE` | Set one variable from explicit CLI arguments |
 | `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
 | `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
-| `ii set --from-shell -a` | `ii s --from-shell -a` | Save every non-empty default shell variable into tmux |
-| `ii set --from-file [PATH]` | `ii s --from-file [PATH]` | Import variables from PATH, defaulting to `.env` in the current directory |
+| `ii set --from-shell -a` | `ii s --from-shell -a`, `ii sha` | Save every non-empty default shell variable into tmux |
+| `ii set --from-file [PATH]` | `ii s --from-file [PATH]`, `ii sf [PATH]` | Import variables from PATH, defaulting to `.env` in the current directory |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface, defaulting to `tun0` |
 | `ii set rhost=VALUE` | `ii s:rhost=VALUE` | Set rhost and automatically detect lhost when enabled |
 | `ii set rhost=VALUE` | `ii sr VALUE` | Set only rhost and run the same optional lhost auto-detection |
@@ -47,12 +47,12 @@ while preserving tmux as the shared fallback across panes.
 | `ii p --copy --execute [KEYWORD ...]` | `ii pce [KEYWORD ...]` | Select, confirm, copy, and execute a rendered payload in the current shell |
 | `ii p --input [-o [PATH]]` | | Render pasted input and optionally write it |
 | `ii p --input --copy [-o [PATH]]` | `ii pic [-o [PATH]]` | Render pasted input and always copy it |
-| `ii p --input --execute [-o [PATH]]` | | Render input, confirm, and execute without copying |
+| `ii p --input --execute [-o [PATH]]` | `ii pie` | Render input, confirm, and execute without copying |
 | `ii p --input --copy --execute [-o [PATH]]` | `ii pice` | Render input, confirm, copy, and execute it in the current shell; `pice` accepts no arguments |
 | `ii p --www --file PATH` / `ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | Render a file, list, search, or symlink files under the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
-| `ii tmux status` | | Diagnose the default Prefix+: dispatcher |
+| `ii tmux status` | | Diagnose the native tmux `:ii` command alias |
 | `ii version` | `ii -v`, `ii --version` | Show installed version |
 | `ii help [COMMAND]` | `ii h`, `ii -h`, `ii --help` | Show help |
 
@@ -94,15 +94,21 @@ export II_EXPORT_CASE=both   # lhost and LHOST
 ~/.config/ii/ii.conf
 ```
 
-Use it for stable preferences such as shell export case and the `/www` helper
-root:
+Use it for stable preferences such as shell export case, ANSI color policy, and
+the `/www` helper root:
 
 ```zsh
 export II_EXPORT_CASE=lower
+export II_COLOR=auto
 export II_AUTO_DETECT_LHOST=1
 export II_AUTO_DETECT_LHOST_INTERFACE=tun0
 export II_WWW_ROOT=/www
 ```
+
+`II_COLOR` accepts `auto`, `always`, or `never`. Auto mode colors terminal and
+ANSI-aware selector output without adding escape sequences to ordinary pipes
+or redirects. A non-empty standard `NO_COLOR` variable disables color
+regardless of `II_COLOR`.
 
 To use a different config path, set `II_CONFIG_FILE` in `.zshrc` before loading
 the plugin:
@@ -169,12 +175,12 @@ ii s:usert --from-shell
 `--from-shell` checks the lowercase shell name first, then the uppercase name.
 Missing shell variables print a red warning and are skipped.
 
-`ii s --from-shell -a` checks the complete default-name list instead of taking
+`ii s --from-shell -a`, or `ii sha`, checks the complete default-name list instead of taking
 names. It imports and prints only defaults with a non-empty lowercase or
 uppercase shell value, preferring lowercase. Unset and empty defaults are
 silently skipped. Arbitrary non-default shell variables are not imported.
 
-Use `ii s --from-file [PATH]` to import `NAME=VALUE` entries from a dotenv file.
+Use `ii s --from-file [PATH]`, or `ii sf [PATH]`, to import `NAME=VALUE` entries from a dotenv file.
 PATH defaults to `.env` in the current directory. Blank lines, `#` comments, an
 optional `export ` prefix, unquoted values, and single-line single- or
 double-quoted values are supported. Multiline dotenv values are not supported.
@@ -355,9 +361,9 @@ sudo nmap -p- -Pn -T4 $rhost
 Files under `payloads/script/` are for custom scripts. They may use lowercase
 variables such as `%rhost%`, `$rhost`, `${file}`, and `${file:t}`.
 
-Combo payloads are multi-stage script payloads under `script/combo/`. Use names
-like `script/combo/trans/powercat-K2T-TLKC`, where `K2T` means Kali sends to
-target and `TLKC` means target listens while Kali connects. See
+Combo payloads are multi-stage script payloads under `payloads/script/combo/`.
+Use names like `payloads/script/combo/trans/powercat-K2T-TLKC`, where `K2T`
+means Kali sends to target and `TLKC` means target listens while Kali connects. See
 [payload-schema.md](payload-schema.md) for the combo naming table and stage
 metadata convention.
 
@@ -506,21 +512,25 @@ Clipboard failure is reported but does not prevent confirmed execution.
 
 ### Tmux Popup Input Execution
 
-Loading the plugin inside tmux automatically installs a server-wide
-`Prefix + :` adapter. The exact `ii pice` command is the only ii command
-accepted by that tmux dispatcher; all non-ii input retains normal tmux command
-behavior. Repeated plugin loads are silent and idempotent. `ii tmux status` is
-read-only and reports the configuration, binding state, and popup helper path.
+`ii pie` is the fixed alias for `ii payload --input --execute` and accepts no
+positional arguments. It renders input, confirms, and executes without copying.
+
+Loading the plugin inside tmux automatically installs a server-wide native tmux
+command alias named `ii`. The `Prefix + :` binding remains untouched. Enter
+`ii` in tmux's command prompt to open an isolated popup equivalent to `ii pie`.
+Repeated plugin loads are silent and idempotent. `ii tmux status` is read-only
+and reports the configuration, alias state, native binding state, and generic
+popup helper path.
 
 Set `II_TMUX_INTEGRATION=0` before loading the plugin to skip automatic setup.
-If Prefix+: already has a non-standard custom binding, ii preserves it and
-prints one conflict notice. Set `II_TMUX_INTEGRATION_FORCE=1` to explicitly
-replace it; force mode does not preserve the custom binding's behavior.
+If another tmux command alias already owns the name `ii`, ii preserves it and
+prints one conflict notice. Set `II_TMUX_INTEGRATION_FORCE=1` to replace only
+that conflicting alias.
 
 The tmux execution path is:
 
 ```text
-popup input -> tmux-variable render -> popup confirmation -> clipboard copy
+popup input -> tmux-variable render -> popup confirmation
 -> literal paste to the originating pane -> one final Enter
 ```
 

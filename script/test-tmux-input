@@ -1,0 +1,59 @@
+#!/usr/bin/env zsh
+
+set -eu
+setopt pipefail
+
+root="${0:A:h:h}"
+II_TMUX_INTEGRATION=0 source "${root}/ii.plugin.zsh"
+
+fail() {
+  print -u2 -r -- "tmux input popup test failed: $*"
+  exit 1
+}
+
+version="$(<"${root}/VERSION")"
+[[ "$("${root}/script/ii-tmux-input" --version)" == "ii-tmux-input ${version}" ]] ||
+  fail input-helper-version
+[[ "$("${root}/script/ii-tmux-pice" --version)" == "ii-tmux-pice ${version}" ]] ||
+  fail pice-helper-version
+
+typeset -gi copied=0 sent=0
+typeset -g sent_text=""
+typeset -g sent_session=""
+
+ii_tmux_available() { return 0; }
+tmux() {
+  case "$*" in
+    *pane_id*) print %1 ;;
+    *pane_current_command*) print zsh ;;
+    *session_id*) print '$1' ;;
+    *) print 'test:0.0 (%1)' ;;
+  esac
+}
+ii_payload_read_input() { typeset -g II_PAYLOAD_INPUT_TEXT='print "$rhost"'; }
+ii_payload_render_text() {
+  typeset -g II_PAYLOAD_RENDERED_TEXT='print "10.10.10.10"'
+  typeset -gA II_PAYLOAD_RENDER_REPORT_SOURCE=()
+  typeset -gA II_PAYLOAD_RENDER_REPORT_VALUE=()
+}
+ii_payload_render_report() { return 0; }
+ii_payload_missing_names() { return 0; }
+ii_payload_print_separator() { print '[payload]'; }
+ii_clip_copy() { (( copied += 1 )); }
+ii_tmux_send_literal() {
+  (( sent += 1 ))
+  sent_session="$1"
+  sent_text="$3"
+}
+
+II_INTERACTIVE_KEY=y ii_tmux_input_popup execute %1 >/dev/null || fail execute-mode
+[[ $copied -eq 0 && $sent -eq 1 && "$sent_session" == '$1' &&
+   "$sent_text" == 'print "10.10.10.10"' ]] ||
+  fail execute-side-effects
+
+II_INTERACTIVE_KEY=y ii_tmux_input_popup copy-execute %1 '$1' >/dev/null || fail copy-execute-mode
+[[ $copied -eq 1 && $sent -eq 2 ]] || fail copy-execute-side-effects
+
+ii_tmux_input_popup invalid %1 '$1' >/dev/null 2>&1 && fail invalid-mode
+
+print "tmux generic input popup tests passed"

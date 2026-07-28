@@ -1,0 +1,99 @@
+#!/usr/bin/env zsh
+
+set -eu
+setopt pipefail
+
+root="${0:A:h:h}"
+tmp="$(mktemp -d)"
+socket="${tmp}/tmux.sock"
+
+cleanup() {
+  tmux -S "$socket" kill-server 2>/dev/null || true
+  rm -rf -- "$tmp"
+}
+trap cleanup EXIT
+
+fail() {
+  print -u2 -r -- "tmux integration test failed: $*"
+  exit 1
+}
+
+tmux -S "$socket" new-session -d -s integration-test -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t integration-test:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t integration-test:0.0 '#{pane_id}')"
+tmux_env="${socket},${server_pid},0"
+native_binding="$(tmux -S "$socket" list-keys -T prefix :)"
+tmux -S "$socket" set-option -s 'command-alias[100]' 'mine=display-message keep-me'
+
+load_plugin() {
+  env TMUX="$tmux_env" TMUX_PANE="$pane" II_CONFIG_FILE=/dev/null \
+    zsh -fc "source ${(q)root}/ii.plugin.zsh"
+}
+
+load_plugin
+alias_lines="$(tmux -S "$socket" show-options -s command-alias)"
+version="$(<"${root}/VERSION")"
+[[ "$alias_lines" == *"ii=display-popup -EE -T 'ii pie ${version}'"*'zsh '*'ii-tmux-input execute'* ]] ||
+  fail alias-install
+[[ "$alias_lines" != *"'#{pane_id}'"* ]] || fail unexpanded-pane-format-passed
+[[ "$alias_lines" != *"'#{session_id}'"* ]] || fail shell-fragile-session-id-passed
+[[ "$(tmux -S "$socket" show-options -sv 'command-alias[100]')" == 'mine=display-message keep-me' ]] ||
+  fail occupied-index-overwritten
+[[ "$(tmux -S "$socket" list-keys -T prefix :)" == "$native_binding" ]] || fail native-binding-changed
+first_alias_lines="$alias_lines"
+
+load_plugin
+[[ "$(tmux -S "$socket" show-options -s command-alias)" == "$first_alias_lines" ]] || fail idempotent-reload
+
+reload_output="$(
+  env TMUX="$tmux_env" TMUX_PANE="$pane" II_CONFIG_FILE=/dev/null \
+    zsh -fc "source ${(q)root}/ii.plugin.zsh; source ${(q)root}/ii.plugin.zsh" 2>&1
+)"
+[[ "$reload_output" != *'read-only variable'* ]] || fail readonly-variable-on-reload
+
+status_output="$(env TMUX="$tmux_env" TMUX_PANE="$pane" II_CONFIG_FILE=/dev/null II_TMUX_INTEGRATION=0 \
+  zsh -fc "source ${(q)root}/ii.plugin.zsh; ii tmux status")"
+[[ "$status_output" == *'command alias: installed'* && "$status_output" == *'Prefix+: native or user-defined'* ]] ||
+  fail status
+
+ii_line="$(tmux -S "$socket" show-options -s command-alias | grep -m1 'ii=display-popup')"
+ii_option="${ii_line%% *}"
+ii_index="${ii_option#*\[}"
+ii_index="${ii_index%\]}"
+[[ -n "$ii_index" ]] || fail alias-index
+tmux -S "$socket" set-option -s "command-alias[$ii_index]" 'ii=display-message changed-in-place'
+changed_output="$(load_plugin 2>&1)"
+[[ "$changed_output" == *"tmux command alias 'ii' is already defined"* ]] ||
+  fail changed-owned-index-noticed
+[[ "$(tmux -S "$socket" show-options -sv "command-alias[$ii_index]")" ==
+  'ii=display-message changed-in-place' ]] || fail changed-owned-index-overwritten
+env TMUX="$tmux_env" TMUX_PANE="$pane" II_CONFIG_FILE=/dev/null II_TMUX_INTEGRATION_FORCE=1 \
+  zsh -fc "source ${(q)root}/ii.plugin.zsh"
+
+tmux -S "$socket" set-option -su "command-alias[$ii_index]"
+tmux -S "$socket" set-option -gu @ii_integration_marker
+tmux -S "$socket" set-option -s 'command-alias[120]' 'ii=display-message user-owned'
+conflict_output="$(load_plugin 2>&1)"
+[[ "$conflict_output" == *"tmux command alias 'ii' is already defined"* ]] || fail conflict-notice
+[[ "$(tmux -S "$socket" show-options -sv 'command-alias[120]')" == 'ii=display-message user-owned' ]] ||
+  fail conflict-overwritten
+
+env TMUX="$tmux_env" TMUX_PANE="$pane" II_CONFIG_FILE=/dev/null II_TMUX_INTEGRATION_FORCE=1 \
+  zsh -fc "source ${(q)root}/ii.plugin.zsh"
+[[ "$(tmux -S "$socket" show-options -sv 'command-alias[120]')" == ii=display-popup* ]] ||
+  fail force-replace
+
+helper="${root}/script/ii-tmux-pice"
+legacy="if-shell -F \"##{==:%1,ii pice}\" \"display-popup -EE '${helper}' '#{pane_id}' '#{session_id}'\" \"%1\""
+tmux -S "$socket" bind-key -T prefix : command-prompt -F -p : "$legacy"
+load_plugin
+[[ "$(tmux -S "$socket" list-keys -T prefix :)" == "$native_binding" ]] || fail legacy-binding-restore
+
+tmux -S "$socket" set-option -su 'command-alias[120]'
+tmux -S "$socket" set-option -gu @ii_integration_marker
+env TMUX="$tmux_env" TMUX_PANE="$pane" II_CONFIG_FILE=/dev/null II_TMUX_INTEGRATION=0 \
+  zsh -fc "source ${(q)root}/ii.plugin.zsh"
+[[ "$(tmux -S "$socket" show-options -sv command-alias)" != *'ii=display-popup'* ]] ||
+  fail disabled-install
+
+print "tmux command alias integration tests passed"

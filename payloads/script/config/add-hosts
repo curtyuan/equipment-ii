@@ -1,0 +1,24 @@
+# description: 新增或更新 rhost 的 hosts 紀錄，並移除相同 IP 或 domain 的舊紀錄
+# 使用暫存檔重建 /etc/hosts，避免直接讀寫同一個檔案。
+TMP="$(mktemp)"
+DIRECTS="${directs}"
+ENTRY="${rhost} ${domain}${DIRECTS:+ ${DIRECTS}}"
+
+# 保留註解與無關紀錄；刪除 IP 相同或 aliases 中含有相同 domain 的紀錄。
+awk -v ip="$rhost" -v d="$domain" -v e="$ENTRY" '
+{
+  raw = line = $0
+  sub(/[[:space:]]*#.*/, "", line)
+  sub(/^[[:space:]]+/, "", line)
+  n = split(line, f, /[[:space:]]+/)
+
+  drop = f[1] == ip
+  for (i = 2; i <= n; i++) drop = drop || f[i] == d
+
+  if (!drop) print raw
+}
+END { print e }
+' /etc/hosts > "$TMP" \
+  && sudo tee /etc/hosts < "$TMP" >/dev/null
+
+rm -f "$TMP"

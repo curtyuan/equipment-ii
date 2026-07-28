@@ -1,8 +1,10 @@
-# Default tmux command-prompt dispatcher and popup input execution.
+# Default tmux command alias and popup input execution.
 
-typeset -gr II_TMUX_INTEGRATION_SCHEMA=1
-typeset -gr II_TMUX_INTEGRATION_MARKER_OPTION='@ii_integration_marker'
-typeset -gr II_TMUX_INTEGRATION_NOTICE_OPTION='@ii_integration_conflict_notice'
+# Keep these reloadable: plugin managers and interactive config commonly source
+# a zsh plugin more than once in the same shell.
+typeset -g II_TMUX_INTEGRATION_SCHEMA=2
+typeset -g II_TMUX_INTEGRATION_MARKER_OPTION='@ii_integration_marker'
+typeset -g II_TMUX_INTEGRATION_NOTICE_OPTION='@ii_integration_conflict_notice'
 
 ii_cmd_tmux() {
   local help_arg
@@ -14,7 +16,7 @@ ii_cmd_tmux() {
   done
 
   case "${1:-status}" in
-    status) shift; [[ $# -eq 0 ]] || { print -u2 "ii: usage: ii tmux status"; return 2; }; ii_tmux_dispatch_status ;;
+    status) shift; [[ $# -eq 0 ]] || { print -u2 "ii: usage: ii tmux status"; return 2; }; ii_tmux_alias_status ;;
     --help|-h)
       cat <<'EOF'
 usage: ii tmux status
@@ -25,64 +27,114 @@ Aliases:
 Help:
   ii help tmux
 
-The integration is installed automatically when the plugin loads inside tmux.
+The tmux command alias is installed automatically when the plugin loads inside
+tmux. It adds `ii` to tmux's native `Prefix + :` command prompt without
+replacing that key binding. Enter `ii` at the prompt to open an isolated popup
+equivalent to `ii pie`: render, confirm, send, and execute without copying.
+
 Set II_TMUX_INTEGRATION=0 before loading the plugin to disable automatic setup.
-If Prefix+: has a custom binding, ii leaves it unchanged; set
-II_TMUX_INTEGRATION_FORCE=1 to replace it. Status is read-only and reports the
-configuration, binding state, and popup helper path.
-
-Entering `ii pice` through Prefix+: opens a popup for pasted payload input.
-Enter finishes input, Alt+Enter inserts a newline, and Esc cancels. The popup
-renders current-session ii variables, shows the destination pane, and asks for
-confirmation before copying and sending the rendered command there.
-
-Missing variables remain visible and require explicit confirmation. Clipboard
-failure does not prevent a confirmed command from being sent.
+If another tmux command alias already owns the name `ii`, ii leaves it unchanged;
+set II_TMUX_INTEGRATION_FORCE=1 to replace that conflicting alias. Status is
+read-only and reports the command alias, native Prefix+: binding, and helper.
 EOF
       ;;
     *) print -u2 "ii: usage: ii tmux status"; return 2 ;;
   esac
 }
 
-ii_tmux_dispatch_helper() {
-  print -r -- "${II_PLUGIN_DIR}/script/ii-tmux-pice"
+ii_tmux_input_helper() {
+  print -r -- "${II_PLUGIN_DIR}/script/ii-tmux-input"
 }
 
-ii_tmux_dispatch_marker() {
-  print -r -- "version=${II_TMUX_INTEGRATION_SCHEMA} helper=$(ii_tmux_dispatch_helper)"
+ii_tmux_input_version() {
+  local version_file="${II_PLUGIN_DIR}/VERSION"
+  if [[ -r "$version_file" ]]; then
+    command cat "$version_file"
+  else
+    print "unknown"
+  fi
 }
 
-ii_tmux_dispatch_binding() {
-  local helper="$(ii_tmux_dispatch_helper)"
-  print -r -- "if-shell -F \"##{==:%1,ii pice}\" \"display-popup -EE -T 'ii pice' -w 90% -h 90% -d '#{pane_current_path}' '${helper}' '#{pane_id}' '#{session_id}'\" \"%1\""
+ii_tmux_alias_command() {
+  local helper version
+  helper="$(ii_tmux_input_helper)"
+  version="$(ii_tmux_input_version)"
+  print -r -- "ii=display-popup -EE -T 'ii pie ${version}' -w 90% -h 90% -d '#{pane_current_path}' zsh ${(q)helper} execute"
 }
 
-ii_tmux_dispatch_current_binding() {
+ii_tmux_alias_marker() {
+  local index="$1"
+  print -r -- "version=${II_TMUX_INTEGRATION_SCHEMA} index=${index} helper=$(ii_tmux_input_helper)"
+}
+
+ii_tmux_alias_scan() {
+  local line option value index name
+  typeset -gA II_TMUX_ALIAS_VALUE=()
+  typeset -gA II_TMUX_ALIAS_NAME_INDEX=()
+  while IFS= read -r line; do
+    [[ "$line" == command-alias\[*\]\ * ]] || continue
+    option="${line%% *}"
+    value="${(Q)${line#* }}"
+    index="${option#command-alias\[}"
+    index="${index%\]}"
+    name="${value%%=*}"
+    II_TMUX_ALIAS_VALUE[$index]="$value"
+    [[ -n "$name" && -z "${II_TMUX_ALIAS_NAME_INDEX[$name]-}" ]] &&
+      II_TMUX_ALIAS_NAME_INDEX[$name]="$index"
+  done < <(tmux show-options -s command-alias 2>/dev/null)
+}
+
+ii_tmux_alias_marker_index() {
+  local marker="$1" field
+  for field in ${(z)marker}; do
+    [[ "$field" == index=* ]] && { print -r -- "${field#index=}"; return 0; }
+  done
+  return 1
+}
+
+ii_tmux_alias_free_index() {
+  local index=100
+  while [[ -n "${II_TMUX_ALIAS_VALUE[$index]-}" ]]; do
+    (( index++ ))
+  done
+  print -r -- "$index"
+}
+
+ii_tmux_alias_is_current() {
+  local marker="$1" index expected
+  index="$(ii_tmux_alias_marker_index "$marker" 2>/dev/null)" || return 1
+  expected="$(ii_tmux_alias_command)"
+  [[ "$marker" == "$(ii_tmux_alias_marker "$index")" &&
+     "${II_TMUX_ALIAS_VALUE[$index]-}" == "$expected" ]]
+}
+
+ii_tmux_alias_value_is_owned() {
+  local value="$1"
+  [[ "$value" == ii=display-popup* &&
+     ( "$value" == *'ii-tmux-pice'* || "$value" == *'ii-tmux-input'* ) ]]
+}
+
+ii_tmux_legacy_binding() {
   tmux list-keys -T prefix : 2>/dev/null
 }
 
-ii_tmux_dispatch_is_standard_binding() {
-  local binding="$1"
-  [[ "$binding" =~ '^bind-key[[:space:]]+(-r[[:space:]]+)?-T[[:space:]]+prefix[[:space:]]+:[[:space:]]+command-prompt[[:space:]]*$' ]]
+ii_tmux_legacy_binding_is_owned() {
+  local binding="$1" helper="${II_PLUGIN_DIR}/script/ii-tmux-pice"
+  [[ "$binding" == bind-key\ -T\ prefix\ :\ command-prompt\ -F\ -p\ :\ * &&
+     "$binding" == *'if-shell -F \"##{==:%1,ii pice}\"'* &&
+     "$binding" == *"display-popup -EE"*"'${helper}'"*"'#{pane_id}' '#{session_id}'"* &&
+     "$binding" == *'\"%1\""' ]]
 }
 
-ii_tmux_dispatch_is_legacy_binding() {
-  local binding="$1"
-  [[ "$binding" == *'@ii_dispatch_enabled'* && "$binding" == *'ii pice'* && "$binding" == *'ii-tmux-pice'* ]]
+ii_tmux_restore_native_colon() {
+  local binding
+  binding="$(ii_tmux_legacy_binding)"
+  if ii_tmux_legacy_binding_is_owned "$binding"; then
+    tmux bind-key -T prefix : command-prompt || return
+  fi
 }
 
-ii_tmux_dispatch_is_owned_binding() {
-  local binding="$1"
-  [[ "$binding" == *'ii pice'* && "$binding" == *'ii-tmux-pice'* ]]
-}
-
-ii_tmux_dispatch_is_current_binding() {
-  local binding="$1" marker="$2" expected
-  expected="$(ii_tmux_dispatch_marker)"
-  [[ "$marker" == "$expected" && "$binding" == *'ii pice'* && "$binding" == *"$(ii_tmux_dispatch_helper)"* && "$binding" != *'@ii_dispatch_enabled'* ]]
-}
-
-ii_tmux_dispatch_clear_legacy_state() {
+ii_tmux_alias_clear_legacy_state() {
   local session
   tmux set-option -gu @ii_colon_binding 2>/dev/null
   tmux set-option -gu @ii_colon_binding_saved 2>/dev/null
@@ -92,130 +144,103 @@ ii_tmux_dispatch_clear_legacy_state() {
   return 0
 }
 
-ii_tmux_dispatch_install() {
-  local binding marker
-  binding="$(ii_tmux_dispatch_binding)" || return
-  marker="$(ii_tmux_dispatch_marker)" || return
-  tmux bind-key -T prefix : command-prompt -F -p : "$binding" || return
+ii_tmux_alias_install() {
+  local index="$1" command marker
+  command="$(ii_tmux_alias_command)" || return
+  marker="$(ii_tmux_alias_marker "$index")" || return
+  tmux set-option -s "command-alias[$index]" "$command" || return
   tmux set-option -gq "$II_TMUX_INTEGRATION_MARKER_OPTION" "$marker" || return
   tmux set-option -gu "$II_TMUX_INTEGRATION_NOTICE_OPTION" 2>/dev/null || true
-  ii_tmux_dispatch_clear_legacy_state
-  return 0
+  ii_tmux_restore_native_colon || return
+  ii_tmux_alias_clear_legacy_state
 }
 
-ii_tmux_dispatch_ensure() {
+ii_tmux_alias_ensure() {
   [[ -n "${TMUX:-}" ]] || return 0
   command -v tmux >/dev/null 2>&1 || return 0
   [[ "${II_TMUX_INTEGRATION:-1}" != 0 ]] || return 0
 
-  local helper binding marker notice expected force=0
-  helper="$(ii_tmux_dispatch_helper)"
+  local helper marker marker_index name_index notice expected force=0
+  helper="$(ii_tmux_input_helper)"
   if [[ ! -r "$helper" ]]; then
     print -u2 "ii: tmux popup helper is not readable: $helper"
     return 1
   fi
 
-  binding="$(ii_tmux_dispatch_current_binding)"
+  ii_tmux_alias_scan
   marker="$(tmux show-option -gqv "$II_TMUX_INTEGRATION_MARKER_OPTION" 2>/dev/null)"
-  ii_tmux_dispatch_is_current_binding "$binding" "$marker" && return 0
+  ii_tmux_alias_is_current "$marker" && {
+    ii_tmux_restore_native_colon || return
+    ii_tmux_alias_clear_legacy_state
+    return 0
+  }
   [[ "${II_TMUX_INTEGRATION_FORCE:-0}" == 1 ]] && force=1
+  name_index="${II_TMUX_ALIAS_NAME_INDEX[ii]-}"
+  marker_index="$(ii_tmux_alias_marker_index "$marker" 2>/dev/null)"
 
-  if [[ -z "$binding" ]] || ii_tmux_dispatch_is_standard_binding "$binding" || ii_tmux_dispatch_is_owned_binding "$binding" || (( force )); then
-    ii_tmux_dispatch_install
-    return $?
+  if [[ -n "$name_index" ]]; then
+    if { [[ -n "$marker_index" && "$name_index" == "$marker_index" ]] &&
+         ii_tmux_alias_value_is_owned "${II_TMUX_ALIAS_VALUE[$name_index]}"; } ||
+       (( force )); then
+      ii_tmux_alias_install "$name_index"
+      return $?
+    fi
+    expected="version=${II_TMUX_INTEGRATION_SCHEMA} helper=$helper"
+    notice="$(tmux show-option -gqv "$II_TMUX_INTEGRATION_NOTICE_OPTION" 2>/dev/null)"
+    if [[ "$notice" != "$expected" ]]; then
+      print -u2 "ii: tmux command alias 'ii' is already defined; ii popup alias was not installed"
+      print -u2 "ii: set II_TMUX_INTEGRATION_FORCE=1 to replace it, or II_TMUX_INTEGRATION=0 to silence this notice"
+      tmux set-option -gq "$II_TMUX_INTEGRATION_NOTICE_OPTION" "$expected" 2>/dev/null
+    fi
+    return 0
   fi
 
-  expected="$(ii_tmux_dispatch_marker)"
-  notice="$(tmux show-option -gqv "$II_TMUX_INTEGRATION_NOTICE_OPTION" 2>/dev/null)"
-  if [[ "$notice" != "$expected" ]]; then
-    print -u2 "ii: Prefix+: has a custom tmux binding; ii popup integration was not installed"
-    print -u2 "ii: set II_TMUX_INTEGRATION_FORCE=1 to replace it, or II_TMUX_INTEGRATION=0 to silence this notice"
-    tmux set-option -gq "$II_TMUX_INTEGRATION_NOTICE_OPTION" "$expected" 2>/dev/null
-  fi
-  return 0
+  ii_tmux_alias_install "$(ii_tmux_alias_free_index)"
 }
 
-ii_tmux_dispatch_binding_state() {
-  local binding="$1" marker="$2"
-  if ii_tmux_dispatch_is_current_binding "$binding" "$marker"; then
-    print installed
-  elif ii_tmux_dispatch_is_owned_binding "$binding"; then
+ii_tmux_alias_state() {
+  local marker="$1" marker_index name_index
+  ii_tmux_alias_scan
+  ii_tmux_alias_is_current "$marker" && { print installed; return; }
+  name_index="${II_TMUX_ALIAS_NAME_INDEX[ii]-}"
+  marker_index="$(ii_tmux_alias_marker_index "$marker" 2>/dev/null)"
+  if [[ -n "$name_index" ]]; then
+    if [[ -n "$marker_index" && "$name_index" == "$marker_index" ]] &&
+       ii_tmux_alias_value_is_owned "${II_TMUX_ALIAS_VALUE[$name_index]}"; then
+      print stale
+    else
+      print conflict
+    fi
+  elif [[ -n "$marker_index" ]]; then
     print stale
-  elif [[ -z "$binding" ]]; then
-    print missing
-  elif ii_tmux_dispatch_is_standard_binding "$binding"; then
-    [[ -n "$marker" ]] && print stale || print standard
   else
-    print custom
+    print missing
   fi
 }
 
-ii_tmux_dispatch_status() {
+ii_tmux_alias_status() {
   ii_tmux_available || return
-  local configured=default binding marker helper server
+  local configured=default marker helper server binding
   if [[ "${II_TMUX_INTEGRATION:-1}" == 0 ]]; then
     configured=disabled
   elif [[ "${II_TMUX_INTEGRATION_FORCE:-0}" == 1 ]]; then
     configured=force
   fi
-  binding="$(ii_tmux_dispatch_current_binding)"
   marker="$(tmux show-option -gqv "$II_TMUX_INTEGRATION_MARKER_OPTION" 2>/dev/null)"
-  helper="$(ii_tmux_dispatch_helper)"
+  helper="$(ii_tmux_input_helper)"
   server="$(tmux display-message -p '#{socket_path}' 2>/dev/null)"
   [[ -n "$server" ]] || server="${TMUX%%,*}"
+  binding="$(ii_tmux_legacy_binding)"
   print "server: $server"
   print "configured: $configured"
-  print "binding: $(ii_tmux_dispatch_binding_state "$binding" "$marker")"
+  print "command alias: $(ii_tmux_alias_state "$marker")"
+  print "command: ii"
   print "helper: $helper"
-  print "Prefix+: command: ii pice"
-}
-
-ii_tmux_pice_popup() {
-  ii_tmux_available || return
-  local target="${1:-${TMUX_PANE:-}}" session="${2:-}" input rendered report missing answer copy_rc=0
-  [[ -n "$target" ]] || { print -u2 "ii: cannot determine originating pane"; return 1; }
-  [[ -n "$session" ]] || session="$(tmux display-message -p -t "$target" '#{session_id}')"
-  local II_PAYLOAD_TMUX_ONLY=1
-
-  print "Paste payload input below. Enter renders; Alt-Enter adds a line; Esc cancels."
-  print
-  ii_payload_read_input
-  local input_rc=$?
-  if (( input_rc == 130 )); then
-    print "cancelled"
-    return 0
-  fi
-  (( input_rc == 0 )) || return "$input_rc"
-  input="$II_PAYLOAD_INPUT_TEXT"
-  [[ -n "$input" ]] || { print -u2 "ii: input is empty"; return 1; }
-  ii_payload_render_text "$input" >/dev/null || return
-  rendered="$II_PAYLOAD_RENDERED_TEXT"
-  report="$(ii_payload_render_report)"
-  missing="$(ii_payload_missing_names)"
-
-  print "Target: $(tmux display-message -p -t "$target" '#S:#I.#P (#{pane_id})')"
-  print "Command: $(tmux display-message -p -t "$target" '#{pane_current_command}')"
-  [[ -n "$report" ]] && { print; print -r -- "$report"; }
-  print
-  ii_payload_print_separator
-  print -r -- "$rendered"
-  print
-  if [[ -n "$missing" ]]; then
-    print -u2 "Unresolved variables: ${(j:, :)${(f)missing}}"
-    printf 'Unresolved variables may make this payload ineffective. Copy, send and execute anyway? [y/N] '
+  if ii_tmux_legacy_binding_is_owned "$binding"; then
+    print "Prefix+: legacy ii adapter"
   else
-    printf 'Copy, send and execute? [y/N] '
+    print "Prefix+: native or user-defined"
   fi
-  read -r -k 1 answer
-  print
-  [[ "${(L)answer}" == y ]] || { print "cancelled"; return 1; }
-
-  ii_clip_copy "$rendered" || copy_rc=1
-  if ! ii_tmux_send_literal "$session" "$target" "$rendered"; then
-    (( copy_rc )) && print -u2 "ii: clipboard copy also failed"
-    return 1
-  fi
-  (( copy_rc )) && print -u2 "ii: clipboard copy failed; payload sent and executed anyway" || print "payload copied, sent, and executed"
 }
 
 ii_help_register tmux ii_cmd_tmux

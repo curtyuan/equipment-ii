@@ -26,6 +26,22 @@ ii is a shell function
 <project-root>/payloads
 ```
 
+## ANSI Color Policy
+
+Run the shared color regression:
+
+```zsh
+./script/test-color
+```
+
+It verifies plain auto-mode output in a non-TTY stream, forced ANSI output,
+`II_COLOR=never`, the standard `NO_COLOR` override, invalid-mode fallback to
+auto, and ANSI-aware selector output.
+
+The help audit also verifies that forced color affects only actual alias names
+inside `Aliases:` sections and that `NO_COLOR` restores byte-for-byte plain
+help output.
+
 ## Help Audit
 
 Check every feature-registered help topic and verify that short help flags do
@@ -37,6 +53,7 @@ zsh -fc 'source ./ii.plugin.zsh; for command in "get -h" "load -h" "sync -h" "in
 zsh -fc 'source ./ii.plugin.zsh; ii help pic | grep -Fq "ii pic [-o [PATH]]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pe | grep -Fq "ii pe [KEYWORD ...]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pce | grep -Fq "ii pce [KEYWORD ...]"'
+zsh -fc 'source ./ii.plugin.zsh; ii help pie | grep -Fq "ii pie"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pice | grep -Fq "ii pice"'
 zsh -fc 'source ./ii.plugin.zsh; ii help tmux | grep -Fq "ii tmux status"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pc | grep -Fq "ii pc [KEYWORD ...]"'
@@ -114,29 +131,38 @@ ii pe power shell reverse
 ii pce power shell reverse
 ```
 
-For input execution, verify that `ii pice` accepts no arguments, renders input,
-requires `[y/N]`, copies only after `y`, and executes in the current shell.
-Clipboard failure must be reported without preventing confirmed execution.
+For input execution, verify that `ii pie` accepts no arguments, renders input,
+requires `[y/N]`, never copies, and executes in the current shell. Verify that
+`ii pice` retains copy-before-execute behavior. Clipboard failure must be
+reported without preventing confirmed `pice` execution.
 
 ## Tmux Popup Input Execution
 
-Loading the plugin inside tmux must install the Prefix+: adapter by default.
-`Prefix + :` followed by the exact `ii pice` command must open an isolated
-popup. The popup path is:
+Run the automatic isolated integration regression:
+
+```zsh
+./script/test-tmux-integration
+./script/test-tmux-input
+```
+
+Loading the plugin inside tmux must add a server-wide native command alias named
+`ii` without changing the `Prefix + :` binding. Entering `ii` in tmux's command
+prompt must open an isolated popup. The popup path is:
 
 ```text
-popup input -> tmux-only render -> preview and [y/N] -> copy -> originating pane -> Enter
+popup input -> tmux-only render -> preview and [y/N] -> originating pane -> Enter
 ```
 
 Paste input into the popup, use Alt+Enter for manual newlines, and press Enter
 to render. Verify that the
 originating pane receives no input before `y`, that unresolved lowercase
 variables remain unchanged and produce an execute-anyway warning, and that
-uppercase variables do not produce that warning. Non-ii command-prompt input
-must retain normal tmux behavior. Repeated plugin loads must be silent and
-idempotent. `II_TMUX_INTEGRATION=0` must leave the binding unchanged. A custom
-binding must be preserved with one conflict notice unless
-`II_TMUX_INTEGRATION_FORCE=1` is set. `ii tmux status` must remain read-only.
+uppercase variables do not produce that warning. Repeated plugin loads must be
+silent and idempotent. `II_TMUX_INTEGRATION=0` must not install the alias. A
+user-defined command alias named `ii` must be preserved with one conflict
+notice unless `II_TMUX_INTEGRATION_FORCE=1` is set. Other aliases and the
+`Prefix + :` binding must remain unchanged. `ii tmux status` must remain
+read-only.
 If buffer creation, paste, or the final Enter fails, the popup must remain open
 and show the failed stage.
 
@@ -163,12 +189,39 @@ Run the deterministic parser, render, staged-copy, and assignment-state tests:
 ./script/test-workflow-tmux
 ```
 
-Every file under `payloads/script/combo/trans/` must classify as a valid
-two-stage, two-lane workflow:
+Every file under `payloads/script/combo/` must classify as a valid workflow.
+The transfer fixtures under `trans/` must additionally remain two-stage,
+two-lane workflows:
 
 ```zsh
-zsh -fc 'source ./ii.plugin.zsh; for f in payloads/script/combo/trans/*; do ii_workflow_classify "$f" || exit; [[ "$II_WORKFLOW_CLASS" == workflow ]] || exit; done'
+zsh -fc 'source ./ii.plugin.zsh; for f in payloads/script/combo/**/*(.); do ii_workflow_classify "$f" || exit; [[ "$II_WORKFLOW_CLASS" == workflow ]] || exit; done'
 ```
+
+For a first manual test, separate the UI/routing check from an actual file
+transfer:
+
+1. Start a fresh tmux session with two panes and load `ii.plugin.zsh` in the
+   operator pane.
+2. Set the values required by the selected combo:
+
+   ```zsh
+   ii s lhost 192.0.2.10
+   ii s rhost 192.0.2.20
+   ii s lport 4444
+   ii s rport 4444
+   ii s file /tmp/combo-flow-test.txt
+   ```
+
+3. Run `ii pe powercat-K2T-TLKC`. In the assignment popup, verify lane-to-pane
+   mapping, reassignment, and cancellation first. Decline stage confirmation to
+   finish this UI-only pass without sending a command.
+4. For the end-to-end pass, replace the example addresses and file path with
+   reachable test-system values, ensure PowerShell has `powercat`, and rerun the
+   same combo. Confirm the listener stage before the connector stage.
+
+The `192.0.2.0/24` addresses above are documentation-only examples; they are
+not expected to be reachable. Use a disposable file and test target for the
+end-to-end pass.
 
 Inside an isolated tmux session, select a powercat combo with `e`. Verify the
 popup preassigns `kali-transfer` and `remote-transfer`, displays each assignment
@@ -189,8 +242,8 @@ keep empty directories are not shown as payload entries.
 ```zsh
 zsh -fc 'source ./ii.plugin.zsh; ii_payload_list | grep -q "^script/.gitkeep$" && print bad || print ok'
 zsh -fc 'source ./ii.plugin.zsh; print script/custom | ii_payload_filter script'
-zsh -fc 'source ./ii.plugin.zsh; rendered="$(ii_payload_render payloads/script/tool/nmap/nmap)"; print -r -- "$rendered" | grep -Fq "sudo nmap -p- -Pn -T4 \$rhost" && print ok'
-zsh -fc 'source ./ii.plugin.zsh; ii_payload_preview script/tool/nmap/nmap | grep -Fq "sudo nmap -p- -Pn -T4 \$rhost" && print ok'
+zsh -fc 'source ./ii.plugin.zsh; rendered="$(ii_payload_render payloads/script/tool/nmap/nmap)"; print -r -- "$rendered" | grep -Fq "sudo nmap -p- -Pn -T4 \"\$rhost\"" && print ok'
+zsh -fc 'source ./ii.plugin.zsh; ii_payload_preview script/tool/nmap/nmap | grep -Fq "sudo nmap -p- -Pn -T4 \"\$rhost\"" && print ok'
 ```
 
 Expected result:
@@ -701,7 +754,8 @@ remain valid explicitly created variable names.
 ## Set All Defaults From Shell Test
 
 Inside tmux, define a mixture of lowercase, uppercase, empty, removed-default,
-and unrelated shell variables, then run `ii s --from-shell -a`. Verify that ii
+and unrelated shell variables, then run `ii s --from-shell -a` and its `ii sha`
+alias. Verify that ii
 prefers non-empty lowercase values, falls back to uppercase, prints every saved
 default, skips empty values without warnings, and does not import removed or
 arbitrary names.
@@ -713,7 +767,7 @@ The default-name source for this test is `ii_var_default_names`; it must include
 
 Inside tmux, create a dotenv file containing blank lines, comments, optional
 `export ` prefixes, quoted values, and one malformed line. Run
-`ii s --from-file PATH` and verify that valid values are printed, stored in
+`ii s --from-file PATH` and its `ii sf PATH` alias, and verify that valid values are printed, stored in
 tmux, and exported into the current shell while the malformed line is reported
 on stdout. Also verify that `ii s --from-file` defaults to `.env` and that a
 missing explicit or default file prints `ii: variable file not found` on

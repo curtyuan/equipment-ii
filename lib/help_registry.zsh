@@ -62,6 +62,46 @@ ii_help_topics() {
   done
 }
 
+ii_help_color_aliases() {
+  local line content aliases suffix in_aliases=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "Aliases:" ]]; then
+      in_aliases=1
+      print -r -- "$line"
+      continue
+    fi
+    if (( in_aliases )) && [[ -z "$line" ]]; then
+      in_aliases=0
+      print
+      continue
+    fi
+    if (( ! in_aliases )) || [[ "$line" != "  "* ]]; then
+      print -r -- "$line"
+      continue
+    fi
+
+    content="${line#  }"
+    if [[ "$content" == none ]]; then
+      print -r -- "$line"
+      continue
+    fi
+
+    aliases="$content"
+    suffix=""
+    if [[ "$content" == *"    "* ]]; then
+      aliases="${content%%    *}"
+      suffix="${content#$aliases}"
+    elif [[ "$content" == *" ("* ]]; then
+      aliases="${content%% \(*}"
+      suffix="${content#$aliases}"
+    fi
+
+    print -rn -- "  "
+    ii_color_wrap_inline 36 "$aliases"
+    print -r -- "$suffix"
+  done
+}
+
 ii_help_dispatch() {
   local route topic handler
   local -a route_parts

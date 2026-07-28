@@ -21,6 +21,7 @@ usage: ii payload [CATEGORY]
        ii p --input --copy [-o [PATH]]
        ii pic [-o [PATH]]
        ii p --input --execute [-o [PATH]]
+       ii pie
        ii p --input --copy --execute [-o [PATH]]
        ii pice
 
@@ -30,6 +31,7 @@ Aliases:
   pe
   pce
   pic
+  pie
   pice
 
 Help:
@@ -40,6 +42,7 @@ Help:
   ii help payload --input
   ii help pic
   ii help payload --input --execute
+  ii help pie
   ii help pice
   ii help payload --www
 
@@ -71,7 +74,7 @@ Payload files:
 Pasted input:
   ii p --input [-o [PATH]]
   ii p --input --copy [-o [PATH]] = ii pic [-o [PATH]]
-  ii p --input --execute [-o [PATH]]
+  ii p --input --execute [-o [PATH]] = ii pie
   ii p --input --copy --execute [-o [PATH]] = ii pice
 
   Paste template text below the prompt. In a terminal, Enter finishes,
@@ -81,6 +84,8 @@ Pasted input:
   second. Use --copy to copy the rendered input to the clipboard. Here-documents and pipes
   read standard input through EOF, so `ii pic <<EOF` and `COMMAND | ii pic`
   both render and copy the complete input.
+  With --execute or pie, ii confirms and executes the rendered input without
+  copying. pie accepts no options or positional arguments.
   With --copy --execute or pice, ii confirms, copies, and executes the rendered
   input in the current shell. pice accepts no positional arguments.
 

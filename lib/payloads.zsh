@@ -206,7 +206,7 @@ ii_payload_select_fzf() {
   expanded_footer="$(ii_interact_footer "$(ii_interact_keys_payload_expanded)" "$footer_status")"
   search_footer="$(ii_interact_footer "$(ii_interact_keys_payload_search)" "$footer_status")"
   normal_keys="j,k,e,y,q,l,h,/"
-  preview_cmd="zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\"; ii_payload_preview_fzf \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
+  preview_cmd="zsh -fc 'source \"\$1\"; export II_PAYLOAD_DIR=\"\$2\" II_COLOR_CONTEXT=ansi; ii_payload_preview_fzf \"\$3\"' -- ${(q)plugin_file} ${(q)payload_dir} {1}"
 
   II_FZF_COMPACT_FOOTER="$compact_footer" II_FZF_EXPANDED_FOOTER="$expanded_footer" II_FZF_SEARCH_FOOTER="$search_footer" \
   fzf --ansi --layout=reverse --prompt="ii payload:${filter}> " --query="$query" --height=80% --border --delimiter=$'\t' --with-nth=1 \

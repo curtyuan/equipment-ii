@@ -68,6 +68,14 @@ type ii
 ii version
 ```
 
+Inside tmux, loading the plugin also adds `ii` to tmux's native command prompt
+without replacing the `Prefix + :` binding. Press `Prefix + :`, enter `ii`, and
+confirm with Enter to open the non-copying payload input popup. Diagnose it with:
+
+```zsh
+ii tmux status
+```
+
 ## Documentation
 
 See [doc/README.md](doc/README.md) for usage, configuration, payloads, testing,

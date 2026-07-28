@@ -18,6 +18,11 @@ Help:
   representative ways to open this help
 ```
 
+Alias names in the `Aliases:` section are cyan when shared color policy enables
+ANSI output. Only the alias column is colored; annotations, `none`, usage,
+help routes, and descriptions remain unchanged. `II_COLOR` and `NO_COLOR`
+control this formatting through `lib/color.zsh`.
+
 The sections have distinct meanings:
 
 - `usage` contains commands that can actually be executed, including arguments.
@@ -27,7 +32,8 @@ The sections have distinct meanings:
   may appear here, but it is not presented as a command alias.
 - A parent command's help enumerates every direct child path and fixed alias.
   For example, `ii p --help` lists each input flag combination together with
-  `pic` and `pice`; each child route then provides its own detailed help.
+  `pic`, `pie`, and `pice`; each child route then provides its own detailed
+  help.
 
 For example:
 
@@ -53,6 +59,8 @@ forwarded to the same payload-input handler.
 
 The same rule applies to a fixed operand. `ii sr VALUE` means
 `ii set rhost=VALUE`; it does not expose a general variable-name argument.
+`ii sf [PATH]` means `ii set --from-file [PATH]`, and `ii sha` means
+`ii set --from-shell -a`; `sha` accepts no arguments.
 Likewise, `ii gr` and `ii gl` mean `ii g r` and `ii g l`, selecting rhost and
 lhost respectively.
 `ii vo [PATH]` similarly means `ii v --out [PATH]`. The older `ii voc [PATH]`
@@ -60,6 +68,7 @@ form remains available as a compatibility alias.
 `ii pe [KEYWORD ...]` means `ii p --execute [KEYWORD ...]`.
 `ii pce [KEYWORD ...]` means
 `ii p --copy --execute [KEYWORD ...]`; `c` always means copy.
+`ii pie` means `ii p --input --execute` and accepts no arguments.
 `ii pice` means `ii p --input --copy --execute` and accepts no arguments.
 `ii pc [KEYWORD ...]` means `ii p --copy [KEYWORD ...]`.
 

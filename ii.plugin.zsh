@@ -14,6 +14,7 @@ fi
 
 source "${ii_plugin_dir}/lib/tmux.zsh"
 source "${ii_plugin_dir}/lib/help_registry.zsh"
+source "${ii_plugin_dir}/lib/color.zsh"
 source "${ii_plugin_dir}/lib/tmux_integration.zsh"
 source "${ii_plugin_dir}/lib/clipboard.zsh"
 source "${ii_plugin_dir}/lib/fzf.zsh"
@@ -26,6 +27,7 @@ source "${ii_plugin_dir}/lib/workflow.zsh"
 source "${ii_plugin_dir}/lib/workflow_tmux.zsh"
 source "${ii_plugin_dir}/lib/payloads.zsh"
 source "${ii_plugin_dir}/lib/payload_input.zsh"
+source "${ii_plugin_dir}/lib/tmux_input.zsh"
 source "${ii_plugin_dir}/lib/www.zsh"
 source "${ii_plugin_dir}/lib/payload_command.zsh"
 source "${ii_plugin_dir}/lib/help.zsh"
@@ -37,6 +39,6 @@ if (( II_HELP_REGISTRY_ERROR )); then
 fi
 source "${ii_plugin_dir}/lib/core.zsh"
 
-ii_tmux_dispatch_ensure || true
+ii_tmux_alias_ensure || true
 
 unset ii_plugin_dir

@@ -38,7 +38,8 @@ ii_tmux_pane_identity_valid() {
   }
   IFS=$'\t' read -r pane current_session window dead in_mode command <<< "$snapshot"
   [[ "$pane" == "$target" && "$current_session" == "$session" && "$dead" != 1 ]] || {
-    print -u2 -r -- "ii: target pane identity changed: $target"
+    print -u2 -r -- \
+      "ii: target pane identity changed: expected pane=$target session=$session; actual pane=${pane:-[missing]} session=${current_session:-[missing]} dead=${dead:-[missing]}"
     return 1
   }
 }

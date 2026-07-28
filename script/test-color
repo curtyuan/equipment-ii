@@ -1,0 +1,37 @@
+#!/usr/bin/env zsh
+
+setopt no_unset pipe_fail
+
+root="${0:A:h:h}"
+source "${root}/lib/color.zsh" || exit
+
+fail() {
+  print -u2 "color test failed: $1"
+  exit 1
+}
+
+plain="$(II_COLOR=auto NO_COLOR= ii_color_blue sample)"
+[[ "$plain" == sample ]] || fail auto-non-tty
+
+colored="$(II_COLOR=always NO_COLOR= ii_color_blue sample)"
+[[ "$colored" == $'\033[34msample\033[0m' ]] || fail always
+
+plain="$(II_COLOR=never NO_COLOR= ii_color_red sample)"
+[[ "$plain" == sample ]] || fail never
+
+plain="$(II_COLOR=always NO_COLOR=1 ii_color_green sample)"
+[[ "$plain" == sample ]] || fail no-color
+
+plain="$(II_COLOR=invalid NO_COLOR= ii_color_yellow sample)"
+[[ "$plain" == sample ]] || fail invalid-fallback
+
+colored="$(II_COLOR=auto NO_COLOR= ii_color_cyan sample ansi)"
+[[ "$colored" == $'\033[36msample\033[0m' ]] || fail ansi-context
+
+colored="$(II_COLOR=always NO_COLOR= ii_color_wrap_inline 36 sample)"
+[[ "$colored" == $'\033[36msample\033[0m' ]] || fail inline
+
+plain="$(II_COLOR=auto NO_COLOR=1 ii_color_bold sample ansi)"
+[[ "$plain" == sample ]] || fail ansi-context-no-color
+
+print "ANSI color policy tests passed"

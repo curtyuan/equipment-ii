@@ -16,6 +16,7 @@ ii.plugin.zsh
 lib/
   tmux.zsh
   help_registry.zsh
+  color.zsh
   tmux_integration.zsh
   clipboard.zsh
   fzf.zsh
@@ -29,6 +30,7 @@ lib/
   www.zsh
   payloads.zsh
   payload_input.zsh
+  tmux_input.zsh
   payload_command.zsh
   help.zsh
   version.zsh
@@ -54,8 +56,12 @@ doc/
 script/
   make
   help
+  ii-tmux-input
   ii-tmux-pice
   ii-tmux-workflow
+  test-tmux-integration
+  test-tmux-input
+  test-color
   test-workflow
   test-workflow-parser
   test-workflow-tmux
@@ -70,23 +76,25 @@ export/
 ```text
 1. lib/tmux.zsh
 2. lib/help_registry.zsh
-3. lib/tmux_integration.zsh
-4. lib/clipboard.zsh
-5. lib/fzf.zsh
-6. lib/interact.zsh
-7. lib/var_helpers.zsh
-8. lib/var_interactive.zsh
-9. lib/vars.zsh
-10. lib/var_output.zsh
-11. lib/workflow.zsh
-12. lib/workflow_tmux.zsh
-13. lib/payloads.zsh
-14. lib/payload_input.zsh
-15. lib/www.zsh
-16. lib/payload_command.zsh
-17. lib/help.zsh
-18. lib/version.zsh
-19. lib/core.zsh
+3. lib/color.zsh
+4. lib/tmux_integration.zsh
+5. lib/clipboard.zsh
+6. lib/fzf.zsh
+7. lib/interact.zsh
+8. lib/var_helpers.zsh
+9. lib/var_interactive.zsh
+10. lib/vars.zsh
+11. lib/var_output.zsh
+12. lib/workflow.zsh
+13. lib/workflow_tmux.zsh
+14. lib/payloads.zsh
+15. lib/payload_input.zsh
+16. lib/tmux_input.zsh
+17. lib/www.zsh
+18. lib/payload_command.zsh
+19. lib/help.zsh
+20. lib/version.zsh
+21. lib/core.zsh
 ```
 
 `core.zsh` is loaded last because it exposes the public dispatcher. The
@@ -138,19 +146,15 @@ ii_require_cmd
 
 ### `lib/tmux_integration.zsh`
 
-Default tmux command-prompt adapter.
+Native tmux command alias registration and migration.
 
 Responsibilities:
 
-- Idempotently install one server-wide `Prefix + :` adapter when the plugin
+- Idempotently install the server-wide tmux command alias `ii` when the plugin
   loads inside tmux, unless static configuration disables it.
-- Preserve a non-standard custom binding unless force configuration explicitly
-  authorizes replacement.
-- Whitelist only the exact `ii pice` dispatcher command.
-- Open an isolated popup for pasted input, render only from tmux `ii_` values,
-  report unresolved lowercase placeholders, and confirm before sending.
-- Copy best-effort, literal-paste to the originating pane, and send one final
-  Enter while treating pane readiness as the user's responsibility.
+- Preserve the native or user-defined `Prefix + :` binding.
+- Preserve a conflicting user-defined `ii` command alias unless force
+  configuration explicitly authorizes replacement.
 
 Public command:
 
@@ -159,15 +163,27 @@ ii tmux status
 ```
 
 `II_TMUX_INTEGRATION=0` disables automatic setup and
-`II_TMUX_INTEGRATION_FORCE=1` authorizes replacement of a custom Prefix+:
-binding. There is no per-session runtime enable/disable state.
+`II_TMUX_INTEGRATION_FORCE=1` authorizes replacement of a conflicting tmux
+command alias named `ii`. There is no per-session runtime enable/disable state.
 
-The popup process enters through `script/ii-tmux-pice`; it does not read an
-existing tmux buffer as payload input. An ii-owned named buffer is only the
-internal literal-paste transport after confirmation. The helper re-executes in
-a clean interactive zsh so the shared ZLE input reader is available. A failed
-popup remains open and reports whether buffer creation, paste, or the final
-Enter failed.
+### `lib/tmux_input.zsh`
+
+Single-pane popup input controller.
+
+Responsibilities:
+
+- Resolve the source pane's session identity.
+- Read and render pasted input using tmux `ii_` values.
+- Confirm pie or pice behavior.
+- Delegate the unchanged identity check and literal send to `lib/tmux.zsh`.
+
+The popup process enters through the generic `script/ii-tmux-input`; the
+compatibility `script/ii-tmux-pice` delegates to it in copy mode. It does not
+read an existing tmux buffer as payload input. An ii-owned named buffer is only
+the internal literal-paste transport after confirmation. The helper re-executes
+in a clean interactive zsh so the shared ZLE input reader is available. A
+failed popup remains open and reports whether buffer creation, paste, or the
+final Enter failed.
 
 ### `lib/help_registry.zsh`
 
@@ -180,6 +196,7 @@ Responsibilities:
   and nested help paths beside the implementation.
 - Resolve `ii help ...` with longest-path matching.
 - Expose the canonical topic list used by `script/help`.
+- Color only alias names in `Aliases:` sections through the shared ANSI policy.
 - Keep live help text in the feature layer rather than the registry.
 
 Functions:
@@ -188,6 +205,7 @@ Functions:
 ii_help_register
 ii_help_dispatch
 ii_help_topics
+ii_help_color_aliases
 ```
 
 ### `lib/fzf.zsh`
@@ -243,6 +261,34 @@ ii_interact_keys_payload_search
 ii_fzf_modal_start_actions
 ```
 
+### `lib/color.zsh`
+
+Shared ANSI color policy.
+
+Responsibilities:
+
+- Honor `II_COLOR=auto|always|never`.
+- Treat a non-empty `NO_COLOR` as the highest-priority color opt-out.
+- In auto mode, color terminal output and explicitly ANSI-aware selector
+  streams without adding escape sequences to ordinary pipes or redirects.
+- Provide reusable named colors and bold text without tying them to help or
+  another feature layer.
+
+Helpers:
+
+```text
+ii_color_mode
+ii_color_enabled
+ii_color_wrap
+ii_color_wrap_inline
+ii_color_blue
+ii_color_red
+ii_color_green
+ii_color_yellow
+ii_color_cyan
+ii_color_bold
+```
+
 ### `lib/var_helpers.zsh`
 
 Variable data helpers.
@@ -251,7 +297,7 @@ Responsibilities:
 
 - Normalize user names like `LHOST` into `ii_lhost`.
 - List, filter, and format `ii_` variables.
-- Apply shared terminal colors for variable display keys.
+- Apply shared color helpers to variable display keys.
 - Export safe `NAME=VALUE` lines into the current shell.
 - Detect and export lhost automatically after rhost/rhosts is set, when enabled.
 - Control optional loaded-variable prompt auto-sync for `ii sync`.
@@ -260,10 +306,6 @@ Responsibilities:
 Helpers:
 
 ```text
-ii_color_wrap
-ii_color_blue
-ii_color_red
-ii_color_green
 ii_var_normalize_name
 ii_var_lines_from_tmux
 ii_var_filter_by_name
@@ -313,6 +355,8 @@ Commands:
 ii_cmd_set
 ii_cmd_set_from_file
 ii_cmd_set_rhost
+ii_cmd_set_from_file_alias
+ii_cmd_set_from_shell_all_alias
 ii_cmd_get
 ii_cmd_load
 ii_cmd_load_all_panes
@@ -452,7 +496,7 @@ Pasted payload input command and input UI.
 Responsibilities:
 
 - Implement `ii p --input`, its copy and execute combinations, and the fixed
-  `ii pic` and `ii pice` aliases.
+  `ii pic`, `ii pie`, and `ii pice` aliases.
 - Keep interactive ZLE editing, Enter submit, Alt+Enter newline insertion, and the
   persistent bottom key hint together.
 - Preserve the `:w`, `:q`, and `:q!` stream protocol for pipelines.
@@ -495,6 +539,8 @@ Responsibilities:
 - Route `--execute` and `pe` to confirmed current-shell execution after
   selection, and route `--copy --execute` and `pce` to copy-before-execute.
 - Route `--input --copy --execute` and `pice` to confirmed input execution.
+- Route `--input --execute` and `pie` to confirmed input execution without
+  copying.
 - Route `--copy` and `pc` to the payload selector with an initial query.
 - Route opted-in workflow execution to the tmux popup without exposing a public
   workflow command or allowing local-eval fallback.
@@ -655,12 +701,16 @@ Public command interface.
 Responsibilities:
 
 - Dispatch `ii COMMAND` to layer command functions.
-- Define the `ii` dispatcher.
+- Keep raw routing in `ii_dispatch`.
+- Pass help output through alias-only ANSI formatting while preserving the
+  routed command's return status.
+- Define the public `ii` dispatcher.
 
 Public functions:
 
 ```text
 ii
+ii_dispatch
 ```
 
 ## State Model
@@ -744,6 +794,7 @@ export/ii/
   ii.plugin.zsh
   lib/
   payloads/
+  script/ii-tmux-input
   script/ii-tmux-pice
   script/ii-tmux-workflow
   README.md

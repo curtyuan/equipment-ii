@@ -12,8 +12,10 @@ usage: ii set NAME=VALUE [NAME=VALUE...]
        ii s:NAME[,NAME...] [--from-shell]
        ii set --from-shell -a
        ii s --from-shell -a
+       ii sha
        ii set --from-file [PATH]
        ii s --from-file [PATH]
+       ii sf [PATH]
        ii s NAME -d [INTERFACE]
        ii s -d [INTERFACE]
        ii s:lhost -d [INTERFACE]
@@ -27,6 +29,8 @@ ii_cmd_set_help() {
 Aliases:
   s
   sr
+  sf
+  sha
 
 Help:
   ii help set
@@ -305,6 +309,30 @@ ii_cmd_set_rhost() {
   fi
 
   ii_cmd_set "rhost=$1"
+}
+
+ii_cmd_set_from_file_alias() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    ii_cmd_set --help
+    return
+  fi
+  if [[ $# -gt 1 ]]; then
+    print -u2 "ii: usage: ii sf [PATH]"
+    return 2
+  fi
+  ii_cmd_set --from-file "$@"
+}
+
+ii_cmd_set_from_shell_all_alias() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    ii_cmd_set --help
+    return
+  fi
+  if [[ $# -ne 0 ]]; then
+    print -u2 "ii: usage: ii sha"
+    return 2
+  fi
+  ii_cmd_set --from-shell -a
 }
 
 ii_cmd_set_from_shell() {
@@ -842,7 +870,7 @@ ii_cmd_unset_all() {
   print "unset ${count} variable(s)"
 }
 
-ii_help_register set ii_cmd_set s sr
+ii_help_register set ii_cmd_set s sr sf sha
 ii_help_register get ii_cmd_get g gr gl
 ii_help_register load ii_cmd_load l la "load --all-pane" "l --all-pane"
 ii_help_register sync ii_cmd_sync

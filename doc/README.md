@@ -9,7 +9,7 @@ Deployment instructions live in the root [README.md](../README.md).
 | --- | --- |
 | [usage.md](usage.md) | Command behavior, variable state, interactive variables, payload rendering, and web-root helpers. |
 | [clipboard.md](clipboard.md) | Clipboard backend behavior, configuration, diagnostics, and VMware/Kali notes. |
-| [tmux-integration.md](tmux-integration.md) | Default Prefix+: popup integration, custom-binding policy, configuration, and status diagnostics. |
+| [tmux-integration.md](tmux-integration.md) | Native `:ii` tmux command alias, popup execution, conflict policy, and status diagnostics. |
 | [payload-schema.md](payload-schema.md) | Payload file format, metadata, combo conventions, and renderable variables. |
 | [workflow.md](workflow.md) | Executable combo parser, lane selector, memory, safety, and tmux execution model. |
 | [conf/ii.conf](conf/ii.conf) | Example `ii` shell configuration. |
@@ -29,3 +29,6 @@ Deployment instructions live in the root [README.md](../README.md).
 
 Files under `pending/`, when present, describe proposals that are not
 implemented and are not part of the live command contract.
+
+- [Compiled runtime migration](pending/runtime-migration.md) — consider a
+  Zsh/Go hybrid only after combo/workflow behavior is repaired and stable.

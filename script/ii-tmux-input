@@ -1,0 +1,22 @@
+#!/usr/bin/env zsh
+
+script_dir="${0:A:h}"
+version_file="${script_dir:h}/VERSION"
+
+if [[ "${1:-}" == "--version" ]]; then
+  if [[ -r "$version_file" ]]; then
+    print "ii-tmux-input $(<"$version_file")"
+  else
+    print "ii-tmux-input unknown"
+  fi
+  exit
+fi
+
+if [[ ! -o interactive ]]; then
+  exec zsh -f -i "$0" "$@"
+fi
+
+setopt no_unset
+
+II_TMUX_INTEGRATION=0 source "${script_dir:h}/ii.plugin.zsh" || exit
+ii_tmux_input_popup "$@"

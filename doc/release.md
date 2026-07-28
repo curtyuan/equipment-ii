@@ -33,6 +33,7 @@ export/ii/
   ii.plugin.zsh
   lib/
   payloads/
+  script/ii-tmux-input
   script/ii-tmux-pice
   script/ii-tmux-workflow
   README.md

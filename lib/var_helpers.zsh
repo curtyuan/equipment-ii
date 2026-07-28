@@ -1,23 +1,5 @@
 # ii_ variable helper functions.
 
-ii_color_wrap() {
-  local code="$1"
-  local text="$2"
-  print -r -- $'\033['"${code}m${text}"$'\033[0m'
-}
-
-ii_color_blue() {
-  ii_color_wrap 34 "$1"
-}
-
-ii_color_red() {
-  ii_color_wrap 31 "$1"
-}
-
-ii_color_green() {
-  ii_color_wrap 32 "$1"
-}
-
 ii_var_normalize_name() {
   local name="$1"
   name="${name#export }"
@@ -121,7 +103,7 @@ ii_var_print_name_value() {
   local value="${line#*=}"
   local shell_name
   shell_name="$(ii_var_shell_name "$name")"
-  print "$(ii_color_blue "$shell_name")"
+  ii_color_blue "$shell_name"
   print -r -- "$value"
 }
 
@@ -139,7 +121,7 @@ ii_var_print_list() {
     if [[ -n "$lower_pattern" && "${(L)shell_name}" != *"$lower_pattern"* ]]; then
       continue
     fi
-    print "$(ii_color_blue "$shell_name")"
+    ii_color_blue "$shell_name"
     print -r -- "$value"
   done < <(ii_var_lines_from_tmux | sort)
 }
@@ -323,7 +305,7 @@ ii_var_entries_for_fzf() {
     [[ -n "$line" ]] && value="${line#*=}"
     preview="$(ii_one_line_preview "$value" 72)"
     overflow=""
-    [[ "$preview" != "$value" ]] && overflow="$(ii_color_red more)"
+    [[ "$preview" != "$value" ]] && overflow="$(ii_color_red more ansi)"
     entry="${name}"$'\t'"${preview}"$'\t'"${overflow}"$'\t'"${value}"
     if [[ -n "$value" ]]; then
       populated_entries+="${entry}"$'\n'

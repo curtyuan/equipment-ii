@@ -37,6 +37,7 @@ usage: ii p --input [-o [PATH]]
        ii pic [-o [PATH]]
        ii p --input --execute [-o [PATH]]
        ii payload --input --execute [-o [PATH]]
+       ii pie
        ii p --input --copy --execute [-o [PATH]]
        ii payload --input --copy --execute [-o [PATH]]
        ii pice
@@ -50,11 +51,13 @@ Help:
   ii help payload --input --copy
   ii help pic
   ii help payload --input --execute
+  ii help pie
   ii help payload --input --copy --execute
   ii help pice
 
 Related aliases:
   ii pic     ii payload --input --copy
+  ii pie     ii payload --input --execute
   ii pice    ii payload --input --copy --execute
 
 Paste template text below the prompt, then render variables and print the
@@ -183,12 +186,14 @@ ii_cmd_payload_input_execute_help() {
   cat <<'EOF'
 usage: ii payload --input --execute [-o [PATH]]
        ii p --input --execute [-o [PATH]]
+       ii pie
 
 Aliases:
-  none
+  pie
 
 Help:
   ii help payload --input --execute
+  ii help pie
 
 Read payload text, render lowercase variables, show the rendered result and
 unresolved-variable report, and ask [y/N] before executing it in the current
@@ -201,6 +206,18 @@ finish early and standalone :q or :q! cancels.
 -o writes the rendered text to a file before confirmation. With no PATH,
 output goes to /www/p/att.txt.
 EOF
+}
+
+ii_cmd_payload_input_execute() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    ii_cmd_payload_input_execute_help
+    return
+  fi
+  if [[ $# -ne 0 ]]; then
+    print -u2 "ii: usage: ii pie"
+    return 2
+  fi
+  ii_cmd_payload_input --execute
 }
 
 ii_cmd_payload_input_copy_execute() {
@@ -237,9 +254,9 @@ Interactive input uses Enter to finish, Alt+Enter for a newline, and Esc to
 cancel. :q or :q! as the complete buffer also cancels. Piped input ends at EOF
 or a standalone :w line. pice accepts no options or positional arguments.
 
-Inside tmux, entering `ii pice` through tmux Prefix+: opens the popup form
-described by `ii help tmux`. The adapter is installed automatically unless
-II_TMUX_INTEGRATION=0 is configured.
+Inside tmux, entering `ii` in the native Prefix+: command prompt opens the
+non-copying `ii pie` popup described by `ii help tmux`. The tmux command alias
+is installed automatically unless II_TMUX_INTEGRATION=0 is configured.
 EOF
 }
 
@@ -342,7 +359,7 @@ ii_help_register payload-input ii_cmd_payload_input input \
   "payload --input" "payload input" "p --input" "p input"
 ii_help_register payload-input-copy ii_cmd_payload_input_copy_help pic \
   "payload --input --copy" "p --input --copy"
-ii_help_register payload-input-execute ii_cmd_payload_input_execute_help \
+ii_help_register payload-input-execute ii_cmd_payload_input_execute_help pie \
   "payload --input --execute" "p --input --execute"
 ii_help_register payload-input-copy-execute ii_cmd_payload_input_copy_execute_help pice \
   "payload --input --copy --execute" "p --input --copy --execute"

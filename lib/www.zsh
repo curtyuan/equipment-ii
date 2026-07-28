@@ -376,7 +376,7 @@ ii_www_find_entries() {
 ii_www_tree() {
   local root="$1"
   local entry_path
-  print -r -- "$(ii_color_blue "${root:t}")"
+  ii_color_blue "${root:t}"
   ii_www_find_entries "$root" | while IFS= read -r entry_path; do
     [[ -n "$entry_path" ]] || continue
     print -r -- "$(ii_www_tree_label "$root" "$entry_path")"
@@ -419,7 +419,7 @@ ii_www_tree_label() {
   local -a rel_parts
   rel="$(ii_www_relative_path "$root" "$entry_path")"
   if [[ "$rel" == "." ]]; then
-    print -r -- "$(ii_color_blue "${root:t}")"
+    ii_color_blue "${root:t}"
     return
   fi
   rel_parts=("${(@s:/:)rel}")
@@ -438,9 +438,9 @@ ii_www_search_label() {
 ii_www_kind_label() {
   local entry_path="$1"
   if [[ -d "$entry_path" ]]; then
-    ii_color_blue "dir"
+    ii_color_blue "dir" ansi
   elif [[ -L "$entry_path" ]]; then
-    ii_color_green "link"
+    ii_color_green "link" ansi
   else
     print -r -- "file"
   fi

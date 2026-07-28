@@ -23,8 +23,8 @@ done
 # entering normal command execution. Fixed-option paths are audited separately
 # because they are routes rather than standalone dispatcher commands.
 audit_commands=(
-  set s sr get g gr gl clip clipboard load l la sync interactive i
-  ls list variable vars var v vo voc payload p pc pe pce pic pice tmux
+  set s sr sf sha get g gr gl clip clipboard load l la sync interactive i
+  ls list variable vars var v vo voc payload p pc pe pce pic pie pice tmux
   unset u version -v --version help h -h --help
 )
 for command in "$audit_commands[@]"; do
@@ -90,13 +90,13 @@ ii_help_require_fragments() {
 output="$(ii --help)"
 ii_help_require_fragments "ii --help" "$output" \
   "set|s NAME=VALUE" "sr VALUE" "get|g FILTER" "gr" "gl" "clip|clipboard backend" \
-  "set|s --from-file [PATH]" \
+  "set|s --from-file [PATH] | sf [PATH]" "set|s --from-shell -a | sha" \
   "load|l" "load --all-pane|la" "sync [on|off|status]" "interactive|i" \
   "ls|list|variable|vars|var [PATTERN]" "v --out [PATH]" "vo [PATH]" \
   "voc [PATH]" "unset|u NAME" "payload|p --copy" "pc [KEYWORD" \
   "payload|p --execute" "pe [KEYWORD" "payload|p --copy --execute" \
   "pce [KEYWORD" "payload|p --input --copy" "pic [-o [PATH]]" \
-  "payload|p --input --execute" "payload|p --input --copy --execute" \
+  "payload|p --input --execute" "pie" "payload|p --input --copy --execute" \
   "pice" "payload|p --www" "tmux status" \
   "version|-v|--version" "help|h|-h|--help"
 
@@ -106,6 +106,7 @@ ii_help_require_fragments "ii p --help" "$output" \
   "ii pe [KEYWORD" "ii p --copy --execute [KEYWORD" "ii pce [KEYWORD" \
   "ii p --input [-o [PATH]]" "ii p --input --copy [-o [PATH]]" \
   "ii pic [-o [PATH]]" "ii p --input --execute [-o [PATH]]" \
+  "ii pie" \
   "ii p --input --copy --execute [-o [PATH]]" "ii pice" \
   "ii p --www --file PATH" "ii p --www ln" "ii p --www ls" \
   "ii p --www search"
@@ -114,6 +115,7 @@ output="$(ii p --input --help)"
 ii_help_require_fragments "ii p --input --help" "$output" \
   "ii p --input [-o [PATH]]" "ii p --input --copy [-o [PATH]]" \
   "ii pic [-o [PATH]]" "ii p --input --execute [-o [PATH]]" \
+  "ii pie" \
   "ii p --input --copy --execute [-o [PATH]]" "ii pice"
 
 output="$(ii p --www --help)"
@@ -141,11 +143,31 @@ ii_help_require_fragments "ii help get" "$output" \
 output="$(ii help set)"
 ii_help_require_fragments "ii help set" "$output" \
   "ii set --from-file [PATH]" "ii s --from-file [PATH]" \
-  "defaulting to .env"
+  "ii sf [PATH]" "ii sha" "defaulting to .env"
 
 output="$(ii help unset)"
 ii_help_require_fragments "ii help unset" "$output" \
   "ii help unset" "ii help u"
+
+colored="$(II_COLOR=always NO_COLOR= ii help load)"
+[[ "$colored" == *$'  \033[36ml\033[0m\n'* ]] || {
+  print -u2 "help alias color missing: l"
+  exit 1
+}
+[[ "$colored" == *$'  \033[36mla\033[0m    ii load --all-pane'* ]] || {
+  print -u2 "help alias annotation color boundary failed: la"
+  exit 1
+}
+[[ "$colored" != *$'\033[36mii load --all-pane'* ]] || {
+  print -u2 "help alias annotation was colored"
+  exit 1
+}
+
+plain="$(II_COLOR=always NO_COLOR=1 ii help load)"
+[[ "$plain" != *$'\033['* ]] || {
+  print -u2 "NO_COLOR did not suppress help alias color"
+  exit 1
+}
 
 unset audit_commands audit_routes audit_help_routes command help_flag output route topic
 unfunction ii_help_require_fragments

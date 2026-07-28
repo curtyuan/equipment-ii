@@ -3,48 +3,36 @@
 Status: implemented.
 
 Tmux popup input execution is available by default after `ii.plugin.zsh` is
-loaded inside tmux, while avoiding silent replacement of a custom
-`Prefix + :` binding. This replaces the former per-session
-`ii tmux enable` / `disable` state.
+loaded inside tmux. Integration adds `ii` to tmux's native command language
+through the server-level `command-alias[]` option. It does not replace or wrap
+the `Prefix + :` key binding.
 
 ## Behavior
 
-- Tmux integration is enabled by default. Loading `ii.plugin.zsh` from a shell
-  inside tmux idempotently ensures that the server-wide adapter is installed.
-- There is no per-session enable/disable state and no
-  `@ii_dispatch_enabled` option.
-- `ii tmux enable` and `ii tmux disable` are removed. `ii tmux status` remains
-  as a read-only diagnostic command.
-- The adapter intercepts only the exact command `ii pice`. All other input is
-  executed as an ordinary tmux command, preserving the standard `Prefix + :`
-  command-prompt workflow.
-- Repeated plugin loads are silent and do not reinstall an identical binding.
-  A changed helper path or integration version causes an idempotent binding
-  refresh.
-- Automatic integration never crosses tmux servers. The binding and its marker
-  belong to the server containing the shell that loaded the plugin.
-- Static configuration replaces runtime enable/disable state:
+- Loading `ii.plugin.zsh` inside tmux idempotently installs the tmux command
+  alias `ii`.
+- `Prefix + :` remains tmux's native command prompt, or whatever custom binding
+  the user configured.
+- Entering `ii` in that prompt opens an isolated popup equivalent to shell
+  command `ii pie`: input, tmux-only render, confirmation, literal send to the
+  originating pane, and one final Enter. It does not copy to the clipboard.
+- `ii pice` remains the shell alias for input, copy, and execute. Its legacy
+  popup helper delegates to the same generic helper in copy mode.
+- There is no per-session enable/disable state. `ii tmux status` is read-only.
+- The alias belongs to the tmux server containing the shell that loaded the
+  plugin; integration never crosses servers.
 
-  ```zsh
-  II_TMUX_INTEGRATION=1        # default
-  II_TMUX_INTEGRATION=0        # do not install or update the adapter
-  II_TMUX_INTEGRATION_FORCE=1  # replace a detected custom Prefix + : binding
-  ```
+Static configuration controls automatic setup:
 
-- A standard tmux `Prefix + :` command-prompt binding may be replaced
-  automatically because the adapter preserves its normal command-entry
-  behavior.
-- A non-standard custom `Prefix + :` binding is never overwritten silently.
-  ii reports the conflict once and leaves the custom binding unchanged unless
-  `II_TMUX_INTEGRATION_FORCE=1` is set.
-- Force mode replaces the custom binding but does not attempt to emulate its
-  behavior. This consequence must be stated in the conflict message and user
-  documentation.
+```zsh
+II_TMUX_INTEGRATION=1        # default
+II_TMUX_INTEGRATION=0        # do not install or update the alias
+II_TMUX_INTEGRATION_FORCE=1  # replace a conflicting alias named ii
+```
 
 ## Default Load Behavior
 
-After configuration is read and the tmux integration functions are available,
-plugin loading follows this decision flow:
+After configuration and plugin functions are loaded:
 
 ```text
 not inside tmux
@@ -53,135 +41,172 @@ not inside tmux
 II_TMUX_INTEGRATION=0
   -> do nothing
 
-ii adapter already installed with the same version and helper path
-  -> do nothing
+current ii alias has the same version, index, and helper
+  -> leave it unchanged
 
-Prefix + : is the standard command-prompt binding
-  -> install or refresh the adapter
+no command alias named ii
+  -> choose an unused command-alias[] index and install it
 
-Prefix + : is a non-standard custom binding
-  -> force=1: replace it
-  -> otherwise: leave it unchanged and report one conflict notice
+another command alias named ii
+  -> force=1: replace that alias at its existing index
+  -> otherwise: preserve it and report one conflict notice
 ```
 
-The automatic check must be safe to run from every interactive pane. It must
-not print success messages during ordinary shell startup.
+Repeated plugin loads are silent. The installer must not occupy an existing
+array index. It scans the server's complete `command-alias[]` array and chooses
+an unused index starting at 100.
 
-## Adapter Behavior
+## Native Tmux Command
 
-The installed adapter opens the normal tmux command prompt. After submission:
+The installed array value is conceptually:
 
-```text
-exactly "ii pice"
-  -> open the isolated ii pice popup
-
-anything else
-  -> execute it as the entered tmux command
+```tmux
+set-option -s command-alias[INDEX] \
+  "ii=display-popup -EE -T 'ii pie VERSION' -w 90% -h 90% \
+  -d '#{pane_current_path}' zsh /absolute/path/to/script/ii-tmux-input \
+  execute"
 ```
 
-Matching is exact. Leading or trailing whitespace, arguments, aliases, and
-other `ii` commands are not accepted by this dispatcher. The popup continues
-to receive the originating pane ID and session ID, render from tmux-session
-variables only, confirm, literal-paste through an ii-owned tmux buffer, and send
-one final Enter.
+`command-alias[]` is a native tmux server option. When tmux parses the unknown
+command `ii`, it expands the alias to `display-popup`. No command-prompt input
+is intercepted and no fallback dispatcher is involved. Invoking the readable
+helper through `zsh` also keeps the popup working when a deployment mechanism
+does not preserve executable permission bits.
 
-The same popup boundary is used by executable combo workflows selected through
-`ii p`; workflow routing does not broaden the exact free-form dispatcher input.
-
-## Installation Marker and Refresh
-
-The implementation uses the server-wide `@ii_integration_marker` tmux user
-option containing the adapter schema version and resolved popup helper path.
-This is an installation marker, not an enable/disable state. Its value has the
-form:
+The intended interaction is:
 
 ```text
-version=1 helper=/absolute/path/to/script/ii-tmux-pice
+Prefix + :
+  -> native tmux command prompt
+  -> enter ii
+  -> isolated ii pie popup
 ```
 
-The separate `@ii_integration_conflict_notice` option suppresses duplicate
-conflict notices for the same schema version and helper path. These markers
-allow ii to distinguish:
+Arguments are not part of the public contract; use exactly `ii`.
 
-- its current adapter;
-- an older ii adapter that needs refreshing;
-- the standard tmux command-prompt binding;
-- an unrelated custom binding.
+## Popup Helper
 
-A stale marker without the matching installed binding is repaired. A matching
-marker must not authorize overwriting a binding that has since been customized
-by the user.
-
-## Custom Binding Conflict
-
-Conflict detection must inspect the effective `prefix` key-table binding for
-`:`, not assume tmux defaults from the presence or absence of an ii option.
-
-Without force, a conflict produces one concise notice per tmux server or plugin
-version, not once per pane:
+The native alias uses the dedicated `script/ii-tmux-input` interactive boundary:
 
 ```text
-ii: Prefix+: has a custom tmux binding; ii popup integration was not installed
+tmux command alias
+  -> display-popup
+  -> ii-tmux-input execute
+  -> clean interactive zsh
+  -> source ii.plugin.zsh with integration installation disabled
+  -> ii_tmux_input_popup
+```
+
+The native `:ii` alias therefore renders, confirms, sends, and executes without
+copying. `script/ii-tmux-pice` remains a compatibility entry point that invokes
+the same controller in `copy-execute` mode.
+
+No pane or session format crosses the popup shell boundary: tmux does not expand
+`#{pane_id}` inside this command-alias shell command. The popup queries the
+invoking client's current pane ID, then queries that pane's session ID directly
+from tmux. It uses both resolved values for the final pre-send identity check.
+
+The helper is necessary because `ii` is a zsh function, not a standalone
+binary, and a popup process cannot rely on the originating pane's functions or
+startup state. Running the controller in a popup also leaves the originating
+pane at its shell so pasted input cannot be consumed by the controller.
+
+Popup rendering uses tmux-session `ii_` variables only. It previews the target,
+foreground command, render report, unresolved variables, and rendered body
+before confirmation.
+
+Confirmed text is transported literally:
+
+```text
+rendered text
+  -> tmux load-buffer
+  -> tmux paste-buffer to the pinned pane
+  -> tmux send-keys Enter
+```
+
+Payload text is never passed as a `tmux send-keys` command argument.
+
+## Installation Marker
+
+The global user option `@ii_integration_marker` identifies ii's installed
+alias. Its value contains:
+
+```text
+version=2 index=INDEX helper=/absolute/path/to/script/ii-tmux-input
+```
+
+The marker lets ii refresh its own alias without treating an unrelated array
+entry as owned. A marker whose index is missing or no longer contains the
+expected ii command is stale and does not authorize overwriting another alias.
+
+`@ii_integration_conflict_notice` suppresses repeated conflict messages for the
+same integration version and helper.
+
+## Same-name Conflict
+
+If a user already has a tmux command alias named `ii`, automatic installation
+leaves it unchanged and reports once:
+
+```text
+ii: tmux command alias 'ii' is already defined; ii popup alias was not installed
 ii: set II_TMUX_INTEGRATION_FORCE=1 to replace it, or II_TMUX_INTEGRATION=0 to silence this notice
 ```
 
-The conflict path must not modify the binding or store a marker claiming that
-the adapter is installed.
+Force mode replaces only the conflicting `ii` array entry. It does not modify
+other aliases or the `Prefix + :` binding.
 
-With force enabled, ii installs its adapter. Because runtime disable is being
-removed, force mode is an explicit configuration choice rather than a temporary
-override. Users who later want their old custom binding must restore it through
-their tmux configuration.
+## Migration from the Prefix Adapter
+
+Versions before schema 2 replaced `Prefix + :` with an ii-owned dispatcher that
+intercepted the exact text `ii pice`. During automatic installation, schema 2
+recognizes that old binding and restores:
+
+```tmux
+bind-key -T prefix : command-prompt
+```
+
+Only a binding positively recognized as the old ii adapter is restored.
+Unrelated custom bindings remain untouched.
+
+Legacy options `@ii_colon_binding`, `@ii_colon_binding_saved`, and per-session
+`@ii_dispatch_enabled` are cleared after successful installation.
 
 ## Status Command
 
-`ii tmux status` remains read-only and reports enough information to diagnose
-default installation:
+`ii tmux status` is read-only:
 
 ```text
 server: /tmp/tmux-1000/default
 configured: default | disabled | force
-binding: installed | standard | custom | missing | stale
-helper: /absolute/path/to/script/ii-tmux-pice
-Prefix+: command: ii pice
+command alias: installed | missing | stale | conflict
+command: ii
+helper: /absolute/path/to/script/ii-tmux-input
+Prefix+: native or user-defined | legacy ii adapter
 ```
 
-Status must not install, repair, enable, disable, or otherwise mutate tmux.
-Automatic repair occurs only during normal plugin load when integration is not
-disabled.
+Status never installs, repairs, enables, disables, or migrates anything.
+Automatic repair occurs only while loading the plugin with integration enabled.
 
 ## Failure Behavior
 
-- Failure to inspect or install the binding must not abort loading the rest of
-  the plugin.
-- A missing or unreadable popup helper leaves the adapter uninstalled and
-  produces a clear diagnostic.
-- A stale helper path is refreshed only when the current binding is still
-  recognized as ii-owned or is the standard binding.
-- A custom binding discovered after ii previously installed its adapter is
-  treated as user-owned and is not overwritten without force.
-- Popup execution retains its existing failure behavior: target disappearance,
-  buffer creation failure, paste failure, or final Enter failure is reported in
-  the popup.
-
-## Implementation Boundary
-
-The default-install check belongs to `lib/tmux_integration.zsh` and is invoked
-from `ii.plugin.zsh` only after configuration and required functions have been
-loaded. It should remain separate from the popup runner:
-
-```text
-binding inspection/install  -> tmux integration setup
-dispatcher adapter          -> exact command routing
-popup runner                -> input, render, confirm, copy, and literal send
-```
-
-The combo workflow pane selector and orchestrator reuse the popup boundary, but
-do not own or duplicate adapter installation.
+- Failure to inspect or install the alias does not abort the rest of plugin
+  loading.
+- A missing or unreadable generic helper leaves the alias uninstalled.
+- A same-name conflict is preserved unless force mode is explicitly configured.
+- A disappeared target pane, buffer creation failure, paste failure, or final
+  Enter failure is reported in the popup.
+- The `-EE` popup remains visible when the helper exits unsuccessfully.
 
 ## Regression Coverage
 
-Regression coverage includes default installation, repeated silent loads,
-disabled configuration, forced installation, standard binding passthrough,
-custom binding preservation, one-time conflict reporting, stale helper refresh,
-read-only status, and exact `ii pice` matching.
+`script/test-tmux-integration` uses an isolated tmux server and verifies:
+
+- native binding preservation;
+- unused-index installation;
+- repeated idempotent loads;
+- read-only status;
+- same-name conflict preservation;
+- force replacement;
+- migration from the legacy Prefix adapter.
+
+Popup transport and pane identity are covered by `script/test-workflow-tmux`.

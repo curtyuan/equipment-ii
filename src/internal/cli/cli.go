@@ -41,6 +41,7 @@ type CLI struct {
 	clipboardBackend port.ClipboardBackend
 	payloadOutput    *payload.Output
 	tmuxIntegration  port.TmuxIntegration
+	panes            port.PaneController
 }
 
 func New(
@@ -95,6 +96,7 @@ func New(
 		clipboardBackend: clipboard,
 		payloadOutput:    payload.NewOutput(payloadWriter),
 		tmuxIntegration:  tmuxIntegration,
+		panes:            panes,
 	}
 }
 
@@ -138,6 +140,9 @@ func (c *CLI) Run(args []string, stdout, stderr io.Writer) int {
 	}
 	if len(args) > 0 && args[0] == "__tmux_ensure" {
 		return c.ensureTmuxIntegration(stdout, stderr)
+	}
+	if len(args) > 0 && args[0] == "__tmux_popup" {
+		return c.runTmuxPopup(args[1:], stdout, stderr)
 	}
 
 	switch command(args) {

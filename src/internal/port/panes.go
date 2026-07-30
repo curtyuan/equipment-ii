@@ -16,4 +16,5 @@ type PaneController interface {
 	List(window string) ([]Pane, error)
 	Snapshot(id string) (Pane, error)
 	SendLoad(id string) error
+	SendLiteral(session, id, text string) error
 }

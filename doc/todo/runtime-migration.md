@@ -330,7 +330,10 @@ Payload migration foundation now present:
   covered by contracts.
 - Tmux command-alias discovery, ownership markers, conflict notices, forced
   replacement, idempotent installation, and legacy Prefix+: cleanup are now
-  Go-owned. The popup helper and pane transport remain on the legacy bridge.
+  Go-owned. The native alias now opens the Go popup entrypoint, whose execute
+  path owns single-line input, rendering, confirmation, pane identity
+  validation, literal buffer transport, and final Enter delivery. Multiline
+  terminal editing and the remaining input modes still use the legacy bridge.
 
 For every migrated route:
 

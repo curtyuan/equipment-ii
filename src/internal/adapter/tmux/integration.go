@@ -114,7 +114,7 @@ func (s *SessionEnvironment) finishIntegrationInstall() error {
 
 func aliasCommand(helper, version string) string {
 	return "ii=display-popup -EE -T 'ii pie " + version +
-		"' -w 90% -h 90% -d '#{pane_current_path}' zsh " + shellQuote(helper) + " execute"
+		"' -w 90% -h 90% -d '#{pane_current_path}' " + shellQuote(helper) + " __tmux_popup execute"
 }
 
 func shellQuote(value string) string {
@@ -126,7 +126,9 @@ func shellQuote(value string) string {
 
 func ownedAlias(value string) bool {
 	return strings.HasPrefix(value, "ii=display-popup") &&
-		(strings.Contains(value, "ii-tmux-input") || strings.Contains(value, "ii-tmux-pice"))
+		(strings.Contains(value, "ii-tmux-input") ||
+			strings.Contains(value, "ii-tmux-pice") ||
+			strings.Contains(value, "__tmux_popup"))
 }
 
 func freeAliasIndex(aliases map[int]string) int {
@@ -192,7 +194,8 @@ func (s *SessionEnvironment) IntegrationStatus(helper string, schema int) (port.
 		} else if strconv.Itoa(iiIndex) == markerIndex &&
 			strings.HasPrefix(aliases[iiIndex], "ii=display-popup") &&
 			(strings.Contains(aliases[iiIndex], "ii-tmux-input") ||
-				strings.Contains(aliases[iiIndex], "ii-tmux-pice")) {
+				strings.Contains(aliases[iiIndex], "ii-tmux-pice") ||
+				strings.Contains(aliases[iiIndex], "__tmux_popup")) {
 			state = "stale"
 		} else {
 			state = "conflict"

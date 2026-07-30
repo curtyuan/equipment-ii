@@ -210,24 +210,23 @@ ii tmux status
 `II_TMUX_INTEGRATION_FORCE=1` authorizes replacement of a conflicting tmux
 command alias named `ii`. There is no per-session runtime enable/disable state.
 
-### `lib/tmux_input.zsh`
+### Go tmux popup entrypoint
 
-Single-pane popup input controller.
+`ii-go __tmux_popup execute` is the native alias's single-pane popup
+controller.
 
 Responsibilities:
 
 - Resolve the source pane's session identity.
 - Read and render pasted input using tmux `ii_` values.
 - Confirm pie or pice behavior.
-- Delegate the unchanged identity check and literal send to `lib/tmux.zsh`.
+- Perform the final identity check and literal tmux buffer transport in Go.
 
-The popup process enters through the generic `script/ii-tmux-input`; the
-compatibility `script/ii-tmux-pice` delegates to it in copy mode. It does not
-read an existing tmux buffer as payload input. An ii-owned named buffer is only
-the internal literal-paste transport after confirmation. The helper re-executes
-in a clean interactive zsh so the shared ZLE input reader is available. A
-failed popup remains open and reports whether buffer creation, paste, or the
-final Enter failed.
+The popup does not read an existing tmux buffer as payload input. An ii-owned
+named buffer is only the internal literal-paste transport after confirmation.
+A failed popup remains open and reports whether buffer creation, paste, or the
+final Enter failed. The legacy ZLE reader remains only for public multiline
+payload-input modes that have not yet migrated.
 
 ### `lib/help_registry.zsh`
 

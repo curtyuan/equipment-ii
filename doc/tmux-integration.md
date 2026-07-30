@@ -63,15 +63,15 @@ The installed array value is conceptually:
 ```tmux
 set-option -s command-alias[INDEX] \
   "ii=display-popup -EE -T 'ii pie VERSION' -w 90% -h 90% \
-  -d '#{pane_current_path}' zsh /absolute/path/to/script/ii-tmux-input \
-  execute"
+  -d '#{pane_current_path}' /absolute/path/to/ii-go \
+  __tmux_popup execute"
 ```
 
 `command-alias[]` is a native tmux server option. When tmux parses the unknown
 command `ii`, it expands the alias to `display-popup`. No command-prompt input
-is intercepted and no fallback dispatcher is involved. Invoking the readable
-helper through `zsh` also keeps the popup working when a deployment mechanism
-does not preserve executable permission bits.
+is intercepted and no fallback dispatcher is involved. The installer verifies
+that the selected Go runtime is an executable regular file before publishing
+the alias.
 
 The intended interaction is:
 
@@ -84,32 +84,30 @@ Prefix + :
 
 Arguments are not part of the public contract; use exactly `ii`.
 
-## Popup Helper
+## Popup Entrypoint
 
-The native alias uses the dedicated `script/ii-tmux-input` interactive boundary:
+The native alias enters the hidden Go popup operation directly:
 
 ```text
 tmux command alias
   -> display-popup
-  -> ii-tmux-input execute
-  -> clean interactive zsh
-  -> source ii.plugin.zsh with integration installation disabled
-  -> ii_tmux_input_popup
+  -> ii-go __tmux_popup execute
+  -> render and confirm
+  -> validate and send to the originating pane
 ```
 
 The native `:ii` alias therefore renders, confirms, sends, and executes without
-copying. `script/ii-tmux-pice` remains a compatibility entry point that invokes
-the same controller in `copy-execute` mode.
+copying. The legacy scripts remain available only for public payload-input modes
+that have not yet migrated.
 
 No pane or session format crosses the popup shell boundary: tmux does not expand
 `#{pane_id}` inside this command-alias shell command. The popup queries the
 invoking client's current pane ID, then queries that pane's session ID directly
 from tmux. It uses both resolved values for the final pre-send identity check.
 
-The helper is necessary because `ii` is a zsh function, not a standalone
-binary, and a popup process cannot rely on the originating pane's functions or
-startup state. Running the controller in a popup also leaves the originating
-pane at its shell so pasted input cannot be consumed by the controller.
+The popup process cannot rely on the originating pane's functions or startup
+state. Running the controller in a popup also leaves the originating pane at
+its shell so pasted input cannot be consumed by the controller.
 
 Popup rendering uses tmux-session `ii_` variables only. It previews the target,
 foreground command, render report, unresolved variables, and rendered body
@@ -132,7 +130,7 @@ The global user option `@ii_integration_marker` identifies ii's installed
 alias. Its value contains:
 
 ```text
-version=2 index=INDEX helper=/absolute/path/to/script/ii-tmux-input
+version=2 index=INDEX helper=/absolute/path/to/ii-go
 ```
 
 The marker lets ii refresh its own alias without treating an unrelated array
@@ -180,7 +178,7 @@ server: /tmp/tmux-1000/default
 configured: default | disabled | force
 command alias: installed | missing | stale | conflict
 command: ii
-helper: /absolute/path/to/script/ii-tmux-input
+helper: /absolute/path/to/ii-go
 Prefix+: native or user-defined | legacy ii adapter
 ```
 
@@ -191,7 +189,7 @@ Automatic repair occurs only while loading the plugin with integration enabled.
 
 - Failure to inspect or install the alias does not abort the rest of plugin
   loading.
-- A missing or unreadable generic helper leaves the alias uninstalled.
+- A missing or non-executable Go runtime leaves the alias uninstalled.
 - A same-name conflict is preserved unless force mode is explicitly configured.
 - A disappeared target pane, buffer creation failure, paste failure, or final
   Enter failure is reported in the popup.

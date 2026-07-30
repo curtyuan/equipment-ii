@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s tmux-popup-contract -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t tmux-popup-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t tmux-popup-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+export II_GO_BIN="${II_GO_BIN:-${repo_dir}/build/ii-go}"
+export II_INTERACTIVE_KEY=y
+
+tmux -S "$socket" set-environment ii_rhost GO_POPUP_OK
+printf 'echo $rhost\n' | "$II_GO_BIN" __tmux_popup execute \
+  >"${tmp_dir}/popup.out" 2>"${tmp_dir}/popup.err"
+grep -Fx 'Send and execute? [y/N] y' "${tmp_dir}/popup.out"
+grep -Fx 'payload sent and executed' "${tmp_dir}/popup.out"
+[[ ! -s "${tmp_dir}/popup.err" ]]
+
+pane_output=""
+for _ in $(seq 1 30); do
+  pane_output="$(tmux -S "$socket" capture-pane -p -t "$pane" -S -80)"
+  [[ "$pane_output" == *GO_POPUP_OK* ]] && break
+  sleep 0.1
+done
+[[ "$pane_output" == *GO_POPUP_OK* ]]
+
+set +e
+TMUX_PANE=%999 printf 'echo rejected\n' | \
+  env TMUX_PANE=%999 "$II_GO_BIN" __tmux_popup execute \
+  >"${tmp_dir}/missing.out" 2>"${tmp_dir}/missing.err"
+status=$?
+set -e
+[[ "$status" == 1 ]]
+grep -F 'ii: target pane' "${tmp_dir}/missing.err" || {
+  command cat "${tmp_dir}/missing.err" >&2
+  exit 1
+}
+
+printf 'Go tmux popup execute contract passed\n'

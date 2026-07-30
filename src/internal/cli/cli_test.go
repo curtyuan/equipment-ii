@@ -102,6 +102,7 @@ func (fakePanes) CurrentSessionWindow() (string, string, error) { return "$1", "
 func (fakePanes) List(string) ([]port.Pane, error)              { return nil, nil }
 func (fakePanes) Snapshot(string) (port.Pane, error)            { return port.Pane{}, nil }
 func (fakePanes) SendLoad(string) error                         { return nil }
+func (fakePanes) SendLiteral(string, string, string) error      { return nil }
 
 type fakeTmuxIntegration struct{}
 

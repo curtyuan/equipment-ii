@@ -2,6 +2,8 @@ package tmux
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -57,6 +59,43 @@ func (s *SessionEnvironment) SendLoad(id string) error {
 		return err
 	}
 	return s.run("send-keys", "-t", id, "Enter")
+}
+
+func (s *SessionEnvironment) SendLiteral(session, id, text string) error {
+	pane, err := s.Snapshot(id)
+	if err != nil {
+		return fmt.Errorf("ii: target pane is no longer available: %s", id)
+	}
+	if pane.ID != id || pane.Session != session || pane.Dead {
+		return fmt.Errorf(
+			"ii: target pane identity changed: expected pane=%s session=%s; actual pane=%s session=%s dead=%t",
+			id, session, emptyLabel(pane.ID), emptyLabel(pane.Session), pane.Dead,
+		)
+	}
+	buffer := fmt.Sprintf("ii-send-%d", os.Getpid())
+	command := s.command("tmux", "load-buffer", "-b", buffer, "-")
+	command.Stdin = strings.NewReader(text)
+	if output, loadErr := command.CombinedOutput(); loadErr != nil {
+		if message := strings.TrimSpace(string(output)); message != "" {
+			return errors.New(message)
+		}
+		return errors.New("ii: failed to create tmux send buffer")
+	}
+	if err := s.run("paste-buffer", "-b", buffer, "-t", id, "-d"); err != nil {
+		_ = s.run("delete-buffer", "-b", buffer)
+		return fmt.Errorf("ii: failed to paste payload into target pane: %s", id)
+	}
+	if err := s.run("send-keys", "-t", id, "Enter"); err != nil {
+		return fmt.Errorf("ii: payload was pasted but final Enter failed for pane: %s", id)
+	}
+	return nil
+}
+
+func emptyLabel(value string) string {
+	if value == "" {
+		return "[missing]"
+	}
+	return value
 }
 
 func (s *SessionEnvironment) output(args ...string) (string, error) {

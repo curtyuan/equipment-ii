@@ -328,6 +328,9 @@ Payload migration foundation now present:
   confirmed current-shell side effects without `eval`; exact-path validation,
   symlink rejection, cleanup, and end-to-end variable/cwd persistence are
   covered by contracts.
+- Tmux command-alias discovery, ownership markers, conflict notices, forced
+  replacement, idempotent installation, and legacy Prefix+: cleanup are now
+  Go-owned. The popup helper and pane transport remain on the legacy bridge.
 
 For every migrated route:
 

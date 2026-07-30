@@ -108,6 +108,9 @@ type fakeTmuxIntegration struct{}
 func (fakeTmuxIntegration) IntegrationStatus(string, int) (port.TmuxIntegrationStatus, error) {
 	return port.TmuxIntegrationStatus{}, nil
 }
+func (fakeTmuxIntegration) EnsureIntegration(string, string, int, bool) (string, error) {
+	return "", nil
+}
 
 type fakeSelector struct{}
 

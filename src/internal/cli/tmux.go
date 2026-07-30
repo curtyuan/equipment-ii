@@ -4,10 +4,45 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
 const tmuxIntegrationSchema = 2
+
+func (c *CLI) ensureTmuxIntegration(_ io.Writer, stderr io.Writer) int {
+	if os.Getenv("II_TMUX_INTEGRATION") == "0" {
+		return 0
+	}
+	if os.Getenv("TMUX") == "" {
+		return 0
+	}
+	if _, err := exec.LookPath("tmux"); err != nil {
+		return 0
+	}
+	pluginDir := os.Getenv("II_PLUGIN_DIR")
+	if pluginDir == "" {
+		pluginDir = os.Getenv("II_GO_ROOT")
+	}
+	helper := filepath.Join(pluginDir, "script", "ii-tmux-input")
+	info, err := os.Stat(helper)
+	if err != nil || !info.Mode().IsRegular() {
+		fmt.Fprintf(stderr, "ii: tmux popup helper is not readable: %s\n", helper)
+		return 1
+	}
+	notice, err := c.tmuxIntegration.EnsureIntegration(
+		helper,
+		c.version,
+		tmuxIntegrationSchema,
+		os.Getenv("II_TMUX_INTEGRATION_FORCE") == "1",
+	)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	fmt.Fprint(stderr, notice)
+	return 0
+}
 
 func (c *CLI) runTmux(args []string, stdout, stderr io.Writer) int {
 	for _, arg := range args[1:] {

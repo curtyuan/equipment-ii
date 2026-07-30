@@ -8,4 +8,5 @@ type TmuxIntegrationStatus struct {
 
 type TmuxIntegration interface {
 	IntegrationStatus(helper string, schema int) (TmuxIntegrationStatus, error)
+	EnsureIntegration(helper, version string, schema int, force bool) (string, error)
 }

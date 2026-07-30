@@ -21,14 +21,28 @@ fi
 
 typeset -g II_PLUGIN_DIR="$II_LEGACY_ROOT"
 typeset -g II_PAYLOAD_DIR="${II_PAYLOAD_DIR:-${II_LEGACY_ROOT}/payloads}"
+local ii_adapter_tmux_present=${+TMUX}
+local ii_adapter_tmux_value="${TMUX-}"
+unset TMUX
 source "${II_LEGACY_ROOT}/ii.plugin.zsh" || {
+  (( ii_adapter_tmux_present )) && export TMUX="$ii_adapter_tmux_value"
   unset ii_adapter_dir
   return 1
 }
+if (( ii_adapter_tmux_present )); then
+  export TMUX="$ii_adapter_tmux_value"
+else
+  unset TMUX
+fi
 
 functions[ii_legacy]="${functions[ii]}"
 unfunction ii
 typeset -ga precmd_functions
+
+if [[ -x "$II_GO_BIN" ]]; then
+  II_PLUGIN_DIR="$II_PLUGIN_DIR" II_GO_ROOT="$II_GO_ROOT" \
+    "$II_GO_BIN" __tmux_ensure || true
+fi
 
 ii() {
   if [[ ! -x "$II_GO_BIN" ]]; then
@@ -210,4 +224,4 @@ ii_sync_loaded_vars_precmd() {
   ii load >/dev/null
 }
 
-unset ii_adapter_dir
+unset ii_adapter_dir ii_adapter_tmux_present ii_adapter_tmux_value

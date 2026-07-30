@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/curtyuan/equipment-ii/src/internal/payload"
 	"github.com/curtyuan/equipment-ii/src/internal/terminal"
 )
 
@@ -41,13 +40,12 @@ func (c *CLI) runPayloadInput(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	resolver, diagnostic, err := payload.NewVariableResolver(c.state, c.environment)
+	rendered, diagnostic, err := c.inputRenderer.Render(input)
 	fmt.Fprint(stderr, diagnostic)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
-	rendered := payload.Render(input, resolver)
 	if options.output {
 		absolute, writeErr := c.payloadOutput.Write(rendered.Text, options.outputSpec)
 		if writeErr != nil {

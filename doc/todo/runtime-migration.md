@@ -31,6 +31,12 @@ src/
   go.mod
   cmd/ii/
   internal/
+    cli/                     entrypoints and presentation
+    variables/               variable use cases
+    payload/                 payload and input-render use cases
+    www/                     web-root policy and use cases (planned)
+    port/                    focused capability interfaces
+    adapter/                 external process and filesystem effects
 payloads/                 compatible payload data
 script/                   build, test, and popup launchers
 ```
@@ -77,6 +83,10 @@ tmux orchestration, and all other stateful behavior.
   (`4954cb7`), then verify the relocated snapshot independently.
 
 ### Initial Traceability Inventory
+
+This table is the initial frozen audit. The live ownership and remaining-work
+view is maintained in
+[`../feature-inventory.md`](../feature-inventory.md).
 
 This table records ownership and current coverage. `documented only` means the
 test procedure exists in `ori-ii/doc/testing.md` but has no dedicated automatic
@@ -259,19 +269,21 @@ sync
 interactive and i
 clipboard and clip, including backend and doctor
 tmux status diagnostics
+tmux alias installation and popup execution
 unset and u, including confirmed -a
 help for the variable-list family
 help for the set family
 help for interactive variables
+payload --input, pic, pie, and pice, including their help paths
 ```
 
 Legacy-owned:
 
 ```text
-payload file/input/www paths
-tmux alias installation and popup integration
+payload file selection/copy/execute paths
+payload /www paths
 workflow execution
-all corresponding aliases and compact s:/g: forms
+their corresponding aliases and help paths
 ```
 
 An error in a Go-owned route never falls back to legacy. `ori-ii` remains
@@ -297,6 +309,28 @@ The read-only variable-list family is migrated as the first real feature slice:
 The complete variable family is now Go-owned, including interactive selection,
 add/edit/copy behavior, output, import, sync, and parent-shell semantics.
 
+### Architecture Refactoring Work
+
+Completed for the `/www` preparation checkpoint:
+
+- [x] Replace positional CLI construction with named dependencies.
+- [x] Split hidden shell/runtime entrypoints from public dispatch.
+- [x] Route ownership and public dispatch through a shared `Resolution` entry.
+- [x] Share payload input rendering between public input and tmux popup paths.
+
+Remaining structural work:
+
+- [ ] Replace remaining route-owner and canonical-command special cases with a
+  declarative command specification.
+- [ ] Split large CLI handlers into feature-specific files.
+- [ ] Split the concrete tmux session adapter into environment, pane, and
+  integration wrappers over one runner.
+- [ ] Add the `/www` domain service, focused filesystem port, filesystem
+  adapter, CLI handlers, and nested help.
+- [ ] Move `/www` path defaults out of payload output after compatibility
+  contracts cover the transition.
+- [ ] Add `/www` unit and isolated semantic contract coverage.
+
 ## Phase 3: Vertical Feature Migration
 
 Migrate complete user-visible command paths one at a time. A route is migrated
@@ -307,7 +341,7 @@ only when implementation, tests, help, docs, and package behavior move together.
 - [x] Tmux variable set, get, list, unset, import, and output.
 - [ ] `/www` output helpers (clipboard commands are complete).
 - [x] Interactive payload input (interactive variables are complete).
-- [ ] Tmux command alias, popup entry, pane transport, and identity validation.
+- [x] Tmux command alias, popup entry, pane transport, and identity validation.
 - [ ] Workflow parsing, lane assignment, memory, rendering, and orchestration.
 - [x] Shell-local variable load, sync, export, and hook adapter behavior.
 

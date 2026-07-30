@@ -81,13 +81,12 @@ func (c *CLI) runTmuxPopup(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	resolver, diagnostic, err := payload.NewVariableResolver(c.state, c.environment)
+	rendered, diagnostic, err := c.inputRenderer.Render(input)
 	fmt.Fprint(stderr, diagnostic)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
-	rendered := payload.Render(input, resolver)
 	fmt.Fprintf(stdout, "Target: %s (%s)\n", pane.Window, pane.ID)
 	fmt.Fprintf(stdout, "Command: %s\n", pane.Command)
 	if len(rendered.Report) > 0 {

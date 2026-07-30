@@ -25,7 +25,8 @@ to the contract audit and must be reconciled as their features migrate.
 
 | File | Purpose |
 | --- | --- |
-| [architecture.md](architecture.md) | Load order, layer ownership, state model, and deployment boundary. |
+| [architecture.md](architecture.md) | Current Go runtime boundaries, dependency direction, feature ownership, and target `/www` split. |
+| [feature-inventory.md](feature-inventory.md) | Live feature ownership, migration status, and the `/www` compatibility inventory. |
 | [help.md](help.md) | Help output contract, per-feature registration, routing, and maintenance workflow. |
 | [testing.md](testing.md) | Syntax checks, smoke tests, and regression scenarios. |
 | [release.md](release.md) | Version bumping, package build output, and release tagging. |

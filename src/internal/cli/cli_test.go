@@ -168,7 +168,14 @@ func (fakeClipboard) EffectiveBackend() (string, error) { return "tmux", nil }
 func (fakeClipboard) Context() string                   { return "local" }
 
 func newTestCLI() *CLI {
-	return New("0.2.4", false, fakeSessionEnvironment{}, fakeAtomicFileWriter{}, fakeShellOperations{}, "lower", fakeShellState{}, fakeAddressDetector{}, "", "", strings.NewReader(""), fakePanes{}, fakeSelector{}, fakeClipboard{}, fakePayloadStore{}, fakePayloadWriter{}, fakeTmuxIntegration{})
+	return New("0.2.4", false, Dependencies{
+		Environment: fakeSessionEnvironment{}, AtomicWriter: fakeAtomicFileWriter{},
+		Shell: fakeShellOperations{}, ExportCase: "lower", ShellState: fakeShellState{},
+		AddressDetector: fakeAddressDetector{}, Stdin: strings.NewReader(""),
+		Panes: fakePanes{}, Selector: fakeSelector{}, Clipboard: fakeClipboard{},
+		PayloadStore: fakePayloadStore{}, PayloadWriter: fakePayloadWriter{},
+		TmuxIntegration: fakeTmuxIntegration{},
+	})
 }
 
 func TestColorizeAliases(t *testing.T) {

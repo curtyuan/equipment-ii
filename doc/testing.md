@@ -22,6 +22,9 @@ make test-tmux-status
 make test-payload-render-tmux
 make test-payload-select-tmux
 make test-payload-input-usage-tmux
+make test-tmux-install
+make test-tmux-popup
+make test-tmux-popup-interactive
 make cross-build
 make
 ```
@@ -29,9 +32,12 @@ make
 `make test` runs format, vet, Go unit tests, a static build, and public
 differential contracts, including the versioned parent-shell operation
 protocol. The tmux targets use isolated servers to verify the temporary legacy
-bridge, the complete Go-owned variable family, and real heredoc/interactive
-`ii pic` and `ii pice` input. A bare `make` creates the current deployment
-package under `export/ii`.
+bridge, the complete Go-owned variable family, native alias installation,
+popup execution and real heredoc/interactive `ii pic` and `ii pice` input. A
+bare `make` creates the current deployment package under `export/ii`.
+
+Current feature ownership and known coverage gaps are tracked in
+[`feature-inventory.md`](feature-inventory.md).
 
 Run the immutable legacy baseline separately:
 

@@ -29,24 +29,24 @@ func main() {
 		}
 	}
 	sessionEnvironment := tmuxadapter.NewSessionEnvironment()
-	app := cli.New(
-		version,
-		cli.ColorEnabled(os.Stdout, os.Getenv),
-		sessionEnvironment,
-		filesystemadapter.NewAtomicFileWriter(),
-		shellopsadapter.NewFile(os.Getenv("II_SHELL_OPS_FILE"), os.Getenv("II_SHELL_EXEC_FILE")),
-		os.Getenv("II_EXPORT_CASE"),
-		shellState,
-		networkadapter.NewInterfaceAddress(),
-		os.Getenv("II_AUTO_DETECT_LHOST"),
-		os.Getenv("II_AUTO_DETECT_LHOST_INTERFACE"),
-		os.Stdin,
-		sessionEnvironment,
-		fzfadapter.NewMulti(),
-		clipboardadapter.New(sessionEnvironment),
-		filesystemadapter.NewPayloadStore(payloadRoot),
-		filesystemadapter.NewPayloadWriter(),
-		sessionEnvironment,
-	)
+	selector := fzfadapter.NewMulti()
+	clipboard := clipboardadapter.New(sessionEnvironment)
+	app := cli.New(version, cli.ColorEnabled(os.Stdout, os.Getenv), cli.Dependencies{
+		Environment:     sessionEnvironment,
+		AtomicWriter:    filesystemadapter.NewAtomicFileWriter(),
+		Shell:           shellopsadapter.NewFile(os.Getenv("II_SHELL_OPS_FILE"), os.Getenv("II_SHELL_EXEC_FILE")),
+		ExportCase:      os.Getenv("II_EXPORT_CASE"),
+		ShellState:      shellState,
+		AddressDetector: networkadapter.NewInterfaceAddress(),
+		AutoDetect:      os.Getenv("II_AUTO_DETECT_LHOST"),
+		DetectInterface: os.Getenv("II_AUTO_DETECT_LHOST_INTERFACE"),
+		Stdin:           os.Stdin,
+		Panes:           sessionEnvironment,
+		Selector:        selector,
+		Clipboard:       clipboard,
+		PayloadStore:    filesystemadapter.NewPayloadStore(payloadRoot),
+		PayloadWriter:   filesystemadapter.NewPayloadWriter(),
+		TmuxIntegration: sessionEnvironment,
+	})
 	os.Exit(app.Run(os.Args[1:], os.Stdout, os.Stderr))
 }

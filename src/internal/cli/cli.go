@@ -40,112 +40,77 @@ type CLI struct {
 	clipboard        port.Clipboard
 	clipboardBackend port.ClipboardBackend
 	payloadOutput    *payload.Output
+	inputRenderer    *payload.InputRenderer
 	tmuxIntegration  port.TmuxIntegration
 	panes            port.PaneController
 }
 
-func New(
-	version string,
-	color bool,
-	environment port.Environment,
-	writer port.AtomicFileWriter,
-	shell port.ShellOperations,
-	exportCase string,
-	shellState port.ShellState,
-	detector port.AddressDetector,
-	autoDetect string,
-	detectInterface string,
-	stdin io.Reader,
-	panes port.PaneController,
-	selector port.Selector,
-	clipboard port.ClipboardBackend,
-	payloadStore port.PayloadStore,
-	payloadWriter port.PayloadWriter,
-	tmuxIntegration port.TmuxIntegration,
-) *CLI {
-	mutator := variables.NewMutator(environment, shell, exportCase)
-	loader := variables.NewLoader(environment, mutator)
+type Dependencies struct {
+	Environment     port.Environment
+	AtomicWriter    port.AtomicFileWriter
+	Shell           port.ShellOperations
+	ExportCase      string
+	ShellState      port.ShellState
+	AddressDetector port.AddressDetector
+	AutoDetect      string
+	DetectInterface string
+	Stdin           io.Reader
+	Panes           port.PaneController
+	Selector        port.Selector
+	Clipboard       port.ClipboardBackend
+	PayloadStore    port.PayloadStore
+	PayloadWriter   port.PayloadWriter
+	TmuxIntegration port.TmuxIntegration
+}
+
+func New(version string, color bool, dependencies Dependencies) *CLI {
+	mutator := variables.NewMutator(dependencies.Environment, dependencies.Shell, dependencies.ExportCase)
+	loader := variables.NewLoader(dependencies.Environment, mutator)
 	enabled := true
-	switch strings.ToLower(autoDetect) {
+	switch strings.ToLower(dependencies.AutoDetect) {
 	case "0", "false", "no", "off", "disabled":
 		enabled = false
 	}
-	if detectInterface == "" {
-		detectInterface = "tun0"
+	if dependencies.DetectInterface == "" {
+		dependencies.DetectInterface = "tun0"
 	}
 	return &CLI{
 		version:          version,
 		color:            color,
-		lister:           variables.NewLister(environment),
-		output:           variables.NewOutputter(environment, writer),
-		shell:            shell,
+		lister:           variables.NewLister(dependencies.Environment),
+		output:           variables.NewOutputter(dependencies.Environment, dependencies.AtomicWriter),
+		shell:            dependencies.Shell,
 		mutator:          mutator,
 		loader:           loader,
-		state:            shellState,
-		detector:         detector,
+		state:            dependencies.ShellState,
+		detector:         dependencies.AddressDetector,
 		autoDetect:       enabled,
-		detectInterface:  detectInterface,
-		stdin:            stdin,
-		environment:      environment,
-		allPanes:         variables.NewAllPaneLoader(panes, selector, loader),
-		getter:           variables.NewGetter(environment, selector, clipboard),
-		interactive:      variables.NewInteractive(environment, selector, clipboard, mutator),
-		payloads:         payload.NewCatalog(payloadStore),
-		payloadSelector:  selector,
-		clipboard:        clipboard,
-		clipboardBackend: clipboard,
-		payloadOutput:    payload.NewOutput(payloadWriter),
-		tmuxIntegration:  tmuxIntegration,
-		panes:            panes,
+		detectInterface:  dependencies.DetectInterface,
+		stdin:            dependencies.Stdin,
+		environment:      dependencies.Environment,
+		allPanes:         variables.NewAllPaneLoader(dependencies.Panes, dependencies.Selector, loader),
+		getter:           variables.NewGetter(dependencies.Environment, dependencies.Selector, dependencies.Clipboard),
+		interactive:      variables.NewInteractive(dependencies.Environment, dependencies.Selector, dependencies.Clipboard, mutator),
+		payloads:         payload.NewCatalog(dependencies.PayloadStore),
+		payloadSelector:  dependencies.Selector,
+		clipboard:        dependencies.Clipboard,
+		clipboardBackend: dependencies.Clipboard,
+		payloadOutput:    payload.NewOutput(dependencies.PayloadWriter),
+		inputRenderer:    payload.NewInputRenderer(dependencies.ShellState, dependencies.Environment),
+		tmuxIntegration:  dependencies.TmuxIntegration,
+		panes:            dependencies.Panes,
 	}
 }
 
 func (c *CLI) Run(args []string, stdout, stderr io.Writer) int {
-	if len(args) > 0 && args[0] == "__route" {
-		fmt.Fprintln(stdout, Route(args[1:]))
-		return 0
+	if status, handled := c.runInternal(args, stdout, stderr); handled {
+		return status
 	}
-	if len(args) > 0 && args[0] == "__payload_names" {
-		names, err := c.payloads.ReferencedNames()
-		if err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
-		}
-		for _, name := range names {
-			fmt.Fprintln(stdout, name)
-		}
-		return 0
-	}
-	if len(args) > 0 && args[0] == "__payload_render" {
-		if len(args) != 2 {
-			fmt.Fprintln(stderr, "ii: usage: ii-go __payload_render PATH")
-			return 2
-		}
-		resolver, diagnostic, err := payload.NewVariableResolver(c.state, c.environment)
-		fmt.Fprint(stderr, diagnostic)
-		if err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
-		}
-		result, err := payload.NewService(c.payloads, resolver).Render(args[1])
-		if err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
-		}
-		fmt.Fprint(stdout, result.Text)
-		return 0
-	}
-	if len(args) > 0 && args[0] == "__payload_select" {
-		return c.runPayload(args[1:], stdout, stderr)
-	}
-	if len(args) > 0 && args[0] == "__tmux_ensure" {
-		return c.ensureTmuxIntegration(stdout, stderr)
-	}
-	if len(args) > 0 && args[0] == "__tmux_popup" {
-		return c.runTmuxPopup(args[1:], stdout, stderr)
-	}
+	return c.runPublic(args, stdout, stderr)
+}
 
-	switch command(args) {
+func (c *CLI) runPublic(args []string, stdout, stderr io.Writer) int {
+	switch Resolve(args).Command {
 	case "help":
 		if isVersionHelp(args) {
 			fmt.Fprint(stdout, versionHelp)
@@ -712,7 +677,7 @@ func (c *CLI) runSetFile(path string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func Route(args []string) string {
+func resolveOwner(args []string) string {
 	if len(args) == 0 {
 		return RouteGo
 	}
@@ -759,7 +724,7 @@ func containsString(values []string, expected string) bool {
 	return false
 }
 
-func command(args []string) string {
+func resolveCommand(args []string) string {
 	if len(args) == 0 {
 		return "help"
 	}

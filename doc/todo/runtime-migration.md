@@ -332,9 +332,12 @@ Payload migration foundation now present:
   replacement, idempotent installation, and legacy Prefix+: cleanup are now
   Go-owned. The native alias now opens the Go popup entrypoint, whose execute
   path owns terminal and streamed multiline input, Enter/Alt-Enter/Esc editing,
-  rendering, confirmation, pane identity
-  validation, literal buffer transport, and final Enter delivery. The remaining
-  public payload-input modes still use the legacy bridge.
+  rendering, confirmation, pane identity validation, literal buffer transport,
+  and final Enter delivery.
+- Public `pic`, `pie`, `pice`, and `payload --input` execution paths now share
+  the Go terminal/stream reader, renderer, output writer, clipboard adapter,
+  single-key confirmation, and allowlisted parent-shell execution channel.
+  Input help topics remain explicitly legacy-routed pending the help migration.
 
 For every migrated route:
 

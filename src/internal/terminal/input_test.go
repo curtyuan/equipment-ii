@@ -34,3 +34,10 @@ func TestStripFinishLine(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestReadKeyFallback(t *testing.T) {
+	key, err := ReadKey(strings.NewReader("y\n"))
+	if err != nil || key != "y" {
+		t.Fatalf("key=%q err=%v", key, err)
+	}
+}

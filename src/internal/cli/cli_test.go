@@ -32,7 +32,10 @@ func TestRoute(t *testing.T) {
 		{"interactive", []string{"interactive"}, RouteGo},
 		{"interactive alias", []string{"i"}, RouteGo},
 		{"interactive help", []string{"help", "interactive"}, RouteGo},
-		{"payload remains legacy", []string{"pic"}, RouteLegacy},
+		{"payload input alias", []string{"pic"}, RouteGo},
+		{"payload input long", []string{"payload", "--input", "--copy"}, RouteGo},
+		{"payload input help bridge", []string{"pic", "--help"}, RouteLegacy},
+		{"payload selection remains legacy", []string{"payload", "linux"}, RouteLegacy},
 		{"unknown", []string{"wat"}, RouteGo},
 	}
 	for _, test := range tests {

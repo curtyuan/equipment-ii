@@ -227,8 +227,8 @@ The popup uses a Go terminal reader for Enter, Alt-Enter, Esc, backspace, and
 read an existing tmux buffer as payload input. An ii-owned
 named buffer is only the internal literal-paste transport after confirmation.
 A failed popup remains open and reports whether buffer creation, paste, or the
-final Enter failed. The legacy ZLE reader remains only for public payload-input
-modes that have not yet migrated.
+final Enter failed. The legacy ZLE reader remains packaged temporarily but is
+no longer used by public payload-input execution paths.
 
 ### `lib/help_registry.zsh`
 

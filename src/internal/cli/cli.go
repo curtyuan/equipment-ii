@@ -337,6 +337,8 @@ func (c *CLI) Run(args []string, stdout, stderr io.Writer) int {
 				return 0
 			}
 		}
+	case "payload-input":
+		return c.runPayloadInput(args, stdout, stderr)
 	case "sync":
 		action := "status"
 		if len(args) > 1 {
@@ -722,11 +724,39 @@ func Route(args []string) string {
 		}
 		return RouteGo
 	}
+	if isPayloadInputRoute(args) {
+		if containsString(args[1:], "-h") || containsString(args[1:], "--help") {
+			return RouteLegacy
+		}
+		return RouteGo
+	}
 	spec := findCommand(args[0])
 	if spec != nil && spec.owner == ownerLegacy {
 		return RouteLegacy
 	}
 	return RouteGo
+}
+
+func isPayloadInputRoute(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+	switch args[0] {
+	case "pic", "pie", "pice":
+		return true
+	case "payload", "p":
+		return containsString(args[1:], "--input") || containsString(args[1:], "input")
+	}
+	return false
+}
+
+func containsString(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func command(args []string) string {
@@ -785,6 +815,12 @@ func command(args []string) string {
 		return "list"
 	case "vo", "voc":
 		return "output"
+	case "pic", "pie", "pice":
+		return "payload-input"
+	case "payload", "p":
+		if containsString(args[1:], "--input") || containsString(args[1:], "input") {
+			return "payload-input"
+		}
 	}
 	if spec := findCommand(args[0]); spec != nil && spec.owner == ownerLegacy {
 		return "legacy"

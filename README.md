@@ -36,7 +36,9 @@ the read-only `ls`/`list`/`variable`/`vars`/`var` family, `v [PATTERN]`, and
 the `v --out`/`vo`/`voc` file-output family. The complete `set` family,
 `load/l/la`, `sync`, and `unset/u` are also Go-owned, including all-pane load
 and confirmed unset-all modes. `get/g/gr/gl/g:*` selection and clipboard copy
-are Go-owned as well.
+are Go-owned as well. Public pasted-input execution through `pic`, `pie`,
+`pice`, and `payload --input` is Go-owned; its help text remains on the
+temporary legacy bridge until the help migration is complete.
 
 `make` writes the current Go deployment package to `export/ii`. The immutable
 legacy package is built separately under `ori-ii/export/ii`:

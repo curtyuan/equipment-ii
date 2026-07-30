@@ -120,6 +120,21 @@ ii_write_requested_shell_state() {
       [[ "$raw" == --from-shell || "$raw" == -a ]] && continue
       names+=("${(@s:,:)raw}")
     done
+  elif [[ "$command" == (pic|pie|pice) ||
+          ( "$command" == (payload|p) &&
+            ( " $* " == *" --input "* || " $* " == *" input "* ) ) ]]; then
+    local parameter_name parameter_type
+    local -A input_names
+    for parameter_name in ${(k)parameters}; do
+      [[ "$parameter_name" =~ '^[A-Za-z_][A-Za-z0-9_]*$' &&
+        "$parameter_name" != _* &&
+        "${(L)parameter_name}" != ii_* ]] || continue
+      parameter_type="${parameters[$parameter_name]}"
+      [[ "$parameter_type" == *scalar* &&
+        "$parameter_type" != *special* ]] &&
+        input_names[${(L)parameter_name}]=1
+    done
+    names=(${(k)input_names})
   elif [[ "$command" == (payload|p|pc|pe|pce) ]]; then
     names=("${(@f)$("$II_GO_BIN" __payload_names)}") || return
   else

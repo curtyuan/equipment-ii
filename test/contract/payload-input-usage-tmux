@@ -83,4 +83,42 @@ done
 [[ -f "$interactive_marker" ]]
 [[ "$(tmux -S "$socket" save-buffer -)" == "$interactive_payload" ]]
 
+start_case
+tmux -S "$socket" set-environment -t payload-input-contract ii_token tmux-value
+send_line "typeset -g token=shell-value; print -r -- TOKEN_SHELL_READY:\$token"
+wait_for "TOKEN_SHELL_READY:shell-value" >/dev/null
+shell_precedence=$'ii payload --input --copy <<\'EOF\'\necho $token\nEOF'
+print -rn -- "$shell_precedence" | tmux -S "$socket" load-buffer -b ii-test -
+tmux -S "$socket" paste-buffer -b ii-test -t "$target" -d
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for "echo shell-value" >/dev/null
+[[ "$(tmux -S "$socket" save-buffer -)" == "echo shell-value" ]]
+
+start_case
+pie_marker="${tmp_dir}/pie.executed"
+pie_payload="print -r -- PIE_EXECUTED > ${(q)pie_marker}"
+pie_command=$'ii pie <<\'EOF\'\n'"${pie_payload}"$'\nEOF'
+print -rn -- "$pie_command" | tmux -S "$socket" load-buffer -b ii-test -
+tmux -S "$socket" paste-buffer -b ii-test -t "$target" -d
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for "Execute this payload? [y/N]" >/dev/null
+tmux -S "$socket" send-keys -t "$target" y
+for attempt in {1..100}; do
+  [[ -f "$pie_marker" ]] && break
+  sleep 0.1
+done
+[[ -f "$pie_marker" ]]
+
+start_case
+output_path="${tmp_dir}/rendered.txt"
+output_command=$'ii pic -o '"${(q)output_path}"$' <<\'EOF\'\necho ${rhost}\nEOF'
+print -rn -- "$output_command" | tmux -S "$socket" load-buffer -b ii-test -
+tmux -S "$socket" paste-buffer -b ii-test -t "$target" -d
+tmux -S "$socket" send-keys -t "$target" Enter
+for attempt in {1..100}; do
+  [[ -f "$output_path" ]] && break
+  sleep 0.1
+done
+[[ "$(<"$output_path")" == "echo 192.0.2.55" ]]
+
 print "payload pic/pice heredoc and interactive usage contracts passed"

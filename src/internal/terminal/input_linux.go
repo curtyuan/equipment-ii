@@ -21,6 +21,43 @@ func ReadPayloadInput(reader io.Reader, output io.Writer) (string, error) {
 	return readInteractive(file, output)
 }
 
+func ReadKey(reader io.Reader) (string, error) {
+	file, ok := reader.(*os.File)
+	closeFile := false
+	if !ok || !isTerminal(file) {
+		tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+		if err != nil {
+			buffered := bufio.NewReader(reader)
+			value, readErr := buffered.ReadString('\n')
+			return strings.TrimSpace(value), readErr
+		}
+		file = tty
+		closeFile = true
+	}
+	if closeFile {
+		defer file.Close()
+	}
+	fd := int(file.Fd())
+	original, err := getTermios(fd)
+	if err != nil {
+		return "", err
+	}
+	raw := *original
+	raw.Lflag &^= syscall.ICANON | syscall.ECHO
+	raw.Cc[syscall.VMIN] = 1
+	raw.Cc[syscall.VTIME] = 0
+	if err = setTermios(fd, &raw); err != nil {
+		return "", err
+	}
+	defer setTermios(fd, original)
+	var value [1]byte
+	_, err = file.Read(value[:])
+	if err != nil {
+		return "", err
+	}
+	return string(value[:]), nil
+}
+
 func readStream(reader io.Reader) (string, error) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 64*1024), 16*1024*1024)

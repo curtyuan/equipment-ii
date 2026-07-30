@@ -1,11 +1,9 @@
 package cli
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/curtyuan/equipment-ii/src/internal/payload"
@@ -145,12 +143,8 @@ func (c *CLI) confirmPayload(report []payload.ReportEntry, stdout, stderr io.Wri
 	} else {
 		fmt.Fprint(stdout, "Execute this payload? [y/N] ")
 	}
-	answer := os.Getenv("II_INTERACTIVE_KEY")
-	if answer != "" {
-		fmt.Fprintln(stdout, answer)
-	} else {
-		answer, _ = bufio.NewReader(c.stdin).ReadString('\n')
-	}
+	answer, _ := readConfirmation(c.stdin)
+	fmt.Fprintln(stdout, answer)
 	return strings.EqualFold(strings.TrimSpace(answer), "y")
 }
 
@@ -188,11 +182,7 @@ func (c *CLI) copySelectedPayload(selected payload.PayloadResult, stdout, stderr
 
 func (c *CLI) confirmStage(index, count int, stdout io.Writer) bool {
 	fmt.Fprintf(stdout, "\nStage %d/%d ready for copy\nPress y to copy, n/Esc to abort. ", index, count)
-	answer := os.Getenv("II_INTERACTIVE_KEY")
-	if answer != "" {
-		fmt.Fprintln(stdout, answer)
-	} else {
-		answer, _ = bufio.NewReader(c.stdin).ReadString('\n')
-	}
+	answer, _ := readConfirmation(c.stdin)
+	fmt.Fprintln(stdout, answer)
 	return strings.EqualFold(strings.TrimSpace(answer), "y")
 }

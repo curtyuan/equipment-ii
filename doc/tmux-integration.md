@@ -97,8 +97,8 @@ tmux command alias
 ```
 
 The native `:ii` alias therefore renders, confirms, sends, and executes without
-copying. The legacy scripts remain available only for public payload-input modes
-that have not yet migrated.
+copying. The legacy scripts remain packaged temporarily for compatibility and
+for help topics that have not yet migrated.
 
 The Go terminal reader preserves the popup editing contract: Enter finishes,
 Alt-Enter inserts a newline, Esc cancels, and `:q`/`:q!` cancel a complete

@@ -15,7 +15,7 @@ export II_GO_BIN="${II_GO_BIN:-${repo_dir}/build/ii-go}"
 export II_INTERACTIVE_KEY=y
 
 tmux -S "$socket" set-environment ii_rhost GO_POPUP_OK
-printf 'echo $rhost\n' | "$II_GO_BIN" __tmux_popup execute \
+printf 'echo GO_POPUP_FIRST\necho $rhost\n:w\necho ignored\n' | "$II_GO_BIN" __tmux_popup execute \
   >"${tmp_dir}/popup.out" 2>"${tmp_dir}/popup.err"
 grep -Fx 'Send and execute? [y/N] y' "${tmp_dir}/popup.out"
 grep -Fx 'payload sent and executed' "${tmp_dir}/popup.out"
@@ -24,10 +24,11 @@ grep -Fx 'payload sent and executed' "${tmp_dir}/popup.out"
 pane_output=""
 for _ in $(seq 1 30); do
   pane_output="$(tmux -S "$socket" capture-pane -p -t "$pane" -S -80)"
-  [[ "$pane_output" == *GO_POPUP_OK* ]] && break
+  [[ "$pane_output" == *GO_POPUP_FIRST* && "$pane_output" == *GO_POPUP_OK* ]] && break
   sleep 0.1
 done
-[[ "$pane_output" == *GO_POPUP_OK* ]]
+[[ "$pane_output" == *GO_POPUP_FIRST* && "$pane_output" == *GO_POPUP_OK* ]]
+[[ "$pane_output" != *ignored* ]]
 
 set +e
 TMUX_PANE=%999 printf 'echo rejected\n' | \

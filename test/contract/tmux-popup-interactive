@@ -1,0 +1,84 @@
+#!/usr/bin/env zsh
+set -eu
+setopt pipefail
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+
+cleanup() {
+  zpty -d go-popup 2>/dev/null || true
+  zpty -d go-popup-cancel 2>/dev/null || true
+  tmux -S "$socket" kill-server 2>/dev/null || true
+  command rm -rf -- "$tmp_dir"
+}
+trap cleanup EXIT
+
+zmodload zsh/zpty
+tmux -f /dev/null -S "$socket" new-session -d -s go-popup-contract -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t go-popup-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t go-popup-contract:0.0 '#{pane_id}')"
+tmux_env="${socket},${server_pid},0"
+binary="${II_GO_BIN:-${root}/build/ii-go}"
+
+TERM=xterm-256color zpty go-popup exec env \
+  TMUX="$tmux_env" TMUX_PANE="$pane" II_INTERACTIVE_KEY=y \
+  "$binary" __tmux_popup execute
+
+output=""
+for attempt in {1..30}; do
+  while zpty -r -t go-popup chunk 2>/dev/null; do
+    output+="$chunk"
+  done
+  [[ "$output" == *'ii input> '* ]] && break
+  sleep 0.1
+done
+[[ "$output" == *'Alt-Enter adds a line'* ]]
+
+zpty -w -n go-popup 'echo GO_ALT_ONE'
+zpty -w -n go-popup $'\e\r'
+zpty -w -n go-popup 'echo GO_ALT_TWO'
+zpty -w -n go-popup $'\r'
+
+for attempt in {1..40}; do
+  while zpty -r -t go-popup chunk 2>/dev/null; do
+    output+="$chunk"
+  done
+  [[ "$output" == *'payload sent and executed'* ]] && break
+  sleep 0.1
+done
+[[ "$output" == *'payload sent and executed'* ]]
+
+pane_output=""
+for attempt in {1..30}; do
+  pane_output="$(tmux -S "$socket" capture-pane -p -t "$pane" -S -80)"
+  [[ "$pane_output" == *GO_ALT_ONE* && "$pane_output" == *GO_ALT_TWO* ]] && break
+  sleep 0.1
+done
+[[ "$pane_output" == *GO_ALT_ONE* && "$pane_output" == *GO_ALT_TWO* ]]
+
+zpty -d go-popup
+
+TERM=xterm-256color zpty go-popup-cancel exec env \
+  TMUX="$tmux_env" TMUX_PANE="$pane" II_INTERACTIVE_KEY=y \
+  "$binary" __tmux_popup execute
+cancel_output=""
+for attempt in {1..30}; do
+  while zpty -r -t go-popup-cancel chunk 2>/dev/null; do
+    cancel_output+="$chunk"
+  done
+  [[ "$cancel_output" == *'ii input> '* ]] && break
+  sleep 0.1
+done
+zpty -w -n go-popup-cancel $'\e'
+for attempt in {1..30}; do
+  while zpty -r -t go-popup-cancel chunk 2>/dev/null; do
+    cancel_output+="$chunk"
+  done
+  [[ "$cancel_output" == *cancelled* ]] && break
+  sleep 0.1
+done
+[[ "$cancel_output" == *cancelled* ]]
+zpty -d go-popup-cancel
+
+print "Go tmux popup interactive editor contract passed"

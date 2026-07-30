@@ -33,7 +33,7 @@ jobs:
         run: make test-legacy
 
       - name: Tmux integration contracts
-        run: make test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy-tmux
+        run: make test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy-tmux
 
       - name: Linux cross-build
         run: make cross-build

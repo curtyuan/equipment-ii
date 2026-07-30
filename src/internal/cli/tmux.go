@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/curtyuan/equipment-ii/src/internal/payload"
+	"github.com/curtyuan/equipment-ii/src/internal/terminal"
 )
 
 const tmuxIntegrationSchema = 2
@@ -62,18 +64,17 @@ func (c *CLI) runTmuxPopup(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	fmt.Fprintln(stdout, "Paste payload input below. Enter renders; :q cancels.")
+	fmt.Fprintln(stdout, "Paste payload input below. Enter renders; Alt-Enter adds a line; Esc cancels.")
 	fmt.Fprintln(stdout)
 	fmt.Fprint(stdout, "ii input> ")
-	input, readErr := bufio.NewReader(c.stdin).ReadString('\n')
-	if readErr != nil && input == "" {
-		fmt.Fprintln(stderr, "ii: input cancelled")
-		return 0
-	}
-	input = strings.TrimSuffix(input, "\n")
-	if input == ":q" || input == ":q!" {
+	input, readErr := terminal.ReadPayloadInput(c.stdin, stdout)
+	if errors.Is(readErr, terminal.ErrCancelled) {
 		fmt.Fprintln(stdout, "cancelled")
 		return 0
+	}
+	if readErr != nil {
+		fmt.Fprintln(stderr, readErr)
+		return 1
 	}
 	if input == "" {
 		fmt.Fprintln(stderr, "ii: input is empty")

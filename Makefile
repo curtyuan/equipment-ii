@@ -7,7 +7,7 @@ VERSION := $(shell tr -d '\n' < VERSION)
 GO_LDFLAGS := -s -w -X main.version=$(VERSION)
 export GOCACHE := $(CURDIR)/$(BUILD_DIR)/.gocache
 
-.PHONY: all build package package-linux-amd64 package-linux-arm64 package-arch fmt-check vet test test-go test-contract test-shell-operations test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy test-legacy-tmux cross-build clean
+.PHONY: all build package package-linux-amd64 package-linux-arm64 package-arch fmt-check vet test test-go test-contract test-shell-operations test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy test-legacy-tmux cross-build clean
 
 all: package
 
@@ -106,6 +106,9 @@ test-tmux-install: build
 
 test-tmux-popup: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/tmux-popup
+
+test-tmux-popup-interactive: build
+	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/tmux-popup-interactive
 
 test-tmux-status: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/tmux-status

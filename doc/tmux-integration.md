@@ -100,6 +100,10 @@ The native `:ii` alias therefore renders, confirms, sends, and executes without
 copying. The legacy scripts remain available only for public payload-input modes
 that have not yet migrated.
 
+The Go terminal reader preserves the popup editing contract: Enter finishes,
+Alt-Enter inserts a newline, Esc cancels, and `:q`/`:q!` cancel a complete
+buffer. Streamed input supports EOF and the standalone `:w` finish line.
+
 No pane or session format crosses the popup shell boundary: tmux does not expand
 `#{pane_id}` inside this command-alias shell command. The popup queries the
 invoking client's current pane ID, then queries that pane's session ID directly

@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; rm -rf "$tmp_dir"' EXIT
+
+mkdir "${tmp_dir}/bin"
+cat >"${tmp_dir}/bin/fzf" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${FZF_DEFAULT_OPTS:-}" == *"--filter=cancel"* ]] && exit 130
+filter="${FZF_DEFAULT_OPTS#*--filter=}"
+filter="${filter%% *}"
+line="$(awk -v filter="$filter" 'BEGIN {IGNORECASE=1} index(tolower($0), tolower(filter)) {print; exit}')"
+[[ -n "$line" ]] || exit 1
+printf '%s\n' "$line"
+EOF
+chmod +x "${tmp_dir}/bin/fzf"
+export PATH="${tmp_dir}/bin:${PATH}"
+
+tmux -f /dev/null -S "$socket" new-session -d -s interactive-contract -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t interactive-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t interactive-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+export II_CLIP_BACKEND=tmux
+export II_GO_BIN="${repo_dir}/build/ii-go"
+tmux -S "$socket" set-environment ii_lhost 192.0.2.10
+
+[[ "$("$II_GO_BIN" __route interactive)" == go ]]
+[[ "$("$II_GO_BIN" __route i)" == go ]]
+[[ "$("$II_GO_BIN" __route help interactive)" == go ]]
+
+FZF_DEFAULT_OPTS='--filter=lhost' II_INTERACTIVE_KEY=y "$II_GO_BIN" i >"${tmp_dir}/copy.out"
+grep -Fx 'copied lhost' "${tmp_dir}/copy.out"
+[[ "$(tmux -S "$socket" save-buffer -)" == 192.0.2.10 ]]
+
+FZF_DEFAULT_OPTS='--filter=add' II_ADD_VAR_FILTER=token II_ADD_VALUE_FILTER=abc123 \
+  "$II_GO_BIN" i >"${tmp_dir}/add.out"
+grep -Fx 'token=abc123' "${tmp_dir}/add.out"
+[[ "$(tmux -S "$socket" show-environment ii_token)" == ii_token=abc123 ]]
+
+FZF_DEFAULT_OPTS='--filter=token' II_INTERACTIVE_KEY=i II_EDIT_VALUE_FILTER=updated \
+  "$II_GO_BIN" i >"${tmp_dir}/edit.out"
+grep -Fx 'token=updated' "${tmp_dir}/edit.out"
+[[ "$(tmux -S "$socket" show-environment ii_token)" == ii_token=updated ]]
+
+[[ -z "${token-}" ]]
+
+set +e
+FZF_DEFAULT_OPTS='--filter=cancel' "$II_GO_BIN" i >"${tmp_dir}/cancel.out" 2>"${tmp_dir}/cancel.err"
+cancel_status=$?
+set -e
+[[ "$cancel_status" == 1 ]]
+[[ ! -s "${tmp_dir}/cancel.out" ]]
+[[ ! -s "${tmp_dir}/cancel.err" ]]
+
+II_CLIP_BACKEND=unavailable FZF_DEFAULT_OPTS='--filter=lhost' \
+  "$II_GO_BIN" i >"${tmp_dir}/clipboard-failure.out"
+grep -Fx 'selected lhost; clipboard copy failed' "${tmp_dir}/clipboard-failure.out"
+
+ops_file="${tmp_dir}/sync.ops"
+: >"$ops_file"
+II_SYNC_LOADED_VARS=1 II_SHELL_OPS_FILE="$ops_file" FZF_DEFAULT_OPTS='--filter=token' \
+  II_INTERACTIVE_KEY=i II_EDIT_VALUE_FILTER=synced "$II_GO_BIN" i >"${tmp_dir}/sync.out"
+tr '\0' '\n' <"$ops_file" >"${tmp_dir}/sync.records"
+grep -Fx 'export' "${tmp_dir}/sync.records"
+grep -Fx 'token' "${tmp_dir}/sync.records"
+grep -Fx 'synced' "${tmp_dir}/sync.records"
+grep -Fx 'sync-hook' "${tmp_dir}/sync.records"
+grep -Fx 'on' "${tmp_dir}/sync.records"
+
+printf 'interactive variable tmux contracts passed\n'

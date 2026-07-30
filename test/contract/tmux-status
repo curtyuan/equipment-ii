@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+invoke="${repo_dir}/test/harness/invoke"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; rm -rf "$tmp_dir"' EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s tmux-status-contract 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t tmux-status-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t tmux-status-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+
+"$invoke" legacy tmux status >"${tmp_dir}/legacy.out" 2>"${tmp_dir}/legacy.err"
+"$invoke" go tmux status >"${tmp_dir}/go.out" 2>"${tmp_dir}/go.err"
+diff -u "${tmp_dir}/legacy.out" "${tmp_dir}/go.out"
+diff -u "${tmp_dir}/legacy.err" "${tmp_dir}/go.err"
+
+[[ "$("${repo_dir}/build/ii-go" __route tmux status)" == go ]]
+[[ "$("${repo_dir}/build/ii-go" __route help tmux)" == go ]]
+grep -Fx 'command alias: installed' "${tmp_dir}/go.out"
+grep -Fx 'Prefix+: native or user-defined' "${tmp_dir}/go.out"
+
+set +e
+"$invoke" go tmux invalid >"${tmp_dir}/invalid.out" 2>"${tmp_dir}/invalid.err"
+status=$?
+set -e
+[[ "$status" == 2 ]]
+grep -Fx 'ii: usage: ii tmux status' "${tmp_dir}/invalid.err"
+
+printf 'tmux status differential contracts passed\n'

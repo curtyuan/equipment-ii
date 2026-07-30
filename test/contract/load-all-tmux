@@ -1,0 +1,40 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+
+mkdir "${tmp_dir}/bin"
+{
+  print '#!/usr/bin/env bash'
+  print 'cat'
+} > "${tmp_dir}/bin/fzf"
+chmod +x "${tmp_dir}/bin/fzf"
+
+tmux -f /dev/null -S "$socket" new-session -d -s load-all-contract -x 100 -y 30 'zsh -f'
+tmux -S "$socket" split-window -d -t load-all-contract:0 'zsh -f'
+tmux -S "$socket" set-environment -t load-all-contract ii_domain example.test
+
+command_text="cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go"
+command_text+=" && PATH=${(q)tmp_dir}/bin:\$PATH && source ./ii.plugin.zsh"
+command_text+=" && ii la"
+command_text+=" && print -r -- LOCAL_DOMAIN=\$domain"
+tmux -S "$socket" send-keys -t load-all-contract:0.0 "$command_text" Enter
+
+typeset output=""
+integer attempt
+for attempt in {1..80}; do
+  output="$(tmux -S "$socket" capture-pane -p -t load-all-contract:0.0 -S -160)"
+  [[ "$output" == *"LOCAL_DOMAIN=example.test"* ]] && break
+  sleep 0.1
+done
+
+[[ "$output" == *"Load summary"* ]]
+[[ "$output" == *"loaded locally"* ]]
+[[ "$output" == *"dispatched"* ]]
+[[ "$output" == *"1 loaded locally, 1 dispatched, 0 skipped, 0 failed"* ]]
+[[ "$output" == *"LOCAL_DOMAIN=example.test"* ]]
+
+print "Go load-all tmux contract passed"

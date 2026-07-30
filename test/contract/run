@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+invoke="${repo_dir}/test/harness/invoke"
+mode="${1:-both}"
+
+case "$mode" in
+  legacy|go|both) ;;
+  *)
+    printf 'usage: %s [legacy|go|both]\n' "$0" >&2
+    exit 2
+    ;;
+esac
+
+cases=(
+  empty
+  help
+  h
+  short-help
+  long-help
+  version
+  short-version
+  long-version
+  version-help
+  help-version
+  list-help
+  ls-help
+  ls-outside-tmux
+  set-help
+  help-set
+  help-sf
+  load-help
+  help-load
+  sync-help
+  unset-help
+  get-help
+  help-get
+  unknown
+)
+
+case_args() {
+  case "$1" in
+    empty) return ;;
+    help) printf '%s\0' help ;;
+    h) printf '%s\0' h ;;
+    short-help) printf '%s\0' -h ;;
+    long-help) printf '%s\0' --help ;;
+    version) printf '%s\0' version ;;
+    short-version) printf '%s\0' -v ;;
+    long-version) printf '%s\0' --version ;;
+    version-help) printf '%s\0' version --help ;;
+    help-version) printf '%s\0' help version ;;
+    list-help) printf '%s\0' help list ;;
+    ls-help) printf '%s\0' ls --help ;;
+    ls-outside-tmux) printf '%s\0' ls ;;
+    set-help) printf '%s\0' set --help ;;
+    help-set) printf '%s\0' help set ;;
+    help-sf) printf '%s\0' help sf ;;
+    load-help) printf '%s\0' load --help ;;
+    help-load) printf '%s\0' help load ;;
+    sync-help) printf '%s\0' sync --help ;;
+    unset-help) printf '%s\0' help unset ;;
+    get-help) printf '%s\0' get --help ;;
+    help-get) printf '%s\0' help get ;;
+    unknown) printf '%s\0' no-such-command ;;
+  esac
+}
+
+expected_status() {
+  case "$1" in
+    unknown) printf 2 ;;
+    ls-outside-tmux) printf 1 ;;
+    *) printf 0 ;;
+  esac
+}
+
+run_case() {
+  local backend="$1" name="$2" out="$3" err="$4" status_file="$5"
+  local color="${6:-never}" no_color="${7-1}"
+  local -a args=()
+  while IFS= read -r -d '' arg; do
+    args+=("$arg")
+  done < <(case_args "$name")
+
+  set +e
+  TMUX= TMUX_PANE= \
+    II_CONTRACT_COLOR="$color" II_CONTRACT_NO_COLOR="$no_color" \
+    "$invoke" "$backend" "${args[@]}" >"$out" 2>"$err"
+  status=$?
+  set -e
+  printf '%s\n' "$status" >"$status_file"
+}
+
+tmp_dir="$(mktemp -d)"
+trap 'rm -r "$tmp_dir"' EXIT
+
+for name in "${cases[@]}"; do
+  legacy_out="${tmp_dir}/${name}.legacy.out"
+  legacy_err="${tmp_dir}/${name}.legacy.err"
+  legacy_status="${tmp_dir}/${name}.legacy.status"
+  run_case legacy "$name" "$legacy_out" "$legacy_err" "$legacy_status"
+
+  expected="$(expected_status "$name")"
+  actual="$(<"$legacy_status")"
+  if [[ "$actual" != "$expected" ]]; then
+    printf 'legacy contract %s: status %s, expected %s\n' "$name" "$actual" "$expected" >&2
+    exit 1
+  fi
+
+  [[ "$mode" == legacy ]] && continue
+
+  go_out="${tmp_dir}/${name}.go.out"
+  go_err="${tmp_dir}/${name}.go.err"
+  go_status="${tmp_dir}/${name}.go.status"
+  run_case go "$name" "$go_out" "$go_err" "$go_status"
+
+  diff -u "$legacy_status" "$go_status" || {
+    printf 'contract status mismatch: %s\n' "$name" >&2
+    exit 1
+  }
+  diff -u "$legacy_out" "$go_out" || {
+    printf 'contract stdout mismatch: %s\n' "$name" >&2
+    exit 1
+  }
+  diff -u "$legacy_err" "$go_err" || {
+    printf 'contract stderr mismatch: %s\n' "$name" >&2
+    exit 1
+  }
+done
+
+legacy_out="${tmp_dir}/colored-help.legacy.out"
+legacy_err="${tmp_dir}/colored-help.legacy.err"
+legacy_status="${tmp_dir}/colored-help.legacy.status"
+go_out="${tmp_dir}/colored-help.go.out"
+go_err="${tmp_dir}/colored-help.go.err"
+go_status="${tmp_dir}/colored-help.go.status"
+run_case legacy help "$legacy_out" "$legacy_err" "$legacy_status" always ""
+grep -Fq $'\033[36m' "$legacy_out" || {
+  printf 'legacy colored-help contract did not emit ANSI aliases\n' >&2
+  exit 1
+}
+if [[ "$mode" != legacy ]]; then
+  run_case go help "$go_out" "$go_err" "$go_status" always ""
+  diff -u "$legacy_status" "$go_status"
+  diff -u "$legacy_out" "$go_out"
+  diff -u "$legacy_err" "$go_err"
+fi
+
+printf 'public command contracts passed (%s)\n' "$mode"

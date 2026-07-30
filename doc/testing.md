@@ -2,6 +2,49 @@
 
 All commands below are intended to be run from the project root.
 
+## Go Migration Baseline
+
+The root test/build interface now belongs to `ii-go`:
+
+```zsh
+make test
+make test-entry-tmux
+make test-variables-tmux
+make test-variable-output-tmux
+make test-variable-mutations-tmux
+make test-set-tmux
+make test-unset-all-tmux
+make test-load-all-tmux
+make test-get-tmux
+make test-interactive-tmux
+make test-clipboard-tmux
+make test-tmux-status
+make test-payload-render-tmux
+make test-payload-select-tmux
+make test-payload-input-usage-tmux
+make cross-build
+make
+```
+
+`make test` runs format, vet, Go unit tests, a static build, and public
+differential contracts, including the versioned parent-shell operation
+protocol. The tmux targets use isolated servers to verify the temporary legacy
+bridge, the complete Go-owned variable family, and real heredoc/interactive
+`ii pic` and `ii pice` input. A bare `make` creates the current deployment
+package under `export/ii`.
+
+Run the immutable legacy baseline separately:
+
+```zsh
+make test-legacy
+make test-legacy-tmux
+./ori-ii/script/make
+```
+
+The remaining legacy procedures below describe the contract captured under
+`ori-ii/`. Until each section receives a root contract equivalent, run its
+commands from `ori-ii/`, not from repository root.
+
 ## Syntax Check
 
 Run from repo root:

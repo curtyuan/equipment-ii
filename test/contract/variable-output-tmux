@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+invoke="${repo_dir}/test/harness/invoke"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+
+cleanup() {
+  tmux -S "$socket" kill-server 2>/dev/null || true
+  rm -r "$tmp_dir"
+}
+trap cleanup EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s output-contract -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t output-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t output-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+
+tmux set-environment -t output-contract ii_plain value
+tmux set-environment -t output-contract ii_space "two words"
+tmux set-environment -t output-contract ii_quote "a'b"
+tmux set-environment -t output-contract ii_symbols 'dollar$ back\slash;bang!'
+tmux set-environment -t output-contract ii_equals "a=b"
+tmux set-environment -t output-contract ii_empty ""
+tmux set-environment -t output-contract unrelated ignored
+
+compare_output() {
+  name="$1"
+  shift
+  target="${tmp_dir}/${name}.env"
+  legacy_out="${tmp_dir}/${name}.legacy.out"
+  legacy_err="${tmp_dir}/${name}.legacy.err"
+  legacy_file="${tmp_dir}/${name}.legacy.file"
+  go_out="${tmp_dir}/${name}.go.out"
+  go_err="${tmp_dir}/${name}.go.err"
+  go_file="${tmp_dir}/${name}.go.file"
+
+  printf 'stale\n' >"$target"
+  set +e
+  "$invoke" legacy "$@" "$target" >"$legacy_out" 2>"$legacy_err"
+  legacy_status=$?
+  cp "$target" "$legacy_file"
+  printf 'stale\n' >"$target"
+  "$invoke" go "$@" "$target" >"$go_out" 2>"$go_err"
+  go_status=$?
+  cp "$target" "$go_file"
+  set -e
+
+  [[ "$legacy_status" == "$go_status" ]] || {
+    printf '%s status mismatch: legacy=%s go=%s\n' "$name" "$legacy_status" "$go_status" >&2
+    exit 1
+  }
+  diff -u "$legacy_out" "$go_out"
+  diff -u "$legacy_err" "$go_err"
+  diff -u "$legacy_file" "$go_file"
+}
+
+compare_output v-output v --out
+compare_output vo vo
+compare_output voc voc
+
+default_legacy_out="${tmp_dir}/default.legacy.out"
+default_go_out="${tmp_dir}/default.go.out"
+(
+  cd "$tmp_dir"
+  "$invoke" legacy vo >"$default_legacy_out"
+  cp .env default.legacy.file
+  "$invoke" go vo >"$default_go_out"
+  cp .env default.go.file
+)
+diff -u "$default_legacy_out" "$default_go_out"
+diff -u "${tmp_dir}/default.legacy.file" "${tmp_dir}/default.go.file"
+
+directory="${tmp_dir}/directory"
+mkdir "$directory"
+for backend in legacy go; do
+  set +e
+  "$invoke" "$backend" vo "$directory" >"${tmp_dir}/directory.${backend}.out" 2>"${tmp_dir}/directory.${backend}.err"
+  printf '%s\n' "$?" >"${tmp_dir}/directory.${backend}.status"
+  "$invoke" "$backend" vo "${tmp_dir}/missing/out.env" >"${tmp_dir}/missing.${backend}.out" 2>"${tmp_dir}/missing.${backend}.err"
+  printf '%s\n' "$?" >"${tmp_dir}/missing.${backend}.status"
+  "$invoke" "$backend" vo one two >"${tmp_dir}/usage.${backend}.out" 2>"${tmp_dir}/usage.${backend}.err"
+  printf '%s\n' "$?" >"${tmp_dir}/usage.${backend}.status"
+  set -e
+done
+for case_name in directory missing usage; do
+  diff -u "${tmp_dir}/${case_name}.legacy.status" "${tmp_dir}/${case_name}.go.status"
+  diff -u "${tmp_dir}/${case_name}.legacy.out" "${tmp_dir}/${case_name}.go.out"
+  diff -u "${tmp_dir}/${case_name}.legacy.err" "${tmp_dir}/${case_name}.go.err"
+done
+
+printf 'variable output tmux contracts passed\n'

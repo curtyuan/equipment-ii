@@ -3,6 +3,12 @@
 The docs are split by audience and maintenance task.
 Deployment instructions live in the root [README.md](../README.md).
 
+During the Go migration, root documentation is the working target contract.
+The documentation captured with the executable legacy baseline under
+[`../ori-ii/`](../ori-ii/) is the only source of truth for pre-Go behavior.
+Paths that still describe root-level `lib/`, `payloads/`, or `script/` belong
+to the contract audit and must be reconciled as their features migrate.
+
 ## User Docs
 
 | File | Purpose |
@@ -25,10 +31,12 @@ Deployment instructions live in the root [README.md](../README.md).
 | [release.md](release.md) | Version bumping, package build output, and release tagging. |
 | [design.html](design.html) | Navigable design map for command behavior, docs ownership, and maintenance checks. |
 
-## Pending Designs
+## Active TODOs
 
-Files under `pending/`, when present, describe proposals that are not
-implemented and are not part of the live command contract.
+Files under `todo/`, when present, track active implementation work. Update
+them together with the code and delete each file when its completion criteria
+are satisfied.
 
-- [Compiled runtime migration](pending/runtime-migration.md) — consider a
-  Zsh/Go hybrid only after combo/workflow behavior is repaired and stable.
+- [Go runtime migration](todo/runtime-migration.md) — audit the current
+  contract, rebuild the command entrypoint in Go, migrate features vertically,
+  and finally remove the `ori-ii/` baseline.

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+invoke="${repo_dir}/test/harness/invoke"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+
+cleanup() {
+  tmux -S "$socket" kill-server 2>/dev/null || true
+  rm -r "$tmp_dir"
+}
+trap cleanup EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s variable-contract -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t variable-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t variable-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+
+tmux set-environment -t variable-contract ii_rhost 192.0.2.20
+tmux set-environment -t variable-contract ii_lhost 192.0.2.10
+tmux set-environment -t variable-contract ii_empty ""
+tmux set-environment -t variable-contract ii_note "a=b"
+tmux set-environment -t variable-contract unrelated ignored
+
+compare() {
+  name="$1"
+  shift
+  legacy_out="${tmp_dir}/${name}.legacy.out"
+  legacy_err="${tmp_dir}/${name}.legacy.err"
+  go_out="${tmp_dir}/${name}.go.out"
+  go_err="${tmp_dir}/${name}.go.err"
+
+  set +e
+  "$invoke" legacy "$@" >"$legacy_out" 2>"$legacy_err"
+  legacy_status=$?
+  "$invoke" go "$@" >"$go_out" 2>"$go_err"
+  go_status=$?
+  set -e
+
+  [[ "$legacy_status" == "$go_status" ]] || {
+    printf '%s status mismatch: legacy=%s go=%s\n' "$name" "$legacy_status" "$go_status" >&2
+    exit 1
+  }
+  diff -u "$legacy_out" "$go_out"
+  diff -u "$legacy_err" "$go_err"
+}
+
+compare all ls
+compare filter ls HOST
+compare alias-list list host
+compare alias-variable variable NOTE
+compare alias-vars vars
+compare alias-var var rhost ignored-extra-argument
+compare v-list v
+compare v-filter v HOST
+
+export II_CONTRACT_COLOR=always
+export II_CONTRACT_NO_COLOR=""
+compare colored ls host
+unset II_CONTRACT_COLOR II_CONTRACT_NO_COLOR
+grep -Fq $'\033[34mlhost\033[0m' "${tmp_dir}/colored.legacy.out"
+
+printf 'variable list tmux contracts passed\n'

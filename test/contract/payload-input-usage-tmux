@@ -1,0 +1,86 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+
+target="payload-input-contract:0.0"
+
+send_line() {
+  tmux -S "$socket" send-keys -t "$target" -l "$1"
+  tmux -S "$socket" send-keys -t "$target" Enter
+}
+
+wait_for() {
+  local needle="$1" output=""
+  integer attempt
+  for attempt in {1..100}; do
+    output="$(tmux -S "$socket" capture-pane -p -t "$target" -S -240)"
+    [[ "$output" == *"$needle"* ]] && {
+      print -r -- "$output"
+      return 0
+    }
+    sleep 0.1
+  done
+  print -u2 -r -- "payload input contract timed out waiting for: $needle"
+  print -u2 -r -- "$output"
+  return 1
+}
+
+start_case() {
+  tmux -S "$socket" kill-server 2>/dev/null || true
+  tmux -f /dev/null -S "$socket" new-session -d -s payload-input-contract -x 110 -y 36 'zsh -f'
+  tmux -S "$socket" set-environment -t payload-input-contract ii_rhost 192.0.2.55
+  send_line "cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go && II_CLIP_BACKEND=tmux && source ./ii.plugin.zsh && print -r -- CASE_READY"
+  wait_for "CASE_READY" >/dev/null
+}
+
+start_case
+heredoc_pic=$'ii pic <<\'EOF\'\necho ${rhost}\nEOF'
+print -rn -- "$heredoc_pic" | tmux -S "$socket" load-buffer -b ii-test -
+tmux -S "$socket" paste-buffer -b ii-test -t "$target" -d
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for "echo 192.0.2.55" >/dev/null
+[[ "$(tmux -S "$socket" save-buffer -)" == "echo 192.0.2.55" ]]
+
+start_case
+heredoc_marker="${tmp_dir}/heredoc-pice.executed"
+heredoc_payload="print -r -- HEREDOC_PICE_EXECUTED > ${(q)heredoc_marker}"
+heredoc_pice=$'ii pice <<\'EOF\'\n'"${heredoc_payload}"$'\nEOF'
+print -rn -- "$heredoc_pice" | tmux -S "$socket" load-buffer -b ii-test -
+tmux -S "$socket" paste-buffer -b ii-test -t "$target" -d
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for "Execute this payload? [y/N]" >/dev/null
+tmux -S "$socket" send-keys -t "$target" y
+for attempt in {1..100}; do
+  [[ -f "$heredoc_marker" ]] && break
+  sleep 0.1
+done
+[[ -f "$heredoc_marker" ]]
+[[ "$(tmux -S "$socket" save-buffer -)" == "$heredoc_payload" ]]
+
+start_case
+send_line "ii pic"
+wait_for "ii input>" >/dev/null
+send_line 'printf "%s\n" ${rhost}'
+wait_for 'printf "%s\n" 192.0.2.55' >/dev/null
+[[ "$(tmux -S "$socket" save-buffer -)" == 'printf "%s\n" 192.0.2.55' ]]
+
+start_case
+interactive_marker="${tmp_dir}/interactive-pice.executed"
+interactive_payload="print -r -- INTERACTIVE_PICE_EXECUTED > ${(q)interactive_marker}"
+send_line "ii pice"
+wait_for "ii input>" >/dev/null
+send_line "$interactive_payload"
+wait_for "Execute this payload? [y/N]" >/dev/null
+tmux -S "$socket" send-keys -t "$target" y
+for attempt in {1..100}; do
+  [[ -f "$interactive_marker" ]] && break
+  sleep 0.1
+done
+[[ -f "$interactive_marker" ]]
+[[ "$(tmux -S "$socket" save-buffer -)" == "$interactive_payload" ]]
+
+print "payload pic/pice heredoc and interactive usage contracts passed"

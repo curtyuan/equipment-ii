@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+invoke="${repo_dir}/test/harness/invoke"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; rm -rf "$tmp_dir"' EXIT
+
+mkdir "${tmp_dir}/bin"
+printf '#!/usr/bin/env bash\nhead -n 1\n' >"${tmp_dir}/bin/fzf"
+chmod +x "${tmp_dir}/bin/fzf"
+export PATH="${tmp_dir}/bin:${PATH}"
+
+tmux -f /dev/null -S "$socket" new-session -d -s get-contract -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t get-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t get-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+export II_CLIP_BACKEND=tmux
+tmux -S "$socket" set-environment ii_rhost 192.0.2.20
+tmux -S "$socket" set-environment ii_lhost 192.0.2.10
+
+compare() {
+  name="$1"
+  shift
+  for backend in legacy go; do
+    tmux -S "$socket" delete-buffer 2>/dev/null || true
+    set +e
+    "$invoke" "$backend" "$@" >"${tmp_dir}/${name}.${backend}.out" 2>"${tmp_dir}/${name}.${backend}.err"
+    printf '%s\n' "$?" >"${tmp_dir}/${name}.${backend}.status"
+    set -e
+    tmux -S "$socket" save-buffer - >"${tmp_dir}/${name}.${backend}.buffer" 2>/dev/null || true
+  done
+  diff -u "${tmp_dir}/${name}.legacy.status" "${tmp_dir}/${name}.go.status"
+  diff -u "${tmp_dir}/${name}.legacy.out" "${tmp_dir}/${name}.go.out"
+  diff -u "${tmp_dir}/${name}.legacy.err" "${tmp_dir}/${name}.go.err"
+  diff -u "${tmp_dir}/${name}.legacy.buffer" "${tmp_dir}/${name}.go.buffer"
+}
+
+compare shortcut gr
+compare compact g:r
+compare multiple g host
+compare missing g no-such-variable
+printf 'get command tmux differential contracts passed\n'

@@ -2,81 +2,73 @@
 
 ![ii icon](doc/asset/ii-icon2.png)
 
-`ii` is a zsh plugin for tmux-scoped variables, payload rendering, and confirmed
-multi-pane combo workflows.
+`ii` is being rebuilt from its public entrypoint inward as a Go runtime with a
+thin Zsh parent-shell adapter.
 
-## Requirements
+## Repository State
 
-- zsh
-- tmux
-- fzf
-- coreutils
+- [`ori-ii/`](ori-ii/) is the only source of truth for the complete pre-Go Zsh
+  implementation, payload set, scripts, tests, and matching documentation.
+- `src/` will contain the new Go implementation.
+- [`doc/todo/runtime-migration.md`](doc/todo/runtime-migration.md) is the living
+  audit and migration plan.
+- Root documentation is the working target contract and must be reconciled
+  against `ori-ii/` before implementation behavior changes.
 
-Kali:
+Do not add features to `ori-ii/`. Use it to reproduce legacy behavior and run
+differential contract tests while migrating one public route at a time.
 
-```zsh
-sudo apt update
-sudo apt install -y zsh tmux fzf coreutils
-```
+## First Go Runtime
 
-## Deploy
-
-Build the deployable plugin package:
-
-```zsh
-./script/make
-```
-
-Install it under the zsh plugin directory:
+Build and test the current entrypoint-first runtime:
 
 ```zsh
-mkdir -p "$HOME/.config/zsh/plugin"
-rm -rf "$HOME/.config/zsh/plugin/ii"
-cp -r ./export/ii "$HOME/.config/zsh/plugin/ii"
+make build
+make test
 ```
 
-## Load With Antidote
+The migration bridge sends every invocation through `ii-go`. Migrated routes
+run in Go; explicitly unmigrated routes run in the same parent shell through
+the `ori-ii` adapter. There is no fallback after a Go-owned route fails.
 
-Add the local plugin path to your antidote plugin list, for example
-`~/.zsh_plugins.txt`:
+Current Go-owned routes are top-level help, version, unknown-command handling,
+the read-only `ls`/`list`/`variable`/`vars`/`var` family, `v [PATTERN]`, and
+the `v --out`/`vo`/`voc` file-output family. The complete `set` family,
+`load/l/la`, `sync`, and `unset/u` are also Go-owned, including all-pane load
+and confirmed unset-all modes. `get/g/gr/gl/g:*` selection and clipboard copy
+are Go-owned as well.
 
-```text
-~/.config/zsh/plugin/ii
-```
-
-Load that file from `.zshrc` with your antidote setup:
+`make` writes the current Go deployment package to `export/ii`. The immutable
+legacy package is built separately under `ori-ii/export/ii`:
 
 ```zsh
-antidote load "$HOME/.zsh_plugins.txt"
+./ori-ii/script/make
+make
 ```
 
-## Load Manually
+## Legacy Baseline
 
-Source the plugin directly from `.zshrc`:
-
-```zsh
-source "$HOME/.config/zsh/plugin/ii/ii.plugin.zsh"
-```
-
-## Verify
-
-Reload zsh and check the command:
+Load the original implementation independently:
 
 ```zsh
-source ~/.zshrc
-type ii
+II_CONFIG_FILE=/dev/null source ./ori-ii/ii.plugin.zsh
 ii version
 ```
 
-Inside tmux, loading the plugin also adds `ii` to tmux's native command prompt
-without replacing the `Prefix + :` binding. Press `Prefix + :`, enter `ii`, and
-confirm with Enter to open the non-copying payload input popup. Diagnose it with:
+Run its automated baseline from `ori-ii/`:
 
 ```zsh
-ii tmux status
+cd ori-ii
+zsh -n ii.plugin.zsh lib/*.zsh script/ii-tmux-*
+./script/help
+./script/test-color
+./script/test-workflow-parser
+./script/test-workflow
+./script/test-workflow-tmux
+./script/test-tmux-input
+./script/test-tmux-popup-input
+./script/test-tmux-integration
 ```
 
-## Documentation
-
-See [doc/README.md](doc/README.md) for usage, configuration, payloads, testing,
-architecture, and release notes.
+Deployment instructions for the legacy version remain in
+[`ori-ii/README.md`](ori-ii/README.md).

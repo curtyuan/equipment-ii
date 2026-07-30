@@ -1,0 +1,44 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s clipboard-contract -x 110 -y 36 'zsh -f'
+command_text="cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go"
+command_text+=" && source ./ii.plugin.zsh"
+command_text+=" && ii clip backend xclip-both"
+command_text+=" && print -r -- SHELL_BACKEND=\$II_CLIP_BACKEND"
+command_text+=" && unset II_CLIP_BACKEND II_CLIP_CMD"
+command_text+=" && ii clipboard backend"
+command_text+=" && ii clip backend auto"
+command_text+=" && print -r -- AUTO_PRESENT=\${+II_CLIP_BACKEND}/\${+II_CLIP_CMD}"
+command_text+=" && printf 'n\\ny\\n' | ii clip doctor"
+command_text+=" && print -r -- DOCTOR_BACKEND=\$II_CLIP_BACKEND"
+command_text+=" && print -r -- CLIPBOARD_DONE"
+tmux -S "$socket" send-keys -t clipboard-contract:0.0 "$command_text" Enter
+
+typeset output=""
+integer attempt
+for attempt in {1..100}; do
+  [[ "$(tmux -S "$socket" show-environment II_CLIP_BACKEND 2>/dev/null)" == "II_CLIP_BACKEND=tmux" ]] && break
+  sleep 0.1
+done
+sleep 0.2
+output="$(tmux -S "$socket" capture-pane -p -t clipboard-contract:0.0 -S -180)"
+
+[[ "$output" == *"clipboard backend: xclip-both"* ]]
+[[ "$output" == *"SHELL_BACKEND=xclip-both"* ]]
+[[ "$output" == *"backend: xclip-both"* ]]
+[[ "$output" == *"clipboard backend: auto"* ]]
+[[ "$output" == *"AUTO_PRESENT=0/0"* ]]
+[[ "$output" == *"Use tmux for this tmux session? [y/N]"* ]]
+[[ "$output" == *"DOCTOR_BACKEND=tmux"* ]]
+[[ "$(tmux -S "$socket" show-environment II_CLIP_BACKEND)" == "II_CLIP_BACKEND=tmux" ]]
+[[ "$("${root}/build/ii-go" __route clip)" == go ]]
+[[ "$("${root}/build/ii-go" __route clipboard)" == go ]]
+[[ "$("${root}/build/ii-go" __route help clip)" == go ]]
+
+print "clipboard backend and doctor tmux contracts passed"

@@ -1,0 +1,64 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s mutate-contract -x 100 -y 30 'zsh -f'
+tmux -S "$socket" set-environment -t mutate-contract ii_rhost 192.0.2.44
+tmux -S "$socket" set-environment -t mutate-contract ii_remove remove-me
+
+command_text="cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go"
+command_text+=" && II_AUTO_DETECT_LHOST_INTERFACE=lo && source ./ii.plugin.zsh"
+command_text+=" && ii load"
+command_text+=" && print -r -- LOAD=\$rhost"
+command_text+=" && ii u remove"
+command_text+=" && print -r -- REMOVE_PRESENT=\${+remove}"
+command_text+=" && ii sync on"
+command_text+=" && ii sync status"
+command_text+=" && ii sync off"
+command_text+=" && ii s note='two words'"
+command_text+=" && print -r -- SET_NOTE=\$note"
+command_text+=" && typeset domain=example.test"
+command_text+=" && ii s domain --from-shell"
+command_text+=" && print -r -- FROM_SHELL=\$domain"
+command_text+=" && print -r -- \"lport='4444'\" > ${(q)tmp_dir}/vars.env"
+command_text+=" && ii sf ${(q)tmp_dir}/vars.env"
+command_text+=" && print -r -- FROM_FILE=\$lport"
+command_text+=" && ii s -d lo"
+command_text+=" && print -r -- EXPLICIT_DETECT=\$lhost"
+command_text+=" && ii sr 198.51.100.7"
+command_text+=" && print -r -- AUTO_RHOST=\$rhost AUTO_LHOST=\$lhost"
+command_text+=" && print -r -- MUTATION_DONE"
+tmux -S "$socket" send-keys -t mutate-contract:0.0 "$command_text" Enter
+
+typeset output=""
+integer attempt
+for attempt in {1..60}; do
+  output="$(tmux -S "$socket" capture-pane -p -t mutate-contract:0.0 -S -120)"
+  [[ "$output" == *"AUTO_RHOST=198.51.100.7"* ]] && break
+  sleep 0.1
+done
+
+[[ "$output" == *"loaded 2 variable(s)"* ]]
+[[ "$output" == *"LOAD=192.0.2.44"* ]]
+[[ "$output" == *"unset remove"* ]]
+[[ "$output" == *"REMOVE_PRESENT=0"* ]]
+[[ "$output" == *"II_SYNC_LOADED_VARS=1"* ]]
+[[ "$output" == *"auto-sync: on"* ]]
+[[ "$output" == *"precmd hook: present"* ]]
+[[ "$output" == *"SET_NOTE=two words"* ]]
+[[ "$output" == *"FROM_SHELL=example.test"* ]]
+[[ "$output" == *"FROM_FILE=4444"* ]]
+[[ "$output" == *"EXPLICIT_DETECT=127.0.0.1"* ]]
+[[ "$output" == *"AUTO_RHOST=198.51.100.7 AUTO_LHOST=127.0.0.1"* ]]
+[[ "$(tmux -S "$socket" show-environment -t mutate-contract ii_domain)" == "ii_domain=example.test" ]]
+[[ "$(tmux -S "$socket" show-environment -t mutate-contract ii_lport)" == "ii_lport=4444" ]]
+if tmux -S "$socket" show-environment -t mutate-contract ii_remove >/dev/null 2>&1; then
+  print -u2 "unset did not remove tmux environment value"
+  exit 1
+fi
+
+print "Go variable mutation tmux contract passed"

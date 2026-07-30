@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; rm -rf "$tmp_dir"' EXIT
+
+mkdir -p "${tmp_dir}/payloads/combo"
+cat >"${tmp_dir}/payloads/legacy" <<'EOF'
+# description: basic
+# stage: prepare
+echo "$rhost" "${file:t}" "$missing" "$RHOST" "$env:Path"
+EOF
+cat >"${tmp_dir}/payloads/combo/flow" <<'EOF'
+# description: flow
+# flow: 1
+# note: verify order
+
+# stage: zsh | First
+# lane: kali-main
+# advance: confirm
+echo "$rhost"
+
+# stage: powershell | Second
+# lane: remote-target
+# advance: confirm
+Write-Output "$lhost"
+EOF
+
+tmux -f /dev/null -S "$socket" new-session -d -s payload-render-contract 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t payload-render-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t payload-render-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+tmux -S "$socket" set-environment ii_rhost tmux-rhost
+tmux -S "$socket" set-environment ii_lhost tmux-lhost
+tmux -S "$socket" set-environment ii_file 'C:\share\tool.exe'
+
+state_file="${tmp_dir}/shell.state"
+printf '%s\0' ii-shell-state-v1 rhost 1 shell-rhost file 0 '' lhost 0 '' >"$state_file"
+
+render_legacy() {
+  local path="$1"
+  II_PAYLOAD_DIR="${tmp_dir}/payloads" zsh -fc \
+    'source "$1"; rhost=shell-rhost; ii_payload_render "$2"' \
+    -- "${repo_dir}/ori-ii/ii.plugin.zsh" "${tmp_dir}/payloads/${path}"
+}
+
+render_go() {
+  II_PAYLOAD_DIR="${tmp_dir}/payloads" II_SHELL_STATE_FILE="$state_file" \
+    "${repo_dir}/build/ii-go" __payload_render "$1"
+}
+
+render_legacy legacy >"${tmp_dir}/legacy.zsh"
+render_go legacy >"${tmp_dir}/legacy.go"
+diff -u "${tmp_dir}/legacy.zsh" "${tmp_dir}/legacy.go"
+
+render_legacy combo/flow >"${tmp_dir}/flow.zsh"
+render_go combo/flow >"${tmp_dir}/flow.go"
+diff -u "${tmp_dir}/flow.zsh" "${tmp_dir}/flow.go"
+
+printf 'payload render tmux differential contracts passed\n'

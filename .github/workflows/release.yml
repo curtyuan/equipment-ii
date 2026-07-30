@@ -27,8 +27,8 @@ jobs:
             exit 1
           fi
 
-      - name: Build deployment package
-        run: ./script/make
+      - name: Build architecture-specific deployment packages
+        run: make package-linux-amd64 package-linux-arm64
 
       - name: Create archives
         shell: bash
@@ -36,8 +36,15 @@ jobs:
           set -euo pipefail
           version="$(<VERSION)"
           mkdir -p dist
-          tar -C export -czf "dist/ii-${version}.tar.gz" ii
-          (cd export && zip -qr "../dist/ii-${version}.zip" ii)
+          for arch in amd64 arm64; do
+            package_root="export/linux-${arch}"
+            tar -C "$package_root" -czf \
+              "dist/ii-${version}-linux-${arch}.tar.gz" ii
+            (
+              cd "$package_root"
+              zip -qr "../../dist/ii-${version}-linux-${arch}.zip" ii
+            )
+          done
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2

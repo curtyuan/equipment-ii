@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+invoke="${repo_dir}/test/harness/invoke"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; rm -rf "$tmp_dir"' EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s unset-contract -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t unset-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t unset-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+
+run_case() {
+  answer="$1"
+  expected_remaining="$2"
+  for backend in legacy go; do
+    tmux -S "$socket" set-environment ii_alpha one
+    tmux -S "$socket" set-environment ii_empty ""
+    set +e
+    printf '%s\n' "$answer" | "$invoke" "$backend" u -a \
+      >"${tmp_dir}/${answer}.${backend}.out" 2>"${tmp_dir}/${answer}.${backend}.err"
+    printf '%s\n' "$?" >"${tmp_dir}/${answer}.${backend}.status"
+    set -e
+    tmux -S "$socket" show-environment | grep '^ii_' | sort \
+      >"${tmp_dir}/${answer}.${backend}.state" || true
+  done
+  diff -u "${tmp_dir}/${answer}.legacy.status" "${tmp_dir}/${answer}.go.status"
+  diff -u "${tmp_dir}/${answer}.legacy.out" "${tmp_dir}/${answer}.go.out"
+  diff -u "${tmp_dir}/${answer}.legacy.err" "${tmp_dir}/${answer}.go.err"
+  diff -u "${tmp_dir}/${answer}.legacy.state" "${tmp_dir}/${answer}.go.state"
+  [[ "$(wc -l <"${tmp_dir}/${answer}.go.state")" == "$expected_remaining" ]]
+}
+
+run_case n 2
+run_case y 0
+printf 'unset-all tmux differential contracts passed\n'

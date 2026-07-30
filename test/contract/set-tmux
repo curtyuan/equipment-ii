@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+invoke="${repo_dir}/test/harness/invoke"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; rm -rf "$tmp_dir"' EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s set-contract -x 100 -y 30 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t set-contract:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t set-contract:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+export II_AUTO_DETECT_LHOST=0
+
+compare() {
+  name="$1"
+  variable="$2"
+  shift 2
+  for backend in legacy go; do
+    tmux -S "$socket" set-environment -u "$variable" 2>/dev/null || true
+    set +e
+    "$invoke" "$backend" "$@" >"${tmp_dir}/${name}.${backend}.out" 2>"${tmp_dir}/${name}.${backend}.err"
+    printf '%s\n' "$?" >"${tmp_dir}/${name}.${backend}.status"
+    set -e
+    tmux -S "$socket" show-environment "$variable" >"${tmp_dir}/${name}.${backend}.state" 2>/dev/null || true
+  done
+  diff -u "${tmp_dir}/${name}.legacy.status" "${tmp_dir}/${name}.go.status"
+  diff -u "${tmp_dir}/${name}.legacy.out" "${tmp_dir}/${name}.go.out"
+  diff -u "${tmp_dir}/${name}.legacy.err" "${tmp_dir}/${name}.go.err"
+  diff -u "${tmp_dir}/${name}.legacy.state" "${tmp_dir}/${name}.go.state"
+}
+
+compare assignment ii_note set note=value
+compare pair ii_note s note "two words"
+compare compact ii_note s:note=a=b
+compare invalid ii_note set note
+compare conflict ii_note set note --from-shell --from-file
+compare sf-usage ii_note sf one two
+
+printf "domain='example.test'\n" >"${tmp_dir}/vars.env"
+compare from-file ii_domain sf "${tmp_dir}/vars.env"
+
+printf 'set command tmux differential contracts passed\n'

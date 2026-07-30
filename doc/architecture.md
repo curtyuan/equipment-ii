@@ -1,5 +1,49 @@
 # Architecture
 
+## Current Go Migration Boundary
+
+The live root entrypoint is a Go-first hybrid while the pre-Go implementation
+remains frozen under `ori-ii/`:
+
+```text
+ii.plugin.zsh
+  -> ii-go command registry
+     -> internal/cli
+        -> internal/variables
+           -> internal/port capabilities
+              <- internal/adapter/tmux
+              <- internal/adapter/filesystem
+              <- internal/adapter/fzf
+              <- internal/adapter/clipboard
+  -> explicitly selected ori-ii route
+```
+
+Go-owned parent-shell effects use the versioned `ii-shell-ops-v1` channel.
+Records are NUL-delimited and restricted to validated `export`, `unset`,
+`chdir`, `sync-hook`, and `execute-file` operations. `execute-file` is accepted
+only when it exactly matches the per-invocation file pre-created by the
+entrypoint; Go opens it with no-follow semantics and the Zsh adapter sources
+that file without evaluating protocol text.
+
+The full variable command family is Go-owned: list, output, set, get, load,
+all-pane load, sync, unset, and interactive selection/add/edit/copy. Interactive
+selection depends on a dedicated selector port; tmux storage and clipboard
+effects stay behind separate capabilities so the domain layer does not invoke
+processes directly.
+
+Clipboard detection, copying, backend configuration, and doctor diagnostics are
+also Go-owned. The adapter shares the tmux environment capability, so explicit
+shell configuration, session configuration, and automatic detection follow one
+precedence path for variable and payload consumers.
+
+`ii tmux status` is Go-owned and reads server alias/marker/binding state through
+the tmux integration port. Automatic alias installation and popup controllers
+remain in the temporary tmux-specialized shell boundary.
+
+The layout and layer list below document the frozen pre-Go implementation now
+located under `ori-ii/`; root `lib/`, `payloads/`, and `script/` paths no longer
+describe live migration sources.
+
 `ii` is plugin-first. The preferred public loading entrypoint is:
 
 ```text

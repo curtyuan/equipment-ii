@@ -1,0 +1,39 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+
+cleanup() {
+  tmux -S "$socket" kill-server 2>/dev/null || true
+  rmdir "$tmp_dir" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+fail() {
+  print -u2 -r -- "entrypoint tmux contract failed: $*"
+  tmux -S "$socket" capture-pane -p -t adapter-test:0.0 -S -80 2>/dev/null || true
+  exit 1
+}
+
+tmux -f /dev/null -S "$socket" new-session -d -s adapter-test -x 100 -y 30 'zsh -f'
+tmux -S "$socket" send-keys -t adapter-test:0.0 \
+  "cd ${(q)root} && II_CONFIG_FILE=/dev/null source ./ii.plugin.zsh && ii s rhost 192.0.2.40 && print -r -- ENTRY_SHELL_RHOST=\$rhost" Enter
+
+typeset pane_output=""
+integer attempt
+for attempt in {1..40}; do
+  pane_output="$(tmux -S "$socket" capture-pane -p -t adapter-test:0.0 -S -80)"
+  [[ "$pane_output" == *"ENTRY_SHELL_RHOST=192.0.2.40"* ]] && break
+  sleep 0.1
+done
+
+[[ "$pane_output" == *"ENTRY_SHELL_RHOST=192.0.2.40"* ]] ||
+  fail "legacy route did not preserve the parent-shell export"
+
+tmux_value="$(tmux -S "$socket" show-environment -t adapter-test ii_rhost 2>/dev/null)"
+[[ "$tmux_value" == "ii_rhost=192.0.2.40" ]] ||
+  fail "legacy route did not preserve the tmux session value"
+
+print "Go entrypoint legacy bridge contract passed"

@@ -306,7 +306,7 @@ only when implementation, tests, help, docs, and package behavior move together.
 - [ ] Payload discovery, classification, preview, and rendering.
 - [x] Tmux variable set, get, list, unset, import, and output.
 - [ ] `/www` output helpers (clipboard commands are complete).
-- [ ] Interactive payload input (interactive variables are complete).
+- [x] Interactive payload input (interactive variables are complete).
 - [ ] Tmux command alias, popup entry, pane transport, and identity validation.
 - [ ] Workflow parsing, lane assignment, memory, rendering, and orchestration.
 - [x] Shell-local variable load, sync, export, and hook adapter behavior.
@@ -336,8 +336,8 @@ Payload migration foundation now present:
   and final Enter delivery.
 - Public `pic`, `pie`, `pice`, and `payload --input` execution paths now share
   the Go terminal/stream reader, renderer, output writer, clipboard adapter,
-  single-key confirmation, and allowlisted parent-shell execution channel.
-  Input help topics remain explicitly legacy-routed pending the help migration.
+  single-key confirmation, allowlisted parent-shell execution channel, and all
+  direct and nested input help topics.
 
 For every migrated route:
 

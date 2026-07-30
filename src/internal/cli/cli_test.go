@@ -34,7 +34,9 @@ func TestRoute(t *testing.T) {
 		{"interactive help", []string{"help", "interactive"}, RouteGo},
 		{"payload input alias", []string{"pic"}, RouteGo},
 		{"payload input long", []string{"payload", "--input", "--copy"}, RouteGo},
-		{"payload input help bridge", []string{"pic", "--help"}, RouteLegacy},
+		{"payload input direct help", []string{"pic", "--help"}, RouteGo},
+		{"payload input nested help", []string{"help", "payload", "--input"}, RouteGo},
+		{"payload selection help remains legacy", []string{"help", "payload"}, RouteLegacy},
 		{"payload selection remains legacy", []string{"payload", "linux"}, RouteLegacy},
 		{"unknown", []string{"wat"}, RouteGo},
 	}
@@ -66,6 +68,25 @@ func TestUnknownCommand(t *testing.T) {
 	}
 	if stdout.String() != topHelp {
 		t.Fatal("unknown command did not print top-level help")
+	}
+}
+
+func TestPayloadInputHelpRoutes(t *testing.T) {
+	tests := []struct {
+		args []string
+		want string
+	}{
+		{[]string{"pic", "--help"}, payloadInputCopyHelp},
+		{[]string{"help", "pie"}, payloadInputExecuteHelp},
+		{[]string{"help", "pice"}, payloadInputCopyExecuteHelp},
+		{[]string{"help", "payload", "--input"}, payloadInputHelp},
+	}
+	for _, test := range tests {
+		var stdout, stderr bytes.Buffer
+		status := newTestCLI().Run(test.args, &stdout, &stderr)
+		if status != 0 || stdout.String() != test.want || stderr.Len() != 0 {
+			t.Fatalf("args=%q status=%d stdout=%q stderr=%q", test.args, status, stdout.String(), stderr.String())
+		}
 	}
 }
 

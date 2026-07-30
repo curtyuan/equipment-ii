@@ -19,6 +19,10 @@ type payloadInputOptions struct {
 }
 
 func (c *CLI) runPayloadInput(args []string, stdout, stderr io.Writer) int {
+	if containsString(args[1:], "-h") || containsString(args[1:], "--help") {
+		fmt.Fprint(stdout, payloadInputHelpFor(args))
+		return 0
+	}
 	options, err := parsePayloadInputOptions(args)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
@@ -120,8 +124,6 @@ func parsePayloadInputOptions(args []string) (payloadInputOptions, error) {
 				index++
 				options.outputSpec = args[index]
 			}
-		case "-h", "--help":
-			return options, fmt.Errorf("ii: payload input help is not migrated yet")
 		default:
 			return options, fmt.Errorf("ii: unknown payload input option: %s", args[index])
 		}

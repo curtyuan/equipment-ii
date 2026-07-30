@@ -153,6 +153,9 @@ func (c *CLI) Run(args []string, stdout, stderr io.Writer) int {
 		}
 		fmt.Fprint(stdout, ColorizeAliases(topHelp, c.color))
 		return 0
+	case "payload-input-help":
+		fmt.Fprint(stdout, payloadInputHelpFor(args))
+		return 0
 	case "version":
 		if containsHelp(args[1:]) {
 			fmt.Fprint(stdout, versionHelp)
@@ -725,9 +728,6 @@ func Route(args []string) string {
 		return RouteGo
 	}
 	if isPayloadInputRoute(args) {
-		if containsString(args[1:], "-h") || containsString(args[1:], "--help") {
-			return RouteLegacy
-		}
 		return RouteGo
 	}
 	spec := findCommand(args[0])
@@ -765,6 +765,9 @@ func command(args []string) string {
 	}
 	switch args[0] {
 	case "help", "h", "-h", "--help":
+		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "payload-input" {
+			return "payload-input-help"
+		}
 		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "set" {
 			return "set-help"
 		}

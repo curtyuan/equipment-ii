@@ -25,7 +25,7 @@ in `ori-ii/doc/architecture.md`; the current Go design is described in
 | Payload catalog and stored payload actions | Hybrid | Legacy routes over Go payload foundations | Move selection, copy, execute, and related help into Go. |
 | Pasted payload input | Go | `internal/payload` and `internal/cli` | Reuse the input renderer from future input-consuming routes. |
 | Tmux alias installation and popup execution | Go | `internal/tmux` and `internal/cli` | Split the concrete session adapter into smaller interfaces over a shared runner. |
-| `/www` publication and browsing | Legacy | `ori-ii/lib/www.zsh` | Implement the domain service, filesystem port, adapter, CLI routes, help, and semantic contracts. |
+| `/www` publication and browsing | Foundation | Legacy public routes over `internal/www` and the filesystem adapter | Connect CLI routes, fzf selection, render-and-link output, help, and semantic contracts. |
 | Workflow helpers | Hybrid | Legacy routes plus Go environment/pane foundations | Define migration order after `/www` and payload completion. |
 | Build, generated wrappers, and compatibility bridge | Hybrid | Make targets and generated shell | Remove bridge paths only after parity and shell-usage checks pass. |
 
@@ -82,14 +82,18 @@ Completed in the current refactoring checkpoint:
 - Added a shared `Resolution` entry used by routing and public dispatch.
 - Added a reusable payload `InputRenderer` for public input and tmux popup
   execution.
+- Split CLI composition, dispatch, resolution, and variable-family behavior
+  into responsibility-specific files.
+- Added the `/www` domain service, feature-owned Store interface, filesystem
+  adapter, and initial safety tests.
 
 Still open:
 
 - Consolidate remaining route-owner and canonical-command special cases into a
   declarative command specification.
-- Split the large CLI implementation into feature-specific handler files.
 - Separate the concrete tmux session environment into environment, pane, and
   integration adapters backed by one command runner.
-- Introduce the `/www` domain service, filesystem port, and filesystem adapter.
+- Connect the implemented `/www` domain and filesystem adapter to public CLI
+  routes and fzf selection.
 - Remove `/www` path policy from payload output after compatibility behavior is
   covered by contracts.

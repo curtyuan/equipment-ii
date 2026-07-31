@@ -323,6 +323,8 @@ Completed for the `/www` preparation checkpoint:
   help behavior behind feature handlers so public dispatch only forwards.
 - [x] Split variable CLI behavior by read, set/import, session, and interactive
   responsibility without adding another abstraction layer.
+- [x] Add the `/www` domain policy, feature-owned Store interface, no-follow
+  filesystem adapter, and unit coverage for containment and overwrite safety.
 
 Remaining structural work:
 
@@ -331,8 +333,8 @@ Remaining structural work:
 - [ ] Encapsulate feature dependencies in focused command-handler structs.
 - [ ] Split the concrete tmux session adapter into environment, pane, and
   integration wrappers over one runner.
-- [ ] Add the `/www` domain service, focused filesystem port, filesystem
-  adapter, CLI handlers, and nested help.
+- [ ] Connect the `/www` domain service and filesystem adapter to CLI handlers,
+  fzf selection, and nested help.
 - [ ] Move `/www` path defaults out of payload output after compatibility
   contracts cover the transition.
 - [ ] Add `/www` unit and isolated semantic contract coverage.

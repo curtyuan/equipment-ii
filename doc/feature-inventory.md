@@ -25,7 +25,7 @@ in `ori-ii/doc/architecture.md`; the current Go design is described in
 | Payload catalog and stored payload actions | Hybrid | Legacy routes over Go payload foundations | Move selection, copy, execute, and related help into Go. |
 | Pasted payload input | Go | `internal/payload` and `internal/cli` | Reuse the input renderer from future input-consuming routes. |
 | Tmux alias installation and popup execution | Go | `internal/tmux` and `internal/cli` | Split the concrete session adapter into smaller interfaces over a shared runner. |
-| `/www` publication and browsing | Hybrid | Go owns `--file`, `ls`, `search`, and `ln`; legacy owns child help | Complete help parity and semantic differential contracts. |
+| `/www` publication and browsing | Go | `internal/www`, filesystem/fzf adapters, and `internal/cli` | Retain semantic contracts while later removing the legacy baseline. |
 | Workflow helpers | Hybrid | Legacy routes plus Go environment/pane foundations | Define migration order after `/www` and payload completion. |
 | Build, generated wrappers, and compatibility bridge | Hybrid | Make targets and generated shell | Remove bridge paths only after parity and shell-usage checks pass. |
 
@@ -93,6 +93,5 @@ Still open:
   declarative command specification.
 - Separate the concrete tmux session environment into environment, pane, and
   integration adapters backed by one command runner.
-- Complete `/www` child help parity and semantic differential contracts.
 - Remove `/www` path policy from payload output after compatibility behavior is
   covered by contracts.

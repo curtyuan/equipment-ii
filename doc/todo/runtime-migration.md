@@ -329,6 +329,8 @@ Completed for the `/www` preparation checkpoint:
   keeping `--file` and child help explicitly legacy-owned.
 - [x] Move `/www --file` render, report, original-file symlink, and path
   analysis into Go.
+- [x] Move `/www` parent/child help into Go and add differential semantic
+  coverage for list, search, link, and publish behavior.
 
 Remaining structural work:
 
@@ -337,7 +339,6 @@ Remaining structural work:
 - [ ] Encapsulate feature dependencies in focused command-handler structs.
 - [ ] Split the concrete tmux session adapter into environment, pane, and
   integration wrappers over one runner.
-- [ ] Complete `/www` nested help parity and semantic differential contracts.
 - [ ] Move `/www` path defaults out of payload output after compatibility
   contracts cover the transition.
 - [ ] Add `/www` unit and isolated semantic contract coverage.

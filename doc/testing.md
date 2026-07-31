@@ -46,6 +46,7 @@ make test-tmux-status
 make test-payload-render-tmux
 make test-payload-select-tmux
 make test-payload-input-usage-tmux
+make test-www
 make test-tmux-install
 make test-tmux-popup
 make test-tmux-popup-interactive

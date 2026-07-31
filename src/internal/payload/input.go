@@ -12,6 +12,9 @@ func NewInputRenderer(shell port.ShellState, environment port.EnvironmentReader)
 }
 
 func (r *InputRenderer) Render(text string) (RenderResult, string, error) {
+	if len(ReferencedNames(text)) == 0 {
+		return Render(text, MapResolver{}), "", nil
+	}
 	resolver, diagnostic, err := NewVariableResolver(r.shell, r.environment)
 	if err != nil {
 		return RenderResult{}, diagnostic, err

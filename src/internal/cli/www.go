@@ -37,7 +37,8 @@ func (c *CLI) runWWW(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "ii: file not found: %s\n", values[1])
 			return 1
 		}
-		rendered, diagnostic, err := c.inputRenderer.Render(string(data))
+		// Zsh's $(<file) removes trailing newlines before the legacy renderer.
+		rendered, diagnostic, err := c.inputRenderer.Render(strings.TrimRight(string(data), "\n"))
 		fmt.Fprint(stderr, diagnostic)
 		if err != nil {
 			fmt.Fprintln(stderr, err)
@@ -210,6 +211,25 @@ Aliases:
 Help:
   ii help payload --www
   ii help payload-www
+
+Commands:
+  --file PATH
+    Read PATH, render it with the normal payload renderer, print the render
+    report and rendered output, then symlink PATH into /www/p and print
+    relative_file, file, and rfile shell commands for manual copy.
+
+  ln SOURCE_PATH [LINK_NAME]
+    Select a directory under /www and create a symlink to SOURCE_PATH there.
+    With no LINK_NAME, the symlink name is SOURCE_PATH's basename.
+
+  ls
+    Print files and directories under /www as a tree. Symlinks are shown by name
+    only; their targets are not printed.
+
+  search [FILTER]
+    Fuzzy-select a file or directory under /www, then print its containing
+    directory relative to /www followed by its absolute path. FILTER preselects
+    the first case-insensitive fzf match.
 `
 
 const wwwFileHelp = `usage: ii p --www --file PATH
@@ -221,6 +241,18 @@ Aliases:
 Help:
   ii help payload --www --file
   ii help payload-www-file
+
+Read PATH, render it with the normal payload renderer, and print the render
+report and rendered output.
+
+After rendering, create a symlink to PATH under /www/p, or $II_WWW_ROOT/p when
+the web root is overridden. Existing targets are not overwritten.
+
+After linking, print the same path analysis style used by ii p --www search:
+relative to /www, absolute path, and paste-ready shell assignments:
+relative_file=/p/
+file=/www/p/FILENAME
+rfile=FILENAME
 `
 
 const wwwLinkHelp = `usage: ii p --www ln SOURCE_PATH [LINK_NAME]
@@ -232,6 +264,10 @@ Aliases:
 Help:
   ii help payload --www ln
   ii help payload-www-ln
+
+Select a directory under the configured web root and create a symlink to
+SOURCE_PATH there. With no LINK_NAME, use SOURCE_PATH's basename. Existing
+targets are not overwritten.
 `
 
 const wwwListHelp = `usage: ii p --www ls
@@ -243,6 +279,9 @@ Aliases:
 Help:
   ii help payload --www ls
   ii help payload-www-ls
+
+Print files and directories under the configured web root as a tree. Symlinks
+are shown by name only; their targets are not printed.
 `
 
 const wwwSearchHelp = `usage: ii p --www search [FILTER]
@@ -254,4 +293,8 @@ Aliases:
 Help:
   ii help payload --www search
   ii help payload-www-search
+
+Fuzzy-select a file or directory under the configured web root, then print its
+containing directory relative to /www followed by its absolute path. FILTER
+preselects the first case-insensitive fzf match.
 `

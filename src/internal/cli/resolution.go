@@ -27,6 +27,9 @@ func resolveOwner(args []string) string {
 		if len(args) == 1 {
 			return RouteGo
 		}
+		if isWWWHelpPath(args[1:]) {
+			return RouteGo
+		}
 		spec := findHelpPath(args[1:])
 		if spec == nil || spec.owner == ownerLegacy {
 			return RouteLegacy
@@ -132,9 +135,6 @@ func isWWWRoute(args []string) bool {
 		return false
 	}
 	if args[1] != "--www" && args[1] != "www" {
-		return false
-	}
-	if containsHelp(args[2:]) {
 		return false
 	}
 	return true

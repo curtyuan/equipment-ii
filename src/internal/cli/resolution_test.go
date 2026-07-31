@@ -36,7 +36,7 @@ func TestRoute(t *testing.T) {
 		{"www search", []string{"payload", "www", "search"}, RouteGo},
 		{"www link", []string{"p", "--www", "ln", "source"}, RouteGo},
 		{"www file", []string{"p", "--www", "--file", "source"}, RouteGo},
-		{"www child help remains legacy", []string{"help", "p", "--www", "ls"}, RouteLegacy},
+		{"www child help", []string{"help", "p", "--www", "ls"}, RouteGo},
 		{"unknown", []string{"wat"}, RouteGo},
 	}
 	for _, test := range tests {

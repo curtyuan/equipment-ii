@@ -27,7 +27,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y zsh tmux fzf
 
       - name: Go and public contract tests
-        run: make test
+        run: make test test-www
 
       - name: Legacy automatic baseline
         run: make test-legacy

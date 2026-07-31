@@ -32,6 +32,11 @@ func TestRoute(t *testing.T) {
 		{"payload input nested help", []string{"help", "payload", "--input"}, RouteGo},
 		{"payload selection help remains legacy", []string{"help", "payload"}, RouteLegacy},
 		{"payload selection remains legacy", []string{"payload", "linux"}, RouteLegacy},
+		{"www list", []string{"p", "--www", "ls"}, RouteGo},
+		{"www search", []string{"payload", "www", "search"}, RouteGo},
+		{"www link", []string{"p", "--www", "ln", "source"}, RouteGo},
+		{"www file remains legacy", []string{"p", "--www", "--file", "source"}, RouteLegacy},
+		{"www child help remains legacy", []string{"help", "p", "--www", "ls"}, RouteLegacy},
 		{"unknown", []string{"wat"}, RouteGo},
 	}
 	for _, test := range tests {

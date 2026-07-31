@@ -30,6 +30,11 @@ type Store interface {
 	Symlink(source, target string) error
 }
 
+type Selector interface {
+	SelectDirectory(entries []Entry) (Entry, error)
+	SelectEntry(entries []Entry, filter string) (Entry, error)
+}
+
 type Service struct {
 	store Store
 	root  string

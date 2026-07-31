@@ -34,6 +34,9 @@ func resolveOwner(args []string) string {
 	if isPayloadInputRoute(args) {
 		return RouteGo
 	}
+	if isWWWRoute(args) {
+		return RouteGo
+	}
 	spec := findCommand(args[0])
 	if spec != nil && spec.owner == ownerLegacy {
 		return RouteLegacy
@@ -47,6 +50,9 @@ func resolveCommand(args []string) string {
 	}
 	switch args[0] {
 	case "help", "h", "-h", "--help":
+		if isWWWHelpPath(args[1:]) {
+			return "www"
+		}
 		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "payload-input" {
 			return "payload-input-help"
 		}
@@ -103,6 +109,9 @@ func resolveCommand(args []string) string {
 	case "pic", "pie", "pice":
 		return "payload-input"
 	case "payload", "p":
+		if isWWWRoute(args) {
+			return "www"
+		}
 		if containsString(args[1:], "--input") || containsString(args[1:], "input") {
 			return "payload-input"
 		}
@@ -114,6 +123,32 @@ func resolveCommand(args []string) string {
 		return spec.name
 	}
 	return "unknown"
+}
+
+func isWWWRoute(args []string) bool {
+	if len(args) < 2 || (args[0] != "payload" && args[0] != "p") {
+		return false
+	}
+	if args[1] != "--www" && args[1] != "www" {
+		return false
+	}
+	if containsHelp(args[2:]) {
+		return false
+	}
+	return len(args) == 2 || (args[2] != "--file" && args[2] != "file")
+}
+
+func isWWWHelpPath(args []string) bool {
+	if len(args) == 1 && args[0] == "payload-www" {
+		return true
+	}
+	if len(args) == 0 || (args[0] != "payload" && args[0] != "p") {
+		return false
+	}
+	if len(args) < 2 || (args[1] != "--www" && args[1] != "www") {
+		return false
+	}
+	return len(args) == 2
 }
 
 func isPayloadInputRoute(args []string) bool {

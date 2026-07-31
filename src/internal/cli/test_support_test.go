@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/curtyuan/equipment-ii/src/internal/port"
+	wwwdomain "github.com/curtyuan/equipment-ii/src/internal/www"
 )
 
 type fakeSessionEnvironment struct{}
@@ -65,6 +66,12 @@ func (fakeSelector) Input(string, string) (string, error) { return "", nil }
 func (fakeSelector) SelectPayload([]port.PayloadSelectionItem, string, string) (port.PayloadSelection, error) {
 	return port.PayloadSelection{}, nil
 }
+func (fakeSelector) SelectDirectory([]wwwdomain.Entry) (wwwdomain.Entry, error) {
+	return wwwdomain.Entry{}, port.ErrSelectionCanceled
+}
+func (fakeSelector) SelectEntry([]wwwdomain.Entry, string) (wwwdomain.Entry, error) {
+	return wwwdomain.Entry{}, port.ErrSelectionCanceled
+}
 
 type fakePayloadStore struct{}
 
@@ -91,5 +98,15 @@ func newTestCLI() *CLI {
 		Panes: fakePanes{}, Selector: fakeSelector{}, Clipboard: fakeClipboard{},
 		PayloadStore: fakePayloadStore{}, PayloadWriter: fakePayloadWriter{},
 		TmuxIntegration: fakeTmuxIntegration{},
+		WebStore:        &fakeWebStore{},
+		WebSelector:     fakeSelector{},
 	})
 }
+
+type fakeWebStore struct{}
+
+func (*fakeWebStore) RequireRoot(path string) (string, error)           { return path, nil }
+func (*fakeWebStore) ResolveSource(path string, _ bool) (string, error) { return path, nil }
+func (*fakeWebStore) MakeDir(string) error                              { return nil }
+func (*fakeWebStore) Entries(string, bool) ([]wwwdomain.Entry, error)   { return nil, nil }
+func (*fakeWebStore) Symlink(string, string) error                      { return nil }

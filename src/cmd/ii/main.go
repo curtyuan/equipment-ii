@@ -47,6 +47,9 @@ func main() {
 		PayloadStore:    filesystemadapter.NewPayloadStore(payloadRoot),
 		PayloadWriter:   filesystemadapter.NewPayloadWriter(),
 		TmuxIntegration: sessionEnvironment,
+		WebStore:        filesystemadapter.NewWebStore(),
+		WebSelector:     selector,
+		WebRoot:         os.Getenv("II_WWW_ROOT"),
 	})
 	os.Exit(app.Run(os.Args[1:], os.Stdout, os.Stderr))
 }

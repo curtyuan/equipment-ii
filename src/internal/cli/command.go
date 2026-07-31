@@ -47,6 +47,8 @@ func (c *CLI) runPublic(args []string, stdout, stderr io.Writer) int {
 		return c.runVariableInteractive(args, stdout, stderr)
 	case "payload-input":
 		return c.runPayloadInput(args, stdout, stderr)
+	case "www":
+		return c.runWWW(args, stdout, stderr)
 	case "sync":
 		return c.runSync(args, stdout, stderr)
 	case "legacy":

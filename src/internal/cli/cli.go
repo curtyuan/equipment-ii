@@ -7,6 +7,7 @@ import (
 	"github.com/curtyuan/equipment-ii/src/internal/payload"
 	"github.com/curtyuan/equipment-ii/src/internal/port"
 	"github.com/curtyuan/equipment-ii/src/internal/variables"
+	wwwdomain "github.com/curtyuan/equipment-ii/src/internal/www"
 )
 
 const (
@@ -39,6 +40,8 @@ type CLI struct {
 	inputRenderer    *payload.InputRenderer
 	tmuxIntegration  port.TmuxIntegration
 	panes            port.PaneController
+	web              *wwwdomain.Service
+	webSelector      wwwdomain.Selector
 }
 
 type Dependencies struct {
@@ -57,6 +60,9 @@ type Dependencies struct {
 	PayloadStore    port.PayloadStore
 	PayloadWriter   port.PayloadWriter
 	TmuxIntegration port.TmuxIntegration
+	WebStore        wwwdomain.Store
+	WebSelector     wwwdomain.Selector
+	WebRoot         string
 }
 
 func New(version string, color bool, dependencies Dependencies) *CLI {
@@ -95,6 +101,8 @@ func New(version string, color bool, dependencies Dependencies) *CLI {
 		inputRenderer:    payload.NewInputRenderer(dependencies.ShellState, dependencies.Environment),
 		tmuxIntegration:  dependencies.TmuxIntegration,
 		panes:            dependencies.Panes,
+		web:              wwwdomain.NewService(dependencies.WebStore, dependencies.WebRoot),
+		webSelector:      dependencies.WebSelector,
 	}
 }
 

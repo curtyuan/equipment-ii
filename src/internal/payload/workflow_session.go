@@ -42,6 +42,18 @@ func (c *WorkflowCoordinator) Save(state WorkflowSession) error {
 	return c.runtime.WriteWorkflowMemory(state.Session, value)
 }
 
+func (c *WorkflowCoordinator) Select(
+	workflow Workflow, state *WorkflowSession, selector WorkflowLaneSelector,
+) error {
+	if err := selector.SelectWorkflowLanes(workflow.Lanes, state); err != nil {
+		return err
+	}
+	if !state.Assignments.Complete(workflow.Lanes) {
+		return fmt.Errorf("ii: workflow lane assignment is incomplete")
+	}
+	return c.Save(*state)
+}
+
 func (c *WorkflowCoordinator) Revalidate(workflow Workflow, state WorkflowSession) error {
 	seen := make(map[string]bool, len(workflow.Lanes))
 	for _, lane := range workflow.Lanes {

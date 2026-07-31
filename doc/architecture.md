@@ -170,9 +170,9 @@ Tmux storage, selection, clipboard, file output, and shell export are ports.
 their render precedence cannot drift.
 
 Payload file selection and workflow execution are not fully migrated yet. The
-remaining workflow boundary is interactive lane selection and ordered
-confirmation/dispatch; tmux discovery, memory, identity validation, and literal
-transport already sit behind the feature-owned workflow runtime.
+remaining workflow boundary is ordered stage confirmation/dispatch and public
+payload routing; spatial lane selection, tmux discovery, memory, identity
+validation, and literal transport are Go-owned.
 
 ### Terminal
 

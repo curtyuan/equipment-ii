@@ -1,6 +1,9 @@
 package payload
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 type workflowRuntimeFake struct {
 	panes   []WorkflowPane
@@ -53,5 +56,47 @@ func TestWorkflowCoordinatorPrepareSaveAndRevalidate(t *testing.T) {
 	}
 	if runtime.written != "kali-main=%1\nremote-main=%2" {
 		t.Fatalf("written memory = %q", runtime.written)
+	}
+}
+
+type workflowSelectorFake struct {
+	err error
+}
+
+func (f workflowSelectorFake) SelectWorkflowLanes(lanes []string, state *WorkflowSession) error {
+	if f.err != nil {
+		return f.err
+	}
+	for index, lane := range lanes {
+		state.Assignments.Assign(lane, state.Panes[index].ID, "manual")
+	}
+	return nil
+}
+
+func TestWorkflowCoordinatorSelectSavesOnlyConfirmedAssignments(t *testing.T) {
+	runtime := &workflowRuntimeFake{
+		panes:  []WorkflowPane{{ID: "%1"}, {ID: "%2"}},
+		memory: "kali-old=%9",
+	}
+	workflow := Workflow{Lanes: []string{"kali-main", "remote-main"}}
+	state := WorkflowSession{
+		Session: "$1", Panes: runtime.panes, Memory: runtime.memory,
+		Assignments: NewLaneAssignments(),
+	}
+	coordinator := NewWorkflowCoordinator(runtime)
+	if err := coordinator.Select(workflow, &state, workflowSelectorFake{}); err != nil {
+		t.Fatal(err)
+	}
+	if runtime.written != "kali-main=%1\nkali-old=%9\nremote-main=%2" {
+		t.Fatalf("written memory = %q", runtime.written)
+	}
+
+	runtime.written = ""
+	cancelled := errors.New("cancelled")
+	if err := coordinator.Select(workflow, &state, workflowSelectorFake{err: cancelled}); !errors.Is(err, cancelled) {
+		t.Fatalf("err = %v", err)
+	}
+	if runtime.written != "" {
+		t.Fatalf("memory written after cancellation: %q", runtime.written)
 	}
 }

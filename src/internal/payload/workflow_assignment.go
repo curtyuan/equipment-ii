@@ -60,6 +60,14 @@ func (a *LaneAssignments) Pane(lane string) string {
 	return a.lanePane[lane]
 }
 
+func (a *LaneAssignments) Lane(pane string) string {
+	return a.paneLane[pane]
+}
+
+func (a *LaneAssignments) Source(lane string) string {
+	return a.source[lane]
+}
+
 func (a *LaneAssignments) Bindings() map[string]string {
 	result := make(map[string]string, len(a.lanePane))
 	for lane, pane := range a.lanePane {

@@ -394,10 +394,13 @@ Payload migration foundation now present:
   detected remote foreground command, then an unused live pane), merges
   confirmed bindings without discarding unrelated session memory, and
   revalidates distinct live pane identities before stage transport.
-- Still pending for workflow ownership: the spatial fzf lane selector, staged
-  confirmation/dispatch loop, payload-selector routing, and differential
-  public-route coverage. Until those land, stored payload execution remains on
-  the frozen legacy route.
+- The Go terminal boundary now owns the workflow spatial lane selector and pane
+  map rendering, including window cycling, cursor movement, toggle/swap,
+  ordinal assignment, complete-assignment confirmation, cancellation, and
+  write-on-confirm session memory semantics.
+- Still pending for workflow ownership: the staged confirmation/dispatch loop,
+  payload-selector routing, and differential public-route coverage. Until those
+  land, stored payload execution remains on the frozen legacy route.
 
 For every migrated route:
 

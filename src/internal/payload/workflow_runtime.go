@@ -24,3 +24,7 @@ type WorkflowRuntime interface {
 	WorkflowPaneSnapshot(id string) (WorkflowPane, error)
 	SendWorkflowStage(session, pane, text string) error
 }
+
+type WorkflowLaneSelector interface {
+	SelectWorkflowLanes(lanes []string, state *WorkflowSession) error
+}

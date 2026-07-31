@@ -327,6 +327,8 @@ Completed for the `/www` preparation checkpoint:
   filesystem adapter, and unit coverage for containment and overwrite safety.
 - [x] Move `/www ls`, `search`, and `ln` plus fzf selection into Go while
   keeping `--file` and child help explicitly legacy-owned.
+- [x] Move `/www --file` render, report, original-file symlink, and path
+  analysis into Go.
 
 Remaining structural work:
 
@@ -335,7 +337,7 @@ Remaining structural work:
 - [ ] Encapsulate feature dependencies in focused command-handler structs.
 - [ ] Split the concrete tmux session adapter into environment, pane, and
   integration wrappers over one runner.
-- [ ] Complete `/www --file`, nested help, and semantic differential contracts.
+- [ ] Complete `/www` nested help parity and semantic differential contracts.
 - [ ] Move `/www` path defaults out of payload output after compatibility
   contracts cover the transition.
 - [ ] Add `/www` unit and isolated semantic contract coverage.

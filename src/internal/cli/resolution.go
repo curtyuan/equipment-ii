@@ -1,5 +1,7 @@
 package cli
 
+import "strings"
+
 type Resolution struct {
 	Owner   string
 	Command string
@@ -135,11 +137,11 @@ func isWWWRoute(args []string) bool {
 	if containsHelp(args[2:]) {
 		return false
 	}
-	return len(args) == 2 || (args[2] != "--file" && args[2] != "file")
+	return true
 }
 
 func isWWWHelpPath(args []string) bool {
-	if len(args) == 1 && args[0] == "payload-www" {
+	if len(args) == 1 && strings.HasPrefix(args[0], "payload-www") {
 		return true
 	}
 	if len(args) == 0 || (args[0] != "payload" && args[0] != "p") {
@@ -148,7 +150,9 @@ func isWWWHelpPath(args []string) bool {
 	if len(args) < 2 || (args[1] != "--www" && args[1] != "www") {
 		return false
 	}
-	return len(args) == 2
+	return len(args) == 2 || (len(args) == 3 &&
+		(args[2] == "--file" || args[2] == "file" || args[2] == "ln" ||
+			args[2] == "ls" || args[2] == "search"))
 }
 
 func isPayloadInputRoute(args []string) bool {

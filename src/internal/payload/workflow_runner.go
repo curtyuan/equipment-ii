@@ -26,6 +26,11 @@ type WorkflowStageClipboard interface {
 	Copy(text string) error
 }
 
+type WorkflowStageReporter interface {
+	WorkflowClipboardFailed(index int, err error)
+	WorkflowStageSent(index, count int, pane string)
+}
+
 type WorkflowRunner struct {
 	coordinator *WorkflowCoordinator
 	runtime     WorkflowRuntime
@@ -78,13 +83,20 @@ func (r *WorkflowRunner) Run(
 			)
 		}
 		if copyStages && r.clipboard != nil {
-			_ = r.clipboard.Copy(rendered[index].Text)
+			if copyErr := r.clipboard.Copy(rendered[index].Text); copyErr != nil {
+				if reporter, ok := r.confirmer.(WorkflowStageReporter); ok {
+					reporter.WorkflowClipboardFailed(index+1, copyErr)
+				}
+			}
 		}
 		if err = r.runtime.SendWorkflowStage(state.Session, paneID, rendered[index].Text); err != nil {
 			return fmt.Errorf(
 				"ii: workflow aborted while sending stage %d; later stages were not sent: %w",
 				index+1, err,
 			)
+		}
+		if reporter, ok := r.confirmer.(WorkflowStageReporter); ok {
+			reporter.WorkflowStageSent(index+1, len(workflow.Stages), paneID)
 		}
 	}
 	return nil

@@ -16,32 +16,36 @@ const (
 )
 
 type CLI struct {
-	version          string
-	color            bool
-	lister           *variables.Lister
-	output           *variables.Outputter
-	shell            port.ShellOperations
-	mutator          *variables.Mutator
-	loader           *variables.Loader
-	state            port.ShellState
-	detector         port.AddressDetector
-	autoDetect       bool
-	detectInterface  string
-	stdin            io.Reader
-	environment      port.Environment
-	allPanes         *variables.AllPaneLoader
-	getter           *variables.Getter
-	interactive      *variables.Interactive
-	payloads         *payload.Catalog
-	payloadSelector  port.PayloadSelector
-	clipboard        port.Clipboard
-	clipboardBackend port.ClipboardBackend
-	payloadOutput    *payload.Output
-	inputRenderer    *payload.InputRenderer
-	tmuxIntegration  port.TmuxIntegration
-	panes            port.PaneController
-	web              *wwwdomain.Service
-	webSelector      wwwdomain.Selector
+	version           string
+	color             bool
+	lister            *variables.Lister
+	output            *variables.Outputter
+	shell             port.ShellOperations
+	mutator           *variables.Mutator
+	loader            *variables.Loader
+	state             port.ShellState
+	detector          port.AddressDetector
+	autoDetect        bool
+	detectInterface   string
+	stdin             io.Reader
+	environment       port.Environment
+	allPanes          *variables.AllPaneLoader
+	getter            *variables.Getter
+	interactive       *variables.Interactive
+	payloads          *payload.Catalog
+	payloadSelector   port.PayloadSelector
+	clipboard         port.Clipboard
+	clipboardBackend  port.ClipboardBackend
+	payloadOutput     *payload.Output
+	inputRenderer     *payload.InputRenderer
+	tmuxIntegration   port.TmuxIntegration
+	panes             port.PaneController
+	web               *wwwdomain.Service
+	webSelector       wwwdomain.Selector
+	workflowRuntime   payload.WorkflowRuntime
+	workflowPopup     payload.WorkflowPopupLauncher
+	workflowSelector  payload.WorkflowLaneSelector
+	workflowConfirmer payload.WorkflowStageConfirmer
 }
 
 type Dependencies struct {
@@ -63,6 +67,8 @@ type Dependencies struct {
 	WebStore        wwwdomain.Store
 	WebSelector     wwwdomain.Selector
 	WebRoot         string
+	WorkflowRuntime payload.WorkflowRuntime
+	WorkflowPopup   payload.WorkflowPopupLauncher
 }
 
 func New(version string, color bool, dependencies Dependencies) *CLI {
@@ -103,6 +109,8 @@ func New(version string, color bool, dependencies Dependencies) *CLI {
 		panes:            dependencies.Panes,
 		web:              wwwdomain.NewService(dependencies.WebStore, dependencies.WebRoot),
 		webSelector:      dependencies.WebSelector,
+		workflowRuntime:  dependencies.WorkflowRuntime,
+		workflowPopup:    dependencies.WorkflowPopup,
 	}
 }
 

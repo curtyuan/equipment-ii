@@ -59,3 +59,11 @@ func (c *WorkflowConfirmer) ConfirmWorkflowStage(stage payload.WorkflowStageView
 	fmt.Fprintln(c.output, key)
 	return strings.EqualFold(key, "y"), nil
 }
+
+func (c *WorkflowConfirmer) WorkflowClipboardFailed(_ int, _ error) {
+	fmt.Fprintln(c.errors, "ii: clipboard copy failed; sending confirmed stage anyway")
+}
+
+func (c *WorkflowConfirmer) WorkflowStageSent(index, count int, pane string) {
+	fmt.Fprintf(c.output, "stage %d/%d sent to %s\n", index, count, pane)
+}

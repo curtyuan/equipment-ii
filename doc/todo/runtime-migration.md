@@ -402,10 +402,14 @@ Payload migration foundation now present:
   shell, title, notes, unresolved variables, and previous-stage readiness;
   after explicit confirmation it revalidates all pinned identities, optionally
   copies, and sends through literal tmux transport in source order.
-- Still pending for workflow ownership: popup composition, payload-selector
-  routing, status presentation/clipboard warnings, and differential
-  public-route coverage. Until those land, stored payload execution remains on
-  the frozen legacy route.
+- A hidden Go workflow popup entrypoint now reparses and rerenders the selected
+  relative payload path, pins the explicitly handed-off origin/session,
+  composes selection and staged execution, reports copy failures without
+  suppressing confirmed sends, and prints per-stage/completion status.
+- The Go payload selector execution path now launches that popup through a
+  quoted tmux adapter command. Still pending before public ownership:
+  differential popup coverage and switching the dispatcher from the frozen
+  legacy stored-payload route.
 
 For every migrated route:
 

@@ -28,3 +28,7 @@ type WorkflowRuntime interface {
 type WorkflowLaneSelector interface {
 	SelectWorkflowLanes(lanes []string, state *WorkflowSession) error
 }
+
+type WorkflowPopupLauncher interface {
+	LaunchWorkflowPopup(helper, path string, copyStages bool) error
+}

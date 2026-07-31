@@ -50,6 +50,8 @@ func main() {
 		WebStore:        filesystemadapter.NewWebStore(),
 		WebSelector:     selector,
 		WebRoot:         os.Getenv("II_WWW_ROOT"),
+		WorkflowRuntime: sessionEnvironment,
+		WorkflowPopup:   sessionEnvironment,
 	})
 	os.Exit(app.Run(os.Args[1:], os.Stdout, os.Stderr))
 }

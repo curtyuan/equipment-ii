@@ -49,6 +49,8 @@ func (c *CLI) runInternal(args []string, stdout, stderr io.Writer) (int, bool) {
 		return c.ensureTmuxIntegration(stdout, stderr), true
 	case "__tmux_popup":
 		return c.runTmuxPopup(args[1:], stdout, stderr), true
+	case "__workflow_popup":
+		return c.runWorkflowPopup(args[1:], stdout, stderr), true
 	default:
 		return 0, false
 	}

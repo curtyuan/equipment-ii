@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/curtyuan/equipment-ii/src/internal/payload"
@@ -56,8 +57,7 @@ func (c *CLI) runPayload(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	if selected.Payload.Workflow != nil {
-		fmt.Fprintln(stderr, "ii: workflow execution handoff is not migrated yet")
-		return 1
+		return c.launchWorkflowPopup(selected.Payload.Path, copyExecute, stderr)
 	}
 	if !c.confirmPayload(selected.Payload.Report, stdout, stderr) {
 		fmt.Fprintln(stderr, "ii: execution cancelled")
@@ -73,6 +73,22 @@ func (c *CLI) runPayload(args []string, stdout, stderr io.Writer) int {
 	fmt.Fprintln(stdout, Color(34, "executing payload in current shell:", c.color))
 	fmt.Fprintln(stdout, selected.Payload.Path)
 	if err = c.shell.ExecuteScript(selected.Payload.Text); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	return 0
+}
+
+func (c *CLI) launchWorkflowPopup(path string, copyStages bool, stderr io.Writer) int {
+	if c.workflowPopup == nil {
+		fmt.Fprintln(stderr, "ii: workflow popup launcher is unavailable")
+		return 1
+	}
+	helper := os.Getenv("II_GO_BIN")
+	if helper == "" {
+		helper, _ = os.Executable()
+	}
+	if err := c.workflowPopup.LaunchWorkflowPopup(helper, path, copyStages); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}

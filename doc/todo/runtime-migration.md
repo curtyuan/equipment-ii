@@ -398,9 +398,14 @@ Payload migration foundation now present:
   map rendering, including window cycling, cursor movement, toggle/swap,
   ordinal assignment, complete-assignment confirmation, cancellation, and
   write-on-confirm session memory semantics.
-- Still pending for workflow ownership: the staged confirmation/dispatch loop,
-  payload-selector routing, and differential public-route coverage. Until those
-  land, stored payload execution remains on the frozen legacy route.
+- The workflow runner now presents every rendered stage with lane, live pane,
+  shell, title, notes, unresolved variables, and previous-stage readiness;
+  after explicit confirmation it revalidates all pinned identities, optionally
+  copies, and sends through literal tmux transport in source order.
+- Still pending for workflow ownership: popup composition, payload-selector
+  routing, status presentation/clipboard warnings, and differential
+  public-route coverage. Until those land, stored payload execution remains on
+  the frozen legacy route.
 
 For every migrated route:
 

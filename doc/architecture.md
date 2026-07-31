@@ -45,7 +45,10 @@ src/
       cli.go                     composition and Run lifecycle
       command.go                 thin public dispatch
       resolution.go              owner and canonical-command resolution
-      variables.go               variable-family CLI parsing/presentation
+      variables_read.go          list, get, output, and variable help
+      variables_set.go           set, shell/file import, and auto-detection
+      variables_session.go       load, unset, and sync
+      variables_interactive.go   fzf-backed variable interaction
     variables/                   variable use cases
     payload/                     catalog, render, input render, workflow model
     terminal/                    Linux terminal input boundary

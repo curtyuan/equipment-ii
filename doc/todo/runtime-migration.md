@@ -321,6 +321,8 @@ Completed for the `/www` preparation checkpoint:
   parsing into responsibility-specific files without changing behavior.
 - [x] Move variable-family list, output, unset, load, interactive, sync, and
   help behavior behind feature handlers so public dispatch only forwards.
+- [x] Split variable CLI behavior by read, set/import, session, and interactive
+  responsibility without adding another abstraction layer.
 
 Remaining structural work:
 

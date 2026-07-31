@@ -17,6 +17,8 @@ server_pid="$(tmux -S "$socket" display-message -p -t get-contract:0.0 '#{pid}')
 pane="$(tmux -S "$socket" display-message -p -t get-contract:0.0 '#{pane_id}')"
 export TMUX="${socket},${server_pid},0"
 export TMUX_PANE="$pane"
+# Alias installation has its own contract; keep repeated backends isolated.
+export II_TMUX_INTEGRATION=0
 export II_CLIP_BACKEND=tmux
 tmux -S "$socket" set-environment ii_rhost 192.0.2.20
 tmux -S "$socket" set-environment ii_lhost 192.0.2.10

@@ -319,12 +319,14 @@ Completed for the `/www` preparation checkpoint:
 - [x] Share payload input rendering between public input and tmux popup paths.
 - [x] Split CLI composition, public dispatch, resolution, and variable-family
   parsing into responsibility-specific files without changing behavior.
+- [x] Move variable-family list, output, unset, load, interactive, sync, and
+  help behavior behind feature handlers so public dispatch only forwards.
 
 Remaining structural work:
 
 - [ ] Replace remaining route-owner and canonical-command special cases with a
   declarative command specification.
-- [ ] Continue extracting inline public cases into feature command handlers.
+- [ ] Encapsulate feature dependencies in focused command-handler structs.
 - [ ] Split the concrete tmux session adapter into environment, pane, and
   integration wrappers over one runner.
 - [ ] Add the `/www` domain service, focused filesystem port, filesystem

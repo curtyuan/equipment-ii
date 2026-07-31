@@ -13,6 +13,8 @@ pane="$(tmux -S "$socket" display-message -p -t set-contract:0.0 '#{pane_id}')"
 export TMUX="${socket},${server_pid},0"
 export TMUX_PANE="$pane"
 export II_AUTO_DETECT_LHOST=0
+# Alias installation has its own contract; keep repeated backends isolated.
+export II_TMUX_INTEGRATION=0
 
 compare() {
   name="$1"

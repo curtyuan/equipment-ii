@@ -17,6 +17,8 @@ server_pid="$(tmux -S "$socket" display-message -p -t variable-contract:0.0 '#{p
 pane="$(tmux -S "$socket" display-message -p -t variable-contract:0.0 '#{pane_id}')"
 export TMUX="${socket},${server_pid},0"
 export TMUX_PANE="$pane"
+# Alias installation has its own contract; keep repeated backends isolated.
+export II_TMUX_INTEGRATION=0
 
 tmux set-environment -t variable-contract ii_rhost 192.0.2.20
 tmux set-environment -t variable-contract ii_lhost 192.0.2.10

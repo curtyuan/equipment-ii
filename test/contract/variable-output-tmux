@@ -17,6 +17,8 @@ server_pid="$(tmux -S "$socket" display-message -p -t output-contract:0.0 '#{pid
 pane="$(tmux -S "$socket" display-message -p -t output-contract:0.0 '#{pane_id}')"
 export TMUX="${socket},${server_pid},0"
 export TMUX_PANE="$pane"
+# Alias installation has its own contract; keep repeated backends isolated.
+export II_TMUX_INTEGRATION=0
 
 tmux set-environment -t output-contract ii_plain value
 tmux set-environment -t output-contract ii_space "two words"

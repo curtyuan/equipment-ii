@@ -38,3 +38,44 @@ func TestParseLaneMemoryRejectsMalformedAndDuplicateBindings(t *testing.T) {
 		t.Fatalf("ParseLaneMemory = %#v", got)
 	}
 }
+
+func TestDetectInitialAssignmentsUsesMemoryOriginAndRemoteCommand(t *testing.T) {
+	panes := []WorkflowPane{
+		{ID: "%1", Command: "zsh"},
+		{ID: "%2", Command: "pwsh"},
+		{ID: "%3", Command: "zsh"},
+	}
+	assignments := DetectInitialAssignments(
+		[]string{"kali-main", "remote-main", "kali-extra"},
+		panes, "%1", "kali-extra=%3\nremote-main=%99",
+	)
+	if assignments.Pane("kali-extra") != "%3" ||
+		assignments.Pane("kali-main") != "%1" ||
+		assignments.Pane("remote-main") != "%2" {
+		t.Fatalf("bindings = %#v", assignments.Bindings())
+	}
+}
+
+func TestMergeLaneMemoryPreservesUnrelatedValidBindings(t *testing.T) {
+	got := MergeLaneMemory(
+		"kali-old=%1\nremote-old=%2",
+		map[string]string{"kali-main": "%2"},
+	)
+	if got != "kali-main=%2\nkali-old=%1" {
+		t.Fatalf("MergeLaneMemory = %q", got)
+	}
+}
+
+func TestDetectInitialAssignmentsSkipsDeadPanes(t *testing.T) {
+	panes := []WorkflowPane{
+		{ID: "%1", Command: "zsh", Dead: true},
+		{ID: "%2", Command: "ssh", Dead: true},
+		{ID: "%3", Command: "zsh"},
+	}
+	assignments := DetectInitialAssignments(
+		[]string{"kali-main", "remote-main"}, panes, "%1", "remote-main=%2",
+	)
+	if assignments.Pane("kali-main") != "%3" || assignments.Pane("remote-main") != "" {
+		t.Fatalf("bindings = %#v", assignments.Bindings())
+	}
+}

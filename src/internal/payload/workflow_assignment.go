@@ -60,6 +60,14 @@ func (a *LaneAssignments) Pane(lane string) string {
 	return a.lanePane[lane]
 }
 
+func (a *LaneAssignments) Bindings() map[string]string {
+	result := make(map[string]string, len(a.lanePane))
+	for lane, pane := range a.lanePane {
+		result[lane] = pane
+	}
+	return result
+}
+
 func (a *LaneAssignments) Complete(lanes []string) bool {
 	seen := make(map[string]bool, len(lanes))
 	for _, lane := range lanes {
@@ -98,4 +106,82 @@ func ParseLaneMemory(value string) map[string]string {
 		used[pane] = true
 	}
 	return result
+}
+
+func DetectInitialAssignments(lanes []string, panes []WorkflowPane, origin string, memory string) *LaneAssignments {
+	assignments := NewLaneAssignments()
+	available := make(map[string]WorkflowPane, len(panes))
+	for _, pane := range panes {
+		if pane.ID != "" && !pane.Dead {
+			available[pane.ID] = pane
+		}
+	}
+	remembered := ParseLaneMemory(memory)
+	for _, lane := range lanes {
+		pane := remembered[lane]
+		if _, ok := available[pane]; pane != "" && ok && assignments.paneLane[pane] == "" {
+			assignments.Assign(lane, pane, "remembered")
+		}
+	}
+	for _, lane := range lanes {
+		if assignments.Pane(lane) != "" {
+			continue
+		}
+		role := strings.SplitN(lane, "-", 2)[0]
+		if role == "kali" && origin != "" && assignments.paneLane[origin] == "" {
+			if _, ok := available[origin]; ok {
+				assignments.Assign(lane, origin, "detected")
+				continue
+			}
+		}
+		if role == "remote" {
+			for _, pane := range panes {
+				if pane.ID == origin || assignments.paneLane[pane.ID] != "" ||
+					!remoteCommand(pane.Command) {
+					continue
+				}
+				if _, ok := available[pane.ID]; !ok {
+					continue
+				}
+				assignments.Assign(lane, pane.ID, "detected")
+				break
+			}
+		}
+		if assignments.Pane(lane) != "" {
+			continue
+		}
+		for _, pane := range panes {
+			if _, ok := available[pane.ID]; ok && assignments.paneLane[pane.ID] == "" {
+				assignments.Assign(lane, pane.ID, "detected")
+				break
+			}
+		}
+	}
+	return assignments
+}
+
+func MergeLaneMemory(existing string, current map[string]string) string {
+	merged := ParseLaneMemory(existing)
+	for lane, pane := range current {
+		for other, otherPane := range merged {
+			if other != lane && otherPane == pane {
+				delete(merged, other)
+			}
+		}
+		merged[lane] = pane
+	}
+	assignments := NewLaneAssignments()
+	for lane, pane := range merged {
+		assignments.Assign(lane, pane, "remembered")
+	}
+	return assignments.Memory()
+}
+
+func remoteCommand(command string) bool {
+	switch command {
+	case "nc", "ncat", "netcat", "socat", "ssh", "python", "python3",
+		"pwsh", "powershell", "cmd.exe":
+		return true
+	}
+	return false
 }

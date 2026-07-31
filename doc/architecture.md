@@ -162,13 +162,17 @@ Tmux storage, selection, clipboard, file output, and shell export are ports.
 - shell-over-tmux resolution
 - shared input rendering
 - selector orchestration
-- workflow document parsing/model
+- workflow document parsing/model, initial lane assignment, session memory, and
+  target identity validation
 - payload output-path compatibility during migration
 
 `InputRenderer` is shared by the public pasted-input command and tmux popup so
 their render precedence cannot drift.
 
-Payload file selection and workflow execution are not fully migrated yet.
+Payload file selection and workflow execution are not fully migrated yet. The
+remaining workflow boundary is interactive lane selection and ordered
+confirmation/dispatch; tmux discovery, memory, identity validation, and literal
+transport already sit behind the feature-owned workflow runtime.
 
 ### Terminal
 

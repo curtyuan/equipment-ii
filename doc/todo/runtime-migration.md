@@ -351,7 +351,7 @@ only when implementation, tests, help, docs, and package behavior move together.
 - [ ] Version, help, and diagnostics.
 - [ ] Payload discovery, classification, preview, and rendering.
 - [x] Tmux variable set, get, list, unset, import, and output.
-- [ ] `/www` output helpers (clipboard commands are complete).
+- [x] `/www` output helpers.
 - [x] Interactive payload input (interactive variables are complete).
 - [x] Tmux command alias, popup entry, pane transport, and identity validation.
 - [ ] Workflow parsing, lane assignment, memory, rendering, and orchestration.
@@ -389,6 +389,15 @@ Payload migration foundation now present:
 - A feature-owned Go workflow runtime now provides session-wide pane discovery,
   validated memory read/write, pane snapshots, and literal stage transport
   through the tmux adapter.
+- Workflow session preparation now applies the legacy-compatible initial
+  assignment precedence (valid remembered binding, origin pane for Kali lanes,
+  detected remote foreground command, then an unused live pane), merges
+  confirmed bindings without discarding unrelated session memory, and
+  revalidates distinct live pane identities before stage transport.
+- Still pending for workflow ownership: the spatial fzf lane selector, staged
+  confirmation/dispatch loop, payload-selector routing, and differential
+  public-route coverage. Until those land, stored payload execution remains on
+  the frozen legacy route.
 
 For every migrated route:
 

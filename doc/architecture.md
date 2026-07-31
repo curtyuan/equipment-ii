@@ -42,6 +42,10 @@ src/
   cmd/ii/main.go                 composition root
   internal/
     cli/                         entrypoints, resolution, parsing, presentation
+      cli.go                     composition and Run lifecycle
+      command.go                 public dispatch
+      resolution.go              owner and canonical-command resolution
+      variables.go               variable-family CLI parsing/presentation
     variables/                   variable use cases
     payload/                     catalog, render, input render, workflow model
     terminal/                    Linux terminal input boundary
@@ -260,7 +264,7 @@ status codes, cancellation behavior, and durable side effects.
 Tracked in [`todo/runtime-migration.md`](todo/runtime-migration.md):
 
 - move remaining command-resolution special cases into declarative specs
-- split large public CLI handlers by command family
+- continue extracting inline public cases into feature command handlers
 - split concrete tmux capabilities while retaining a shared runner
 - move `/www` policy out of payload output
 - migrate payload selection and workflow orchestration

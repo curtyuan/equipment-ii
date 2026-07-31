@@ -317,12 +317,14 @@ Completed for the `/www` preparation checkpoint:
 - [x] Split hidden shell/runtime entrypoints from public dispatch.
 - [x] Route ownership and public dispatch through a shared `Resolution` entry.
 - [x] Share payload input rendering between public input and tmux popup paths.
+- [x] Split CLI composition, public dispatch, resolution, and variable-family
+  parsing into responsibility-specific files without changing behavior.
 
 Remaining structural work:
 
 - [ ] Replace remaining route-owner and canonical-command special cases with a
   declarative command specification.
-- [ ] Split large CLI handlers into feature-specific files.
+- [ ] Continue extracting inline public cases into feature command handlers.
 - [ ] Split the concrete tmux session adapter into environment, pane, and
   integration wrappers over one runner.
 - [ ] Add the `/www` domain service, focused filesystem port, filesystem

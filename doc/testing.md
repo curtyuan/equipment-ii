@@ -2,6 +2,30 @@
 
 All commands below are intended to be run from the project root.
 
+## Test Structure
+
+The repository keeps three intentionally different test layers:
+
+```text
+src/**/*_test.go          fast Go unit and adapter-boundary tests
+test/contract/            current public, shell-operation, and tmux contracts
+ori-ii/script/test-*      frozen pre-Go compatibility baseline
+```
+
+Go unit tests follow their production package and file responsibility. Shared
+CLI fakes live in `src/internal/cli/test_support_test.go`; command, resolution,
+help, and variable CLI behavior have separate test files.
+
+Contract tests exercise process boundaries and durable effects that unit tests
+cannot represent, including Zsh dispatch, parent-shell operations, isolated
+tmux servers, popup terminal input, and fzf-driven selection. They are not
+duplicates of the Go tests.
+
+Do not remove a frozen `ori-ii` test merely because a Go or root contract covers
+the same feature. It remains the executable comparison baseline until the
+legacy runtime is removed. Files under generated `build/` and `export/`
+directories are not test sources.
+
 ## Go Migration Baseline
 
 The root test/build interface now belongs to `ii-go`:

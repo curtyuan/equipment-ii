@@ -384,6 +384,8 @@ Payload migration foundation now present:
   the Go terminal/stream reader, renderer, output writer, clipboard adapter,
   single-key confirmation, allowlisted parent-shell execution channel, and all
   direct and nested input help topics.
+- Workflow lane assignment now has a Go domain model with occupied-pane swap,
+  toggle, completeness, and deterministic memory serialization semantics.
 
 For every migrated route:
 

@@ -386,6 +386,9 @@ Payload migration foundation now present:
   direct and nested input help topics.
 - Workflow lane assignment now has a Go domain model with occupied-pane swap,
   toggle, completeness, and deterministic memory serialization semantics.
+- A feature-owned Go workflow runtime now provides session-wide pane discovery,
+  validated memory read/write, pane snapshots, and literal stage transport
+  through the tmux adapter.
 
 For every migrated route:
 

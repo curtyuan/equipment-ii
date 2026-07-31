@@ -31,3 +31,10 @@ func TestLaneAssignmentsToggleAndMemory(t *testing.T) {
 		t.Fatal("unassigned lane reported complete")
 	}
 }
+
+func TestParseLaneMemoryRejectsMalformedAndDuplicateBindings(t *testing.T) {
+	got := ParseLaneMemory("kali-main=%1\nbad=%2\nremote-main=no\nremote-copy=%1\nremote-main=%3")
+	if len(got) != 2 || got["kali-main"] != "%1" || got["remote-main"] != "%3" {
+		t.Fatalf("ParseLaneMemory = %#v", got)
+	}
+}

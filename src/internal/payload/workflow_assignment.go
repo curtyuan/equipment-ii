@@ -1,9 +1,12 @@
 package payload
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 )
+
+var workflowPaneID = regexp.MustCompile(`^%[0-9]+$`)
 
 type LaneAssignments struct {
 	lanePane map[string]string
@@ -80,4 +83,19 @@ func (a *LaneAssignments) Memory() string {
 		lines = append(lines, lane+"="+a.lanePane[lane])
 	}
 	return strings.Join(lines, "\n")
+}
+
+func ParseLaneMemory(value string) map[string]string {
+	result := make(map[string]string)
+	used := make(map[string]bool)
+	for _, line := range strings.Split(value, "\n") {
+		lane, pane, ok := strings.Cut(line, "=")
+		if !ok || !laneName.MatchString(lane) || !workflowPaneID.MatchString(pane) ||
+			used[pane] {
+			continue
+		}
+		result[lane] = pane
+		used[pane] = true
+	}
+	return result
 }

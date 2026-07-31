@@ -190,6 +190,11 @@ The tmux adapters own process invocation and protocol details:
 The native alias invokes `ii-go __tmux_popup execute`; it does not rebind
 `Prefix + :`.
 
+Workflow orchestration uses a separate feature-owned runtime boundary for
+session-wide pane discovery, remembered lane bindings, pane snapshots, and
+literal stage transport. This does not expand the variables-oriented
+`PaneController`.
+
 ## `/www` Target Boundary
 
 The old implementation combined `/www` command parsing, rendering, filesystem

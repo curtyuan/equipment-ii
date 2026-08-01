@@ -89,10 +89,125 @@ ii_zsh_set_assignment() {
   ii_zsh_maybe_detect_lhost "$internal"
 }
 
+ii_zsh_default_names() {
+  print -l -- domain lhost rhost lport rport \
+    user1 pass1 user2 pass2 user3 pass3 user4 pass4 user5 pass5 \
+    cuser cpass tuser tpass directs
+}
+
+ii_zsh_set_from_shell() {
+  local all="$1"
+  shift
+  local raw name upper value internal count=0 missing=0
+  local -a names
+  if (( all )); then
+    names=("${(@f)$(ii_zsh_default_names)}")
+  else
+    for raw in "$@"; do
+      names+=("${(@s:,:)raw}")
+    done
+  fi
+  (( ${#names} )) || {
+    print -u2 "ii: --from-shell requires at least one variable name"
+    return 2
+  }
+  for raw in "$names[@]"; do
+    internal="$(ii_zsh_normalize_name "$raw")" || return
+    name="${internal#ii_}"
+    upper="${(U)name}"
+    if (( ${+parameters[$name]} )); then
+      value="${(P)name}"
+    elif (( ${+parameters[$upper]} )); then
+      value="${(P)upper}"
+    else
+      if (( ! all )); then
+        print -u2 "ii: shell variable not found: $name"
+        missing=1
+      fi
+      continue
+    fi
+    if (( all )) && [[ -z "$value" ]]; then
+      continue
+    fi
+    ii_zsh_store_value "$internal" "$value" || return
+    (( ++count ))
+  done
+  (( ! all || count > 0 )) || print -r -- "ii: no non-empty default shell variables found"
+  (( ! missing ))
+}
+
+ii_zsh_unquote_file_value() {
+  local value="$1"
+  if [[ ${#value} -ge 2 && "$value[1]" == "'" && "$value[-1]" == "'" ]]; then
+    value="${value[2,-2]//\'\\\'\'/\'}"
+  elif [[ ${#value} -ge 2 && "$value[1]" == '"' && "$value[-1]" == '"' ]]; then
+    value="${value[2,-2]//\\\"/\"}"
+  fi
+  print -r -- "$value"
+}
+
+ii_zsh_set_from_file() {
+  local file="$1" line entry name value internal
+  local line_number=0 count=0 invalid=0
+  [[ -f "$file" && -r "$file" ]] || {
+    print -r -- "ii: variable file not found: $file"
+    return 1
+  }
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    (( ++line_number ))
+    line="${line%$'\r'}"
+    entry="${line#${line%%[![:space:]]*}}"
+    [[ -n "$entry" && "$entry" != \#* ]] || continue
+    if [[ "$entry" == export[[:space:]]* ]]; then
+      entry="${entry#export}"
+      entry="${entry#${entry%%[![:space:]]*}}"
+    fi
+    if [[ "$entry" != *=* ]]; then
+      print -r -- "ii: invalid variable entry in $file at line $line_number: expected NAME=VALUE"
+      invalid=1
+      continue
+    fi
+    name="${entry%%=*}"
+    value="${entry#*=}"
+    if [[ -z "$name" || "$name" == *[[:space:]]* ]]; then
+      print -r -- "ii: invalid variable entry in $file at line $line_number: expected NAME=VALUE"
+      invalid=1
+      continue
+    fi
+    internal="$(ii_zsh_normalize_name "$name")" || {
+      invalid=1
+      continue
+    }
+    value="$(ii_zsh_unquote_file_value "$value")"
+    ii_zsh_store_value "$internal" "$value" || return
+    (( ++count ))
+  done <"$file"
+  (( count > 0 )) || print -r -- "ii: no variable entries found in $file"
+  (( ! invalid ))
+}
+
 ii_zsh_cmd_set_explicit() {
   local command="$1"
   shift
   ii_zsh_tmux_available || return
+
+  if [[ "$command" == sf ]]; then
+    [[ $# -le 1 ]] || {
+      print -u2 "ii: usage: ii sf [PATH]"
+      return 2
+    }
+    ii_zsh_set_from_file "${1:-.env}"
+    return
+  fi
+
+  if [[ "$command" == sha ]]; then
+    [[ $# -eq 0 ]] || {
+      print -u2 "ii: usage: ii sha"
+      return 2
+    }
+    ii_zsh_set_from_shell 1
+    return
+  fi
 
   if [[ "$command" == sr ]]; then
     [[ $# -eq 1 ]] || {
@@ -105,6 +220,41 @@ ii_zsh_cmd_set_explicit() {
 
   if [[ "$command" == s:* ]]; then
     set -- "${command#s:}" "$@"
+  fi
+
+  local from_shell=0 from_file=0 all=0 arg
+  local -a remaining
+  for arg in "$@"; do
+    case "$arg" in
+      --from-shell) from_shell=1 ;;
+      --from-file) from_file=1 ;;
+      -a) all=1 ;;
+      *) remaining+=("$arg") ;;
+    esac
+  done
+  if (( from_shell && from_file )); then
+    print -u2 "ii: --from-shell and --from-file cannot be used together"
+    return 2
+  fi
+  if (( all && ! from_shell )); then
+    print -u2 "ii: -a is only supported with --from-shell"
+    return 2
+  fi
+  if (( from_file )); then
+    [[ ${#remaining} -le 1 ]] || {
+      print -u2 "ii: --from-file accepts at most one path"
+      return 2
+    }
+    ii_zsh_set_from_file "${remaining[1]:-.env}"
+    return
+  fi
+  if (( from_shell )); then
+    if (( all && ${#remaining} )); then
+      print -u2 "ii: --from-shell -a does not accept variable names"
+      return 2
+    fi
+    ii_zsh_set_from_shell "$all" "$remaining[@]"
+    return
   fi
 
   if [[ "${1:-}" == -d ]]; then

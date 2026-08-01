@@ -11,16 +11,14 @@ ii_ordinary_resolve() {
   shift 2>/dev/null || true
 
   case "$command" in
-    sr)
+    sr|sf|sha)
       [[ "$*" != *" -h"* && "$*" != *" --help"* ]] && print -r -- set-explicit
       ;;
     s:*)
-      [[ " $* " != *" --from-shell "* && " $* " != *" --from-file "* &&
-        " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- set-explicit
+      [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- set-explicit
       ;;
     set|s)
-      [[ $# -gt 0 && " $* " != *" --from-shell "* &&
-        " $* " != *" --from-file "* && " $* " != *" -h "* &&
+      [[ $# -gt 0 && " $* " != *" -h "* &&
         " $* " != *" --help "* ]] && print -r -- set-explicit
       ;;
   esac

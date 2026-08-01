@@ -43,5 +43,14 @@ II_AUTO_DETECT_LHOST=0 ii sr 198.51.100.7 >"${tmp_dir}/sr.out"
 [[ "$rhost" == 198.51.100.7 ]]
 [[ "$(tmux -S "$socket" show-environment ii_rhost)" == 'ii_rhost=198.51.100.7' ]]
 
+typeset shell_only=from-shell
+ii s shell_only --from-shell >"${tmp_dir}/from-shell.out"
+[[ "$(tmux -S "$socket" show-environment ii_shell_only)" == 'ii_shell_only=from-shell' ]]
+
+print -r -- "file_only='two words'" >"${tmp_dir}/vars.env"
+ii sf "${tmp_dir}/vars.env" >"${tmp_dir}/from-file.out"
+[[ "$file_only" == 'two words' ]]
+[[ "$(tmux -S "$socket" show-environment ii_file_only)" == 'ii_file_only=two words' ]]
+
 [[ ! -s "$II_GO_CALL_LOG" ]]
 print 'ordinary Zsh set contract passed'

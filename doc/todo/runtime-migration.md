@@ -518,7 +518,7 @@ Current ownership-reversal checkpoint:
   interface detection, and optional rhost-triggered lhost detection.
 - [x] Add an isolated architecture contract proving migrated explicit-set
   forms preserve tmux and shell effects without starting Go.
-- [ ] Move `s --from-shell`, `sha`, `s --from-file`, and `sf` into the same Zsh
+- [x] Move `s --from-shell`, `sha`, `s --from-file`, and `sf` into the same Zsh
   variable module before removing their Go handlers.
 
 ### Next-Stage Discussion Queue

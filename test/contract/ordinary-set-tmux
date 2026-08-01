@@ -1,0 +1,47 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s ordinary-set -x 80 -y 24 'zsh -f'
+server_pid="$(tmux -S "$socket" display-message -p -t ordinary-set:0.0 '#{pid}')"
+pane="$(tmux -S "$socket" display-message -p -t ordinary-set:0.0 '#{pane_id}')"
+export TMUX="${socket},${server_pid},0"
+export TMUX_PANE="$pane"
+
+mkdir "${tmp_dir}/bin"
+cat >"${tmp_dir}/bin/ii-go" <<'EOF'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >>"$II_GO_CALL_LOG"
+[ "${1:-}" = __tmux_ensure ] && exit 0
+printf 'ordinary command unexpectedly invoked Go: %s\n' "$*" >&2
+exit 99
+EOF
+chmod +x "${tmp_dir}/bin/ii-go"
+export II_GO_CALL_LOG="${tmp_dir}/go.calls"
+export II_GO_BIN="${tmp_dir}/bin/ii-go"
+export II_CONFIG_FILE=/dev/null
+export II_TMUX_INTEGRATION=0
+
+source "${root}/ii.plugin.zsh"
+: >"$II_GO_CALL_LOG"
+
+ii s note 'two words' >"${tmp_dir}/set.out"
+[[ "$note" == 'two words' ]]
+[[ "$(tmux -S "$socket" show-environment ii_note)" == 'ii_note=two words' ]]
+grep -Fx 'note=two words' "${tmp_dir}/set.out"
+
+ii s:domain=example.test,lport=4444 >"${tmp_dir}/compact.out"
+[[ "$domain" == example.test && "$lport" == 4444 ]]
+[[ "$(tmux -S "$socket" show-environment ii_domain)" == 'ii_domain=example.test' ]]
+[[ "$(tmux -S "$socket" show-environment ii_lport)" == 'ii_lport=4444' ]]
+
+II_AUTO_DETECT_LHOST=0 ii sr 198.51.100.7 >"${tmp_dir}/sr.out"
+[[ "$rhost" == 198.51.100.7 ]]
+[[ "$(tmux -S "$socket" show-environment ii_rhost)" == 'ii_rhost=198.51.100.7' ]]
+
+[[ ! -s "$II_GO_CALL_LOG" ]]
+print 'ordinary Zsh set contract passed'

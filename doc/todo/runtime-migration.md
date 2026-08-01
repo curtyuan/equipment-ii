@@ -506,13 +506,29 @@ Current implementation gaps, in intended implementation order:
 - [ ] Update package/install tests after root payload data no longer depends on
   the temporary `ori-ii/payloads` path.
 
+Current ownership-reversal checkpoint:
+
+- [x] Choose a clean Zsh ordinary runtime (option B): use `ori-ii` as behavior
+  reference, but do not restore its 21-module global load order, Zsh workflow,
+  or removed sync implementation wholesale.
+- [x] Add the first closed Zsh command specification and public dispatcher
+  seam while retaining Go fallback only for not-yet-migrated ordinary forms.
+- [x] Move explicit `set`/`s`, compact `s:`, and `sr` mutations to Zsh,
+  including tmux storage, calling-shell export, export-case policy, explicit
+  interface detection, and optional rhost-triggered lhost detection.
+- [x] Add an isolated architecture contract proving migrated explicit-set
+  forms preserve tmux and shell effects without starting Go.
+- [ ] Move `s --from-shell`, `sha`, `s --from-file`, and `sf` into the same Zsh
+  variable module before removing their Go handlers.
+
 ### Next-Stage Discussion Queue
 
 Resolve these together before implementing the ownership reversal:
 
-- [ ] Which existing root/legacy Zsh modules should be restored as the starting
+- [x] Which existing root/legacy Zsh modules should be restored as the starting
   point, and which should be rewritten to avoid reintroducing obsolete global
-  load-order coupling?
+  load-order coupling? Decision: clean ordinary modules; frozen modules are
+  reference/fixtures only and combo is never restored to Zsh.
 - [ ] Should ordinary and combo rendering intentionally share identical token
   syntax while using different state precedence (ordinary: shell then tmux;
   combo: tmux only), and how will one fixture corpus express both contexts?

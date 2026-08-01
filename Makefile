@@ -7,7 +7,7 @@ VERSION := $(shell tr -d '\n' < VERSION)
 GO_LDFLAGS := -s -w -X main.version=$(VERSION)
 export GOCACHE := $(CURDIR)/$(BUILD_DIR)/.gocache
 
-.PHONY: all build package package-linux-amd64 package-linux-arm64 package-arch fmt-check vet test test-go test-contract test-shell-operations test-www test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy test-legacy-tmux cross-build clean
+.PHONY: all build package package-linux-amd64 package-linux-arm64 package-arch fmt-check vet test test-go test-contract test-shell-operations test-ordinary-set-tmux test-www test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy test-legacy-tmux cross-build clean
 
 all: package
 
@@ -19,8 +19,9 @@ build:
 
 package: build
 	rm -rf $(EXPORT_DIR)
-	mkdir -p $(EXPORT_DIR)/ori-ii/script
+	mkdir -p $(EXPORT_DIR)/lib $(EXPORT_DIR)/ori-ii/script
 	cp ii.plugin.zsh README.md VERSION $(EXPORT_DIR)/
+	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh $(EXPORT_DIR)/lib/
 	cp $(II_GO) $(EXPORT_DIR)/ii-go
 	cp ori-ii/ii.plugin.zsh ori-ii/VERSION $(EXPORT_DIR)/ori-ii/
 	cp -R ori-ii/lib ori-ii/payloads $(EXPORT_DIR)/ori-ii/
@@ -42,8 +43,9 @@ package-arch:
 		-ldflags "$(GO_LDFLAGS)" \
 		-o ../$(BUILD_DIR)/ii-go-linux-$(ARCH) $(GO_PACKAGE)
 	rm -rf export/linux-$(ARCH)
-	mkdir -p export/linux-$(ARCH)/ii/ori-ii/script
+	mkdir -p export/linux-$(ARCH)/ii/lib export/linux-$(ARCH)/ii/ori-ii/script
 	cp ii.plugin.zsh README.md VERSION export/linux-$(ARCH)/ii/
+	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh export/linux-$(ARCH)/ii/lib/
 	cp $(BUILD_DIR)/ii-go-linux-$(ARCH) export/linux-$(ARCH)/ii/ii-go
 	cp ori-ii/ii.plugin.zsh ori-ii/VERSION export/linux-$(ARCH)/ii/ori-ii/
 	cp -R ori-ii/lib ori-ii/payloads export/linux-$(ARCH)/ii/ori-ii/
@@ -70,6 +72,9 @@ test-contract: build
 
 test-shell-operations: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/shell-operations
+
+test-ordinary-set-tmux:
+	./test/contract/ordinary-set-tmux
 
 test-www: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/www

@@ -13,12 +13,14 @@ if [[ -z "${II_GO_BIN:-}" ]]; then
 fi
 typeset -g II_PLUGIN_DIR="$II_GO_ROOT"
 typeset -g II_PAYLOAD_DIR="${II_PAYLOAD_DIR:-${II_GO_ROOT}/ori-ii/payloads}"
+typeset -g II_CONFIG_FILE="${II_CONFIG_FILE:-${HOME}/.config/ii/ii.conf}"
+[[ -r "$II_CONFIG_FILE" ]] && source "$II_CONFIG_FILE"
 if [[ -x "$II_GO_BIN" ]]; then
   II_PLUGIN_DIR="$II_PLUGIN_DIR" II_GO_ROOT="$II_GO_ROOT" \
     "$II_GO_BIN" __tmux_ensure || true
 fi
 
-ii() {
+ii_go_command() {
   if [[ ! -x "$II_GO_BIN" ]]; then
     print -u2 "ii: Go runtime unavailable: $II_GO_BIN"
     print -u2 "ii: run 'make build' from $II_GO_ROOT"
@@ -169,3 +171,6 @@ ii_apply_shell_operations() {
 }
 
 unset ii_adapter_dir
+
+source "${II_GO_ROOT}/lib/ordinary_variables.zsh"
+source "${II_GO_ROOT}/lib/ordinary_runtime.zsh"

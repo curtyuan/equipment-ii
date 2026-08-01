@@ -37,4 +37,4 @@ done
 [[ "$output" == *"1 loaded locally, 1 dispatched, 0 skipped, 0 failed"* ]]
 [[ "$output" == *"LOCAL_DOMAIN=example.test"* ]]
 
-print "Go load-all tmux contract passed"
+print "Zsh load-all tmux contract passed"

@@ -522,7 +522,7 @@ Current ownership-reversal checkpoint:
   variable module before removing their Go handlers.
 - [x] Move current-pane `load`/`l` and `unset`/`u` (including confirmed `-a`)
   to Zsh and preserve tmux plus parent-shell effects without starting Go.
-- [ ] Move `load --all-pane`/`la` with its pane selection and reviewed dispatch
+- [x] Move `load --all-pane`/`la` with its pane selection and reviewed dispatch
   behavior to Zsh.
 - [x] Move `ls`/list aliases, `v [PATTERN]`, `v --out`, `vo`, and `voc` to Zsh,
   retaining color policy, deterministic filtering, atomic replacement, and

@@ -5,6 +5,7 @@
 typeset -gA II_ORDINARY_COMMAND_SPEC=(
   set-explicit ii_zsh_cmd_set_explicit
   load-current ii_zsh_cmd_load
+  load-all-panes ii_zsh_cmd_load_all_panes
   unset-variable ii_zsh_cmd_unset
   variable-list ii_zsh_cmd_list
   variable-output ii_zsh_cmd_output
@@ -29,7 +30,14 @@ ii_ordinary_resolve() {
         " $* " != *" --help "* ]] && print -r -- set-explicit
       ;;
     load|l)
-      [[ $# -eq 0 ]] && print -r -- load-current
+      if [[ $# -eq 0 ]]; then
+        print -r -- load-current
+      elif [[ $# -eq 1 && "$1" == --all-pane ]]; then
+        print -r -- load-all-panes
+      fi
+      ;;
+    la)
+      [[ $# -eq 0 ]] && print -r -- load-all-panes
       ;;
     unset|u)
       [[ $# -gt 0 && " $* " != *" -h "* && " $* " != *" --help "* ]] &&

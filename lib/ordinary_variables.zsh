@@ -325,6 +325,106 @@ ii_zsh_cmd_load() {
   print -r -- "loaded $count variable(s)"
 }
 
+ii_zsh_cmd_load_all_panes() {
+  shift
+  [[ $# -eq 0 || ( $# -eq 1 && "$1" == --all-pane ) ]] || {
+    print -u2 'ii: usage: ii load --all-pane'
+    return 2
+  }
+  ii_zsh_tmux_available || return
+  (( $+commands[fzf] )) || {
+    print -u2 'ii: required command not found: fzf'
+    return 1
+  }
+
+  local identity session window current_pane line id pane_session pane_window dead in_mode command pane_path title pane_status current display
+  identity="$(tmux display-message -p '#{session_id}'$'\t''#{window_id}'$'\t''#{pane_id}')" || return
+  session="${identity%%$'\t'*}"
+  identity="${identity#*$'\t'}"
+  window="${identity%%$'\t'*}"
+  current_pane="${identity#*$'\t'}"
+
+  local -a ready other input selected
+  local -A initial chosen
+  while IFS=$'\t' read -r id pane_session pane_window dead in_mode command pane_path title; do
+    [[ -n "$id" ]] || continue
+    initial[$id]="$pane_session"$'\t'"$pane_window"$'\t'"$dead"$'\t'"$in_mode"$'\t'"$command"
+    pane_status='active program'
+    if [[ "$dead" == 1 ]]; then pane_status='dead pane'
+    elif [[ "$in_mode" == 1 ]]; then pane_status='tmux mode'
+    elif [[ "$command" == zsh ]]; then pane_status='likely ready'
+    elif [[ "$command" == ssh ]]; then pane_status='remote session'
+    fi
+    current=''
+    [[ "$id" == "$current_pane" ]] && current=current
+    display="$(printf '%-5s %-8s %-14s %-18s %s' "$id" "$current" "$command" "$pane_status" "$pane_path")"
+    line="$id"$'\t'"$display"
+    if [[ "$pane_status" == 'likely ready' ]]; then ready+=("$line")
+    else other+=("$line")
+    fi
+  done < <(tmux list-panes -t "$window" -F '#{pane_id}'$'\t''#{session_id}'$'\t''#{window_id}'$'\t''#{pane_dead}'$'\t''#{pane_in_mode}'$'\t''#{pane_current_command}'$'\t''#{pane_current_path}'$'\t''#{pane_title}') || return
+  input=("$ready[@]" "$other[@]")
+
+  local start_bind='' index
+  for (( index=1; index <= ${#ready}; ++index )); do
+    [[ -n "$start_bind" ]] && start_bind+='+'
+    start_bind+="pos(${index})+select"
+  done
+  local -a fzf_args=(-i --multi --sync --no-sort '--height=80%' --border
+    '--prompt=ii load panes> ' '--header=SPACE toggle · ENTER load · ESC cancel'
+    '--bind=space:toggle,enter:accept,esc:abort,q:abort' $'--delimiter=\t' '--with-nth=2')
+  [[ -n "$start_bind" ]] && fzf_args+=("--bind=start:${start_bind}")
+  selected=("${(@f)$(print -rl -- "$input[@]" | fzf "$fzf_args[@]")}") || {
+    print -r -- aborted
+    return 1
+  }
+  for line in "$selected[@]"; do
+    id="${line%%$'\t'*}"
+    [[ -n "$id" ]] && chosen[$id]=1
+  done
+
+  local loaded=0 dispatched=0 skipped=0 failed=0 snapshot original
+  local -a snapshot_fields
+  print -r -- 'Load summary' ''
+  for line in "$input[@]"; do
+    id="${line%%$'\t'*}"
+    if [[ -z "${chosen[$id]:-}" ]]; then
+      printf '%-5s skipped by user\n' "$id"
+      (( ++skipped ))
+      continue
+    fi
+    snapshot="$(tmux display-message -p -t "$id" '#{session_id}'$'\t''#{window_id}'$'\t''#{pane_dead}'$'\t''#{pane_in_mode}'$'\t''#{pane_current_command}' 2>/dev/null)" || snapshot=''
+    snapshot_fields=("${(@s:\t:)snapshot}")
+    original="${initial[$id]}"
+    if [[ -z "$snapshot" ]]; then
+      printf '%-5s failed: pane disappeared\n' "$id"
+      (( ++failed ))
+    elif [[ "$snapshot" != "$original" ]]; then
+      printf '%-5s failed: pane state changed (%s)\n' "$id" "${snapshot##*$'\t'}"
+      (( ++failed ))
+    elif [[ "${snapshot_fields[3]:-}" == 1 ]]; then
+      printf '%-5s failed: dead pane\n' "$id"
+      (( ++failed ))
+    elif [[ "$id" == "$current_pane" ]]; then
+      if ii_zsh_cmd_load load >/dev/null; then
+        printf '%-5s loaded locally\n' "$id"
+        (( ++loaded ))
+      else
+        printf '%-5s failed: local load failed\n' "$id"
+        (( ++failed ))
+      fi
+    elif tmux send-keys -t "$id" -l 'ii l' && tmux send-keys -t "$id" Enter; then
+      printf '%-5s dispatched\n' "$id"
+      (( ++dispatched ))
+    else
+      printf '%-5s failed: dispatch failed\n' "$id"
+      (( ++failed ))
+    fi
+  done
+  print -r -- '' "$loaded loaded locally, $dispatched dispatched, $skipped skipped, $failed failed"
+  (( failed == 0 ))
+}
+
 ii_zsh_unset_one() {
   local internal name
   internal="$(ii_zsh_normalize_name "$1")" || return

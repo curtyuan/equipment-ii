@@ -530,9 +530,12 @@ Current ownership-reversal checkpoint:
 - [x] Move `g`/`g:`/`gr`/`gl` selection and clipboard behavior to Zsh,
   retaining shortcut matching, fzf selection, configured clipboard copy, and
   current output/status behavior without starting Go.
-- [ ] Move `clip`/`clipboard backend|doctor` to Zsh and consolidate its backend
+- [x] Move `clip`/`clipboard backend|doctor` to Zsh and consolidate its backend
   resolution with the compact copy helper now used by `g`; do not retain two
   divergent clipboard detection/configuration policies.
+- [x] Choose one clipboard-policy owner for combo handoff: Zsh resolves the
+  configured/effective backend and passes that closed choice when launching
+  combo; Go must not independently auto-detect a backend.
 
 ### Next-Stage Discussion Queue
 

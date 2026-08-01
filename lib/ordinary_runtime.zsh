@@ -9,6 +9,7 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   variable-list ii_zsh_cmd_list
   variable-output ii_zsh_cmd_output
   variable-get ii_zsh_cmd_get
+  clipboard ii_zsh_cmd_clip
 )
 
 ii_ordinary_resolve() {
@@ -49,6 +50,10 @@ ii_ordinary_resolve() {
       ;;
     get|g|gr|gl|g:*)
       [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- variable-get
+      ;;
+    clip|clipboard)
+      [[ " $* " != *" -h "* && " $* " != *" --help "* && " $* " != *" help "* ]] &&
+        print -r -- clipboard
       ;;
   esac
   return 0

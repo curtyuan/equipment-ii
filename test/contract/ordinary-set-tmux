@@ -77,5 +77,9 @@ II_CLIP_BACKEND=tmux ii gr >"${tmp_dir}/get.out"
 grep -Fx '198.51.100.7' "${tmp_dir}/get.out"
 [[ "$(tmux -S "$socket" save-buffer -)" == 198.51.100.7 ]]
 
+ii clip backend tmux >"${tmp_dir}/clip.out"
+[[ "$II_CLIP_BACKEND" == tmux ]]
+[[ "$(tmux -S "$socket" show-environment II_CLIP_BACKEND)" == II_CLIP_BACKEND=tmux ]]
+
 [[ ! -s "$II_GO_CALL_LOG" ]]
 print 'ordinary Zsh set contract passed'

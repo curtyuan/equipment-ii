@@ -1,41 +1,5 @@
 # Zsh-owned variable selection and clipboard copy.
 
-ii_zsh_clip_copy() {
-  local text="$1" backend="${II_CLIP_BACKEND:-}" command="${II_CLIP_CMD:-}"
-  if [[ -z "$backend$command" ]]; then
-    backend="$(tmux show-environment II_CLIP_BACKEND 2>/dev/null)"
-    backend="${backend#II_CLIP_BACKEND=}"
-    command="$(tmux show-environment II_CLIP_CMD 2>/dev/null)"
-    command="${command#II_CLIP_CMD=}"
-  fi
-  if [[ -n "$command" ]]; then
-    print -rn -- "$text" | command sh -c "$command"
-    return
-  fi
-  if [[ -z "$backend" || "$backend" == auto ]]; then
-    if [[ -n "${TMUX:-}" ]]; then
-      backend=tmux
-    elif (( $+commands[wl-copy] )); then
-      backend=wl-copy
-    elif (( $+commands[xclip] )); then
-      backend=xclip
-    elif (( $+commands[xsel] )); then
-      backend=xsel
-    elif (( $+commands[pbcopy] )); then
-      backend=pbcopy
-    elif (( $+commands[clip.exe] )); then
-      backend=clip.exe
-    fi
-  fi
-  case "$backend" in
-    tmux) print -rn -- "$text" | tmux load-buffer - ;;
-    wl-copy|pbcopy|clip.exe) print -rn -- "$text" | command "$backend" ;;
-    xclip) print -rn -- "$text" | command xclip -selection clipboard ;;
-    xsel) print -rn -- "$text" | command xsel --clipboard --input ;;
-    *) return 1 ;;
-  esac
-}
-
 ii_zsh_get_filter() {
   case "${(L)1}" in
     r) print -r -- rhost ;;

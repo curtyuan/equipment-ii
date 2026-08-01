@@ -18,6 +18,9 @@ func (c *CLI) runPublic(args []string, stdout, stderr io.Writer) int {
 	case "payload-input-help":
 		fmt.Fprint(stdout, payloadInputHelpFor(args))
 		return 0
+	case "payload-help":
+		fmt.Fprint(stdout, payloadHelpFor(args))
+		return 0
 	case "version":
 		if containsHelp(args[1:]) {
 			fmt.Fprint(stdout, versionHelp)
@@ -47,6 +50,8 @@ func (c *CLI) runPublic(args []string, stdout, stderr io.Writer) int {
 		return c.runVariableInteractive(args, stdout, stderr)
 	case "payload-input":
 		return c.runPayloadInput(args, stdout, stderr)
+	case "payload":
+		return c.runPublicPayload(args, stdout, stderr)
 	case "www":
 		return c.runWWW(args, stdout, stderr)
 	case "sync":

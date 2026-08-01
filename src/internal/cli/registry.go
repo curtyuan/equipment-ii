@@ -37,8 +37,14 @@ var commandRegistry = []commandSpec{
 		helpPaths: [][]string{{"sync"}}},
 	{name: "interactive", aliases: []string{"interactive", "i"}, owner: ownerGo,
 		helpPaths: [][]string{{"interactive"}, {"i"}}},
-	{name: "payload", aliases: []string{"payload", "p", "pc", "pe", "pce"}, owner: ownerLegacy,
-		helpPaths: [][]string{{"payload"}, {"p"}, {"pc"}, {"pe"}, {"pce"}}},
+	{name: "payload", aliases: []string{"payload", "p", "pc", "pe", "pce"}, owner: ownerGo,
+		helpPaths: [][]string{
+			{"payload"}, {"p"}, {"pc"}, {"pe"}, {"pce"}, {"payload-copy"},
+			{"payload", "--copy"}, {"p", "--copy"},
+			{"payload", "--execute"}, {"p", "--execute"},
+			{"payload", "--copy", "--execute"}, {"payload", "--execute", "--copy"},
+			{"p", "--copy", "--execute"}, {"p", "--execute", "--copy"},
+		}},
 	{name: "payload-input", aliases: []string{"pic", "pie", "pice"}, owner: ownerGo,
 		helpPaths: [][]string{
 			{"payload-input"}, {"payload", "--input"}, {"payload", "input"},

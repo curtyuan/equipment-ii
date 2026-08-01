@@ -79,6 +79,26 @@ func (c *CLI) runPayload(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+func (c *CLI) runPublicPayload(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		return c.runPayload(nil, stdout, stderr)
+	}
+	if containsHelp(args[1:]) {
+		fmt.Fprint(stdout, payloadHelpFor(args))
+		return 0
+	}
+	normalized := append([]string(nil), args[1:]...)
+	switch args[0] {
+	case "pc":
+		normalized = append([]string{"--copy"}, normalized...)
+	case "pe":
+		normalized = append([]string{"--execute"}, normalized...)
+	case "pce":
+		normalized = append([]string{"--copy", "--execute"}, normalized...)
+	}
+	return c.runPayload(normalized, stdout, stderr)
+}
+
 func (c *CLI) launchWorkflowPopup(path string, copyStages bool, stderr io.Writer) int {
 	if c.workflowPopup == nil {
 		fmt.Fprintln(stderr, "ii: workflow popup launcher is unavailable")

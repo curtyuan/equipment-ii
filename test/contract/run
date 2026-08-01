@@ -36,6 +36,10 @@ cases=(
   unset-help
   get-help
   help-get
+  payload-help
+  payload-copy-help
+  payload-execute-help
+  payload-copy-execute-help
   unknown
 )
 
@@ -63,6 +67,10 @@ case_args() {
     unset-help) printf '%s\0' help unset ;;
     get-help) printf '%s\0' get --help ;;
     help-get) printf '%s\0' help get ;;
+    payload-help) printf '%s\0' help payload ;;
+    payload-copy-help) printf '%s\0' help pc ;;
+    payload-execute-help) printf '%s\0' help pe ;;
+    payload-copy-execute-help) printf '%s\0' help pce ;;
     unknown) printf '%s\0' no-such-command ;;
   esac
 }

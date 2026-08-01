@@ -61,6 +61,9 @@ func resolveCommand(args []string) string {
 		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "payload-input" {
 			return "payload-input-help"
 		}
+		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "payload" {
+			return "payload-help"
+		}
 		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "set" {
 			return "set-help"
 		}
@@ -120,6 +123,9 @@ func resolveCommand(args []string) string {
 		if containsString(args[1:], "--input") || containsString(args[1:], "input") {
 			return "payload-input"
 		}
+		return "payload"
+	case "pc", "pe", "pce":
+		return "payload"
 	}
 	if spec := findCommand(args[0]); spec != nil && spec.owner == ownerLegacy {
 		return "legacy"

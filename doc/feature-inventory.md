@@ -22,11 +22,11 @@ in `ori-ii/doc/architecture.md`; the current Go design is described in
 | Version and top-level help | Go | `internal/cli` | Keep help registration aligned with command specifications. |
 | Variable families (`s`, `g`, compact forms) | Go | `internal/variables` and `internal/cli` | Consolidate repeated CLI parsing and help wiring. |
 | Clipboard | Go | `internal/clipboard` and adapters | No migration blocker; retain platform contract tests. |
-| Payload catalog and stored payload actions | Hybrid | Legacy routes over Go payload foundations | Move selection, copy, execute, and related help into Go. |
+| Payload catalog and stored payload actions | Go | `internal/payload`, `internal/cli`, and filesystem/fzf adapters | Retain differential rendering, selector, shell-operation, and help contracts while removing the baseline. |
 | Pasted payload input | Go | `internal/payload` and `internal/cli` | Reuse the input renderer from future input-consuming routes. |
 | Tmux alias installation and popup execution | Go | `internal/tmux` and `internal/cli` | Split the concrete session adapter into smaller interfaces over a shared runner. |
 | `/www` publication and browsing | Go | `internal/www`, filesystem/fzf adapters, and `internal/cli` | Retain semantic contracts while later removing the legacy baseline. |
-| Workflow helpers | Hybrid | Go parser/render/assignment model plus legacy orchestration | Add session-wide pane discovery, remembered bindings, selector UI, revalidation, and staged send. |
+| Workflow helpers | Go | `internal/payload`, terminal/tmux adapters, and `internal/cli` | Retain cancellation, identity-revalidation, literal-send, and popup composition coverage. |
 | Build, generated wrappers, and compatibility bridge | Hybrid | Make targets and generated shell | Remove bridge paths only after parity and shell-usage checks pass. |
 
 ## `/www` Functional Inventory

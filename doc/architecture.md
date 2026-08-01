@@ -169,11 +169,11 @@ Tmux storage, selection, clipboard, file output, and shell export are ports.
 `InputRenderer` is shared by the public pasted-input command and tmux popup so
 their render precedence cannot drift.
 
-Payload file selection and workflow execution are not fully migrated yet. The
-remaining workflow boundary is differential popup coverage and the public
-dispatcher switch; popup composition, spatial lane selection, ordered stage
+Payload file selection and workflow execution are Go-owned, including public
+routing, popup composition, spatial lane selection, ordered stage
 confirmation/dispatch, tmux discovery, memory, identity validation, status
-presentation, and literal transport are Go-owned.
+presentation, and literal transport. The frozen legacy implementation remains
+available only as a differential contract baseline during the migration.
 
 ### Terminal
 

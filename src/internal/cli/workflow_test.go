@@ -171,3 +171,35 @@ echo one
 		t.Fatalf("popup = %#v", popup)
 	}
 }
+
+func TestPublicPayloadAliasesLaunchWorkflowPopup(t *testing.T) {
+	tests := []struct {
+		command string
+		copy    bool
+	}{
+		{command: "pe"},
+		{command: "pce", copy: true},
+	}
+	for _, test := range tests {
+		t.Run(test.command, func(t *testing.T) {
+			app := newTestCLI()
+			app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: `# flow: 1
+# stage: zsh | one
+# lane: kali-main
+# advance: confirm
+echo one
+`})
+			app.payloadSelector = workflowPayloadSelectorFake{}
+			popup := &workflowPopupCLIFake{}
+			app.workflowPopup = popup
+			var stdout, stderr strings.Builder
+			status := app.Run([]string{test.command, "flow"}, &stdout, &stderr)
+			if status != 0 || stderr.String() != "" {
+				t.Fatalf("status=%d stdout=%q stderr=%q", status, stdout.String(), stderr.String())
+			}
+			if popup.path != "flow" || popup.copy != test.copy {
+				t.Fatalf("popup = %#v", popup)
+			}
+		})
+	}
+}

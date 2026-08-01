@@ -280,10 +280,7 @@ payload --input, pic, pie, and pice, including their help paths
 Legacy-owned:
 
 ```text
-payload file selection/copy/execute paths
-payload /www paths
-workflow execution
-their corresponding aliases and help paths
+none
 ```
 
 An error in a Go-owned route never falls back to legacy. `ori-ii` remains
@@ -349,12 +346,12 @@ Migrate complete user-visible command paths one at a time. A route is migrated
 only when implementation, tests, help, docs, and package behavior move together.
 
 - [ ] Version, help, and diagnostics.
-- [ ] Payload discovery, classification, preview, and rendering.
+- [x] Payload discovery, classification, preview, and rendering.
 - [x] Tmux variable set, get, list, unset, import, and output.
 - [x] `/www` output helpers.
 - [x] Interactive payload input (interactive variables are complete).
 - [x] Tmux command alias, popup entry, pane transport, and identity validation.
-- [ ] Workflow parsing, lane assignment, memory, rendering, and orchestration.
+- [x] Workflow parsing, lane assignment, memory, rendering, and orchestration.
 - [x] Shell-local variable load, sync, export, and hook adapter behavior.
 
 Payload migration foundation now present:
@@ -406,10 +403,12 @@ Payload migration foundation now present:
   relative payload path, pins the explicitly handed-off origin/session,
   composes selection and staged execution, reports copy failures without
   suppressing confirmed sends, and prints per-stage/completion status.
-- The Go payload selector execution path now launches that popup through a
-  quoted tmux adapter command. Still pending before public ownership:
-  differential popup coverage and switching the dispatcher from the frozen
-  legacy stored-payload route.
+- The Go payload selector execution path launches that popup through a quoted
+  tmux adapter command. Public payload selection, copy, current-shell execute,
+  workflow copy/execute, aliases, and aggregate help now route through Go;
+  route, CLI composition, popup quoting, and tmux selector contracts cover the
+  handoff while the frozen legacy implementation remains the differential
+  contract baseline.
 
 For every migrated route:
 

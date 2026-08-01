@@ -21,7 +21,7 @@ package: build
 	rm -rf $(EXPORT_DIR)
 	mkdir -p $(EXPORT_DIR)/lib $(EXPORT_DIR)/ori-ii/script
 	cp ii.plugin.zsh README.md VERSION $(EXPORT_DIR)/
-	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh $(EXPORT_DIR)/lib/
+	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh lib/ordinary_read.zsh $(EXPORT_DIR)/lib/
 	cp $(II_GO) $(EXPORT_DIR)/ii-go
 	cp ori-ii/ii.plugin.zsh ori-ii/VERSION $(EXPORT_DIR)/ori-ii/
 	cp -R ori-ii/lib ori-ii/payloads $(EXPORT_DIR)/ori-ii/
@@ -45,7 +45,7 @@ package-arch:
 	rm -rf export/linux-$(ARCH)
 	mkdir -p export/linux-$(ARCH)/ii/lib export/linux-$(ARCH)/ii/ori-ii/script
 	cp ii.plugin.zsh README.md VERSION export/linux-$(ARCH)/ii/
-	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh export/linux-$(ARCH)/ii/lib/
+	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh lib/ordinary_read.zsh export/linux-$(ARCH)/ii/lib/
 	cp $(BUILD_DIR)/ii-go-linux-$(ARCH) export/linux-$(ARCH)/ii/ii-go
 	cp ori-ii/ii.plugin.zsh ori-ii/VERSION export/linux-$(ARCH)/ii/ori-ii/
 	cp -R ori-ii/lib ori-ii/payloads export/linux-$(ARCH)/ii/ori-ii/

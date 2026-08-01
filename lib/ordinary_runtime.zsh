@@ -6,6 +6,8 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   set-explicit ii_zsh_cmd_set_explicit
   load-current ii_zsh_cmd_load
   unset-variable ii_zsh_cmd_unset
+  variable-list ii_zsh_cmd_list
+  variable-output ii_zsh_cmd_output
 )
 
 ii_ordinary_resolve() {
@@ -29,6 +31,20 @@ ii_ordinary_resolve() {
     unset|u)
       [[ $# -gt 0 && " $* " != *" -h "* && " $* " != *" --help "* ]] &&
         print -r -- unset-variable
+      ;;
+    ls|list|variable|vars|var)
+      [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- variable-list
+      ;;
+    v)
+      if [[ "${1:-}" == --out ]]; then
+        shift
+        [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- variable-output
+      elif [[ " $* " != *" -h "* && " $* " != *" --help "* ]]; then
+        print -r -- variable-list
+      fi
+      ;;
+    vo|voc)
+      [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- variable-output
       ;;
   esac
   return 0

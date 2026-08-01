@@ -63,5 +63,12 @@ if tmux -S "$socket" show-environment ii_file_only >/dev/null 2>&1; then
   exit 1
 fi
 
+ii ls note >"${tmp_dir}/list.out"
+grep -Fx note "${tmp_dir}/list.out"
+grep -Fx 'two words' "${tmp_dir}/list.out"
+
+ii vo "${tmp_dir}/output.env" >"${tmp_dir}/output.out"
+grep -Fx "note='two words'" "${tmp_dir}/output.env"
+
 [[ ! -s "$II_GO_CALL_LOG" ]]
 print 'ordinary Zsh set contract passed'

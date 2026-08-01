@@ -173,4 +173,5 @@ ii_apply_shell_operations() {
 unset ii_adapter_dir
 
 source "${II_GO_ROOT}/lib/ordinary_variables.zsh"
+source "${II_GO_ROOT}/lib/ordinary_read.zsh"
 source "${II_GO_ROOT}/lib/ordinary_runtime.zsh"

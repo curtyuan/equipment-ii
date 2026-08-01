@@ -524,6 +524,10 @@ Current ownership-reversal checkpoint:
   to Zsh and preserve tmux plus parent-shell effects without starting Go.
 - [ ] Move `load --all-pane`/`la` with its pane selection and reviewed dispatch
   behavior to Zsh.
+- [x] Move `ls`/list aliases, `v [PATTERN]`, `v --out`, `vo`, and `voc` to Zsh,
+  retaining color policy, deterministic filtering, atomic replacement, and
+  shell-sourceable quoting without starting Go.
+- [ ] Move `g`/`g:`/`gr`/`gl` selection and clipboard behavior to Zsh.
 
 ### Next-Stage Discussion Queue
 

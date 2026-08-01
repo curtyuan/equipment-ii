@@ -1,4 +1,4 @@
-# TODO: Go Runtime Migration
+# TODO: Zsh and Go Runtime Ownership Migration
 
 Status: active.
 
@@ -21,24 +21,22 @@ when a suitable disposable target is available.
 
 ## Target Architecture
 
-Rebuild the implementation from the public entrypoint inward. New Go code lives
-under `src/` throughout the migration:
+The migration target is now a deliberately split runtime rather than a full Go
+replacement. Zsh owns ordinary shell-native behavior, Go owns only combo flow,
+and tmux remains the persistent session-wide state store:
 
 ```text
 ori-ii/                   immutable executable legacy baseline
-ii.plugin.zsh             thin parent-shell adapter
+ii.plugin.zsh             public command runtime and shell integration
 src/
   go.mod
   cmd/ii/
   internal/
-    cli/                     entrypoints and presentation
-    variables/               variable use cases
-    payload/                 payload and input-render use cases
-    www/                     web-root policy and use cases (planned)
-    port/                    focused capability interfaces
-    adapter/                 external process and filesystem effects
+    workflow/                combo parsing, lanes, memory, rendering, runner
+    terminal/                combo selector terminal boundary
+    adapter/tmux/            combo pane discovery and literal transport
 payloads/                 compatible payload data
-script/                   build, test, and popup launchers
+test/                     one repository-owned public contract suite
 ```
 
 `ii.plugin.zsh` remains because a child executable cannot directly change its
@@ -46,9 +44,11 @@ parent Zsh process. It should contain only path/bootstrap logic and narrowly
 defined handling for required shell-local effects such as exports, directory
 changes, and prompt hooks.
 
-The completed migration removes `ori-ii/`, including its legacy `lib/`. The Go
-executable owns command registration, argument parsing, validation, rendering,
-tmux orchestration, and all other stateful behavior.
+The completed migration removes `ori-ii/` as a frozen duplicate, but restores
+the retained ordinary-command Zsh implementation at the repository root. The
+Go executable is invoked once only for a selected combo flow and owns its full
+parse/render/select/confirm/transport lifecycle. It does not store shared
+variables, implement ordinary payloads, or mutate the parent shell.
 
 ## Non-Negotiable Compatibility
 
@@ -99,7 +99,7 @@ test executable yet.
 | Version | `version`, `-v`, `--version` | `lib/version.zsh` | README, release | load smoke and help audit | build metadata contract is not defined |
 | Variable set/import | `set`, `s`, `s:*`, `sr`, `sf`, `sha` | `lib/vars.zsh`, `lib/var_helpers.zsh` | usage, help | help audit | semantic tests are documented only |
 | Variable get/list/output | `get`, `g`, `g:*`, `gr`, `gl`, `ls`, `list`, `variable`, `vars`, `var`, `v`, `vo`, `voc` | vars and var-output layers | usage, help | help audit | filtering, copy, and file output tests are documented only |
-| Shell load and sync | `load`, `l`, `la`, `sync` | vars and var-helpers layers | usage, architecture | help audit | parent-shell exports, hooks, and multi-pane load are documented only |
+| Shell load | `load`, `l`, `la` | vars and var-helpers layers | usage, architecture | help audit | parent-shell exports and multi-pane load are documented only; legacy `sync` is intentionally not part of the target |
 | Interactive variables | `interactive`, `i` | `lib/var_interactive.zsh` | usage | help audit | modal behavior is manual |
 | Unset | `unset`, `u` | `lib/vars.zsh` | usage, help | help audit | single/all removal semantics are documented only |
 | Clipboard | `clip`, `clipboard` | `lib/clipboard.zsh` | clipboard, usage | help and color tests | backend matrix and doctor are documented only |
@@ -119,7 +119,7 @@ The dispatcher and help registry currently expose:
 | Set | `set`, `s`, `s:NAME...`, `sr`, `sf`, `sha`; assignments, `--from-shell`, `--from-file`, `-a`, and `-d [INTERFACE]` |
 | Get | `get`, `g`, `g:FILTER`, `gr`, and `gl` |
 | Clipboard | `clip` and `clipboard`; `backend [auto|BACKEND]` and `doctor` |
-| Load/sync | `load`, `l`, `la`, `--all-pane`; `sync [on|off|status]` |
+| Load | `load`, `l`, `la`, and `--all-pane` |
 | Variables | `interactive`, `i`; `ls`, `list`, `variable`, `vars`, `var`; `v [PATTERN]`, `v --out`, `vo`, and `voc` |
 | Payload files | `payload`, `p`, `pc`, `pe`, and `pce`; category/keywords, `--copy`, `--execute`, and `-o [PATH]` |
 | Payload input | payload `--input`, `pic`, `pie`, and `pice`; copy/execute combinations and `-o [PATH]` where documented |
@@ -171,7 +171,6 @@ The current public or user-observable configuration surface is:
 | `II_CLIP_CMD` | custom clipboard command | unset |
 | `II_TMUX_INTEGRATION` | automatic native `:ii` alias setup | enabled |
 | `II_TMUX_INTEGRATION_FORCE` | replace a conflicting tmux alias | disabled |
-| `II_SYNC_LOADED_VARS` | current-shell prompt synchronization state | disabled |
 
 `II_INTERACTIVE_KEY`, `II_PAYLOAD_KEY`, filter variables used by test fixtures,
 render-report globals, help registry globals, and workflow state arrays are
@@ -226,7 +225,8 @@ CGO_ENABLED=0 go build ./cmd/ii
 
 ## Phase 2: Public Entrypoint and Dispatcher
 
-- [ ] Define the stable protocol between `ii.plugin.zsh` and the Go executable.
+- [ ] Define the stable one-process combo launch protocol between
+  `ii.plugin.zsh` and the Go executable.
 - [x] Move top-level command registration, aliases, argument parsing, and the
   first help routes
   into Go before migrating feature internals.
@@ -243,13 +243,14 @@ CGO_ENABLED=0 go build ./cmd/ii
   both parent-shell exports and tmux session state.
 - [ ] Extend the contract set to every command family.
 - [x] Define and contract-test the versioned, allowlisted parent-shell
-  operation protocol before migrating `load`, `sync`, or shell-persistent
+  operation protocol before migrating `load` or shell-persistent
   behavior.
 
 ### Current Route Boundary
 
-Every invocation first calls the hidden Go routing operation. The router returns
-only the closed values `go` or `legacy`; any other value aborts.
+Every public invocation now enters the Go dispatcher directly. The Zsh adapter
+does not load or dispatch to the frozen runtime. This records the current
+implementation checkpoint, not the approved final ownership boundary below.
 
 Go-owned:
 
@@ -265,7 +266,6 @@ v --out, vo, voc
 set, s, sr, sf, sha, and compact s: forms
 get, g, gr, gl, and compact g: forms
 load, l, load --all-pane, and la
-sync
 interactive and i
 clipboard and clip, including backend and doctor
 tmux status diagnostics
@@ -275,6 +275,9 @@ help for the variable-list family
 help for the set family
 help for interactive variables
 payload --input, pic, pie, and pice, including their help paths
+payload, p, pc, pe, and pce stored-payload selection/copy/execute paths
+payload --www list/search/link/file paths
+workflow popup parsing, lane assignment, confirmation, and execution
 ```
 
 Legacy-owned:
@@ -283,9 +286,9 @@ Legacy-owned:
 none
 ```
 
-An error in a Go-owned route never falls back to legacy. `ori-ii` remains
-loaded only so an explicit legacy decision can preserve current-shell effects
-until that command family is migrated.
+An error in a Go-owned route never falls back to legacy. The root adapter no
+longer loads or dispatches to the frozen implementation; `ori-ii` remains only
+as the differential contract baseline and temporary payload-data source.
 
 ### First Vertical Slice: Variable List
 
@@ -303,8 +306,10 @@ The read-only variable-list family is migrated as the first real feature slice:
   same environment reader with an atomic filesystem writer and are also
   Go-owned.
 
-The complete variable family is now Go-owned, including interactive selection,
-add/edit/copy behavior, output, import, sync, and parent-shell semantics.
+The complete retained variable family is Go-owned, including interactive
+selection, add/edit/copy behavior, output, import, load, and parent-shell
+semantics. Prompt-time `sync` remains implemented temporarily and is scheduled
+for removal below.
 
 ### Architecture Refactoring Work
 
@@ -316,7 +321,7 @@ Completed for the `/www` preparation checkpoint:
 - [x] Share payload input rendering between public input and tmux popup paths.
 - [x] Split CLI composition, public dispatch, resolution, and variable-family
   parsing into responsibility-specific files without changing behavior.
-- [x] Move variable-family list, output, unset, load, interactive, sync, and
+- [x] Move variable-family list, output, unset, load, and interactive
   help behavior behind feature handlers so public dispatch only forwards.
 - [x] Split variable CLI behavior by read, set/import, session, and interactive
   responsibility without adding another abstraction layer.
@@ -331,7 +336,7 @@ Completed for the `/www` preparation checkpoint:
 
 Remaining structural work:
 
-- [ ] Replace remaining route-owner and canonical-command special cases with a
+- [ ] Replace remaining canonical-command special cases with a
   declarative command specification.
 - [ ] Encapsulate feature dependencies in focused command-handler structs.
 - [ ] Split the concrete tmux session adapter into environment, pane, and
@@ -352,7 +357,7 @@ only when implementation, tests, help, docs, and package behavior move together.
 - [x] Interactive payload input (interactive variables are complete).
 - [x] Tmux command alias, popup entry, pane transport, and identity validation.
 - [x] Workflow parsing, lane assignment, memory, rendering, and orchestration.
-- [x] Shell-local variable load, sync, export, and hook adapter behavior.
+- [x] Shell-local variable load and export adapter behavior.
 
 Payload migration foundation now present:
 
@@ -417,13 +422,123 @@ For every migrated route:
 - [ ] Add failure-path and cancellation coverage.
 - [ ] Remove the corresponding legacy route only after parity passes.
 
+## Approved Runtime Boundary: Implementation Gap
+
+The target ownership chain is now fixed:
+
+```text
+Zsh: public commands, variables, ordinary payloads, filesystem helpers
+  -> Go: combo flow only
+     -> tmux: persistent session-wide ii_* variables and pane transport
+```
+
+Tmux continues as the canonical cross-pane variable store. Go starts once only
+after an ordinary Zsh selector identifies an opted-in `# flow: 1` document; do
+not introduce an ii daemon, duplicate tmux state in Go memory, or split one
+combo session across multiple Go processes. Ordinary commands do not invoke
+Go and require no Zsh/Go state or parent-shell operation protocol.
+
+Approved ownership decisions:
+
+- `ii s` retains its existing behavior: write tmux and update the calling
+  shell.
+- Interactive add/edit follows `ii s`: write tmux and update the calling shell.
+- `s --from-shell` and `s --from-file` remain Zsh-owned. File input is parsed as
+  data and is never sourced or evaluated.
+- `s`, `g`, `load`, `unset`, clipboard behavior, ordinary payload selection,
+  rendering, copy/current-shell execution, and help/version are Zsh-owned.
+- Go owns combo document parsing, workflow rendering from tmux state, lane
+  assignment and memory, terminal selection, confirmation, pane identity
+  validation, and literal tmux transport.
+- Replace the public `/www` spelling with `ii p -w ...`; its behavior and
+  filesystem correctness are Zsh-owned.
+- The public contract suite has one repository-owned set of expectations and
+  fixtures. It may have thin Zsh/current/temporary-legacy runners, but it must
+  not duplicate expected behavior by implementation language.
+- Add no external runtime or test dependency. Contract manifests, fixtures,
+  and runners use repository scripts, existing Zsh/Bash, tmux/fzf capabilities,
+  standard Unix tools already required by the project, and the Go standard
+  library.
+
+Current implementation gaps, in intended implementation order:
+
+- [ ] Remove the public `sync` command, registry/resolution/dispatch branches,
+  CLI help and session handlers, prompt hook,
+  `II_SYNC_LOADED_VARS`, `II_SYNC_HOOK_PRESENT`, `sync-hook` operation, and
+  interactive sync branches.
+- [ ] Remove or rewrite sync-only unit and contract expectations in
+  `shellops/file_test.go`, `test/contract/shell-operations`,
+  `test/contract/interactive-tmux`, `test/contract/variable-mutations-tmux`,
+  and `test/contract/run`; add an unknown-command contract for `sync`.
+- [ ] Define one Zsh command specification table for ordinary aliases, help
+  paths, and handlers. Combo classification is the closed `# flow: 1` marker;
+  do not invoke Go merely to classify an ordinary payload.
+- [ ] Restore/move variable set/get/list/load/unset/output and interactive
+  behavior to the root Zsh runtime, retaining `ii_` normalization and tmux
+  semantics. Remove the replaced Go variable handlers only after public
+  contracts pass.
+- [ ] Keep `s --from-file` in Zsh with strict line-oriented data parsing,
+  diagnostics with source line numbers, and no `source`/`eval` behavior.
+- [ ] Restore/move ordinary payload catalog, selection, shell-aware rendering,
+  copy, output, and confirmed current-shell execution to Zsh. Go must not be
+  started for an ordinary payload.
+- [ ] Narrow the Go composition root and packages to combo-only parsing,
+  rendering, lane selection/memory, runner, and tmux transport. Delete the
+  shell-state and parent-shell operation protocols once no Go-owned route uses
+  them.
+- [ ] Change `/www` public routing and help to `ii p -w ...`; implement its
+  containment, traversal rejection, symlink policy, deterministic list/search,
+  no-overwrite linking, file publication, and diagnostics in Zsh.
+- [ ] Decide compatibility behavior for the old `payload --www`/`www` forms
+  before implementing `-w` (hard removal, diagnostic redirect, or temporary
+  alias), then encode only the chosen public result in contracts.
+- [ ] Preserve tmux as the uncached source of truth: `set-environment` for
+  writes, `show-environment` for reads, explicit `ii l` for pane-local
+  hydration, and `ii la` for reviewed cross-pane dispatch.
+- [ ] Replace permanent legacy-vs-current diffs with one language-neutral
+  contract fixture set covering stdout, stderr, status, tmux state, shell
+  state, filesystem effects, cancellation, and ordered pane transport.
+- [ ] Add architecture contracts proving ordinary commands never start Go and
+  one selected combo starts exactly one Go process.
+- [ ] Remove Go packages and tests superseded by Zsh only after their public
+  expectations exist in the shared contract suite; large deletion volume is
+  not a blocker or a reason to retain split ownership.
+- [ ] Update package/install tests after root payload data no longer depends on
+  the temporary `ori-ii/payloads` path.
+
+### Next-Stage Discussion Queue
+
+Resolve these together before implementing the ownership reversal:
+
+- [ ] Which existing root/legacy Zsh modules should be restored as the starting
+  point, and which should be rewritten to avoid reintroducing obsolete global
+  load-order coupling?
+- [ ] Should ordinary and combo rendering intentionally share identical token
+  syntax while using different state precedence (ordinary: shell then tmux;
+  combo: tmux only), and how will one fixture corpus express both contexts?
+- [ ] What exact argv/environment contract launches one combo Go process from
+  Zsh without shell-state or operation channels?
+- [ ] Should the old `--www` forms fail as unknown immediately or print a
+  migration diagnostic pointing to `ii p -w` for one release?
+- [ ] What exact `ii p -w` child grammar replaces `--www --file`, `ln`, `ls`,
+  and `search`, including short forms and help paths?
+- [ ] Which Zsh filesystem primitives and checks are sufficient to retain the
+  current `/www` containment and no-follow correctness without adding a new
+  dependency?
+- [ ] Should variable/output and ordinary-payload contract fixtures be copied
+  from current differential results before their Go owners are removed, or be
+  regenerated from an explicitly reviewed public specification?
+- [ ] Should empty tmux values remain stored but hidden by list/load, or should
+  setting an empty value become equivalent to unset in the final contract?
+
 ## Phase 4: Remove the Legacy Runtime
 
 - [ ] Confirm no public route or script invokes `ori-ii/`.
-- [ ] Remove all legacy fallbacks and compatibility switches used only for the
+- [x] Remove all legacy fallbacks and compatibility switches used only for the
   migration.
 - [ ] Delete `ori-ii/`.
-- [ ] Reduce `ii.plugin.zsh` to the documented thin adapter.
+- [ ] Replace the transitional adapter with the documented Zsh public-command
+  runtime and one-process combo launcher.
 - [ ] Update architecture, testing, usage, help, release, and design docs to
   describe only the completed runtime.
 - [ ] Ensure deployment packages contain no stale Zsh implementation files.
@@ -444,11 +559,13 @@ For every migrated route:
 
 Delete this file only when all of the following are true:
 
-- All public commands route through the Go executable.
-- `ii.plugin.zsh` contains only necessary bootstrap and parent-shell adapter
-  behavior.
+- Ordinary public commands execute in the Zsh runtime without starting Go.
+- One selected combo flow starts exactly one Go process for its complete
+  parse/render/select/confirm/transport lifecycle.
+- `ii.plugin.zsh` owns documented shell-native commands and parent-shell
+  behavior without a Zsh/Go state or operation protocol.
 - `ori-ii/` and every legacy implementation file have been deleted.
-- No legacy runtime fallback remains.
+- No frozen-runtime fallback remains.
 - Linux amd64 and arm64 builds pass in CI and ship in release archives.
 - The compatibility suite and required manual checks are green or explicitly
   documented as environment-specific release checks.

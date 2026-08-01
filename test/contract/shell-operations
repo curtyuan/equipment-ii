@@ -15,7 +15,6 @@ II_CONFIG_FILE=/dev/null source "${root}/ii.plugin.zsh"
   print -rn -- 'export'$'\0''ii_protocol_value'$'\0''two words
 and quotes '\'' "$ () ;'$'\0'
   print -rn -- 'unset'$'\0''ii_protocol_remove'$'\0\0'
-  print -rn -- 'sync-hook'$'\0\0''on'$'\0'
   print -rn -- 'execute-file'$'\0\0'"$exec_file"$'\0'
 } > "$ops"
 print -r -- 'typeset -g ii_protocol_executed=yes' >"$exec_file"
@@ -24,7 +23,6 @@ typeset -g ii_protocol_remove=present
 ii_apply_shell_operations "$ops" "$exec_file"
 [[ "$ii_protocol_value" == $'two words\nand quotes '\'' "$ () ;' ]]
 (( ! ${+parameters[ii_protocol_remove]} ))
-[[ "$II_SYNC_LOADED_VARS" == 1 ]]
 [[ "$ii_protocol_executed" == yes ]]
 
 {

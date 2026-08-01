@@ -22,8 +22,6 @@ func (c *CLI) runVariableHelp(command string, stdout io.Writer) int {
 		fmt.Fprint(stdout, ColorizeAliases(loadHelp, c.color))
 	case "get-help":
 		fmt.Fprint(stdout, ColorizeAliases(getHelp, c.color))
-	case "sync-help":
-		fmt.Fprint(stdout, ColorizeAliases(syncHelp, c.color))
 	}
 	return 0
 }

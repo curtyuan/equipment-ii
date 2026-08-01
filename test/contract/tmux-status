@@ -20,8 +20,6 @@ sed '/^helper:/d' "${tmp_dir}/go.out" >"${tmp_dir}/go.normalized"
 diff -u "${tmp_dir}/legacy.normalized" "${tmp_dir}/go.normalized"
 diff -u "${tmp_dir}/legacy.err" "${tmp_dir}/go.err"
 
-[[ "$("${repo_dir}/build/ii-go" __route tmux status)" == go ]]
-[[ "$("${repo_dir}/build/ii-go" __route help tmux)" == go ]]
 grep -Fx 'command alias: installed' "${tmp_dir}/go.out"
 grep -Fx 'Prefix+: native or user-defined' "${tmp_dir}/go.out"
 grep -Fx "helper: ${repo_dir}/build/ii-go" "${tmp_dir}/go.out"

@@ -3,50 +3,13 @@ package cli
 import "strings"
 
 type Resolution struct {
-	Owner   string
 	Command string
 }
 
 func Resolve(args []string) Resolution {
 	return Resolution{
-		Owner:   resolveOwner(args),
 		Command: resolveCommand(args),
 	}
-}
-
-func Route(args []string) string {
-	return Resolve(args).Owner
-}
-
-func resolveOwner(args []string) string {
-	if len(args) == 0 {
-		return RouteGo
-	}
-	switch args[0] {
-	case "help", "h", "-h", "--help":
-		if len(args) == 1 {
-			return RouteGo
-		}
-		if isWWWHelpPath(args[1:]) {
-			return RouteGo
-		}
-		spec := findHelpPath(args[1:])
-		if spec == nil || spec.owner == ownerLegacy {
-			return RouteLegacy
-		}
-		return RouteGo
-	}
-	if isPayloadInputRoute(args) {
-		return RouteGo
-	}
-	if isWWWRoute(args) {
-		return RouteGo
-	}
-	spec := findCommand(args[0])
-	if spec != nil && spec.owner == ownerLegacy {
-		return RouteLegacy
-	}
-	return RouteGo
 }
 
 func resolveCommand(args []string) string {
@@ -72,9 +35,6 @@ func resolveCommand(args []string) string {
 		}
 		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "load" {
 			return "load-help"
-		}
-		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "sync" {
-			return "sync-help"
 		}
 		if spec := findHelpPath(args[1:]); spec != nil && spec.name == "get" {
 			return "get-help"
@@ -127,10 +87,7 @@ func resolveCommand(args []string) string {
 	case "pc", "pe", "pce":
 		return "payload"
 	}
-	if spec := findCommand(args[0]); spec != nil && spec.owner == ownerLegacy {
-		return "legacy"
-	}
-	if spec := findCommand(args[0]); spec != nil && spec.owner == ownerGo {
+	if spec := findCommand(args[0]); spec != nil {
 		return spec.name
 	}
 	return "unknown"

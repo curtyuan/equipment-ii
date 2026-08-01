@@ -30,7 +30,7 @@ func (c *CLI) runPublic(args []string, stdout, stderr io.Writer) int {
 		return 0
 	case "list":
 		return c.runVariableList(args, stdout, stderr)
-	case "variable-help", "set-help", "unset-help", "load-help", "get-help", "sync-help":
+	case "variable-help", "set-help", "unset-help", "load-help", "get-help":
 		return c.runVariableHelp(resolution.Command, stdout)
 	case "output":
 		return c.runVariableOutput(args, stdout, stderr)
@@ -54,11 +54,6 @@ func (c *CLI) runPublic(args []string, stdout, stderr io.Writer) int {
 		return c.runPublicPayload(args, stdout, stderr)
 	case "www":
 		return c.runWWW(args, stdout, stderr)
-	case "sync":
-		return c.runSync(args, stdout, stderr)
-	case "legacy":
-		fmt.Fprintf(stderr, "ii-go: legacy route invoked directly: %s\n", first(args))
-		return 3
 	default:
 		fmt.Fprintf(stderr, "ii: unknown command: %s\n", first(args))
 		fmt.Fprint(stdout, topHelp)

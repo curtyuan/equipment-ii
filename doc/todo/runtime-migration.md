@@ -462,11 +462,11 @@ Approved ownership decisions:
 
 Current implementation gaps, in intended implementation order:
 
-- [ ] Remove the public `sync` command, registry/resolution/dispatch branches,
+- [x] Remove the public `sync` command, registry/resolution/dispatch branches,
   CLI help and session handlers, prompt hook,
   `II_SYNC_LOADED_VARS`, `II_SYNC_HOOK_PRESENT`, `sync-hook` operation, and
   interactive sync branches.
-- [ ] Remove or rewrite sync-only unit and contract expectations in
+- [x] Remove or rewrite sync-only unit and contract expectations in
   `shellops/file_test.go`, `test/contract/shell-operations`,
   `test/contract/interactive-tmux`, `test/contract/variable-mutations-tmux`,
   and `test/contract/run`; add an unknown-command contract for `sync`.

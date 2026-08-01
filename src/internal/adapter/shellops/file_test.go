@@ -26,9 +26,6 @@ func TestFileWritesVersionedNULDelimitedOperations(t *testing.T) {
 	if err := writer.Chdir("/tmp/two words"); err != nil {
 		t.Fatal(err)
 	}
-	if err := writer.SetSyncHook(true); err != nil {
-		t.Fatal(err)
-	}
 	if err := writer.ExecuteScript("typeset -g executed=yes\n"); err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +37,6 @@ func TestFileWritesVersionedNULDelimitedOperations(t *testing.T) {
 		"export\x00rhost\x00line 1\n'line 2'\x00" +
 		"unset\x00RHOST\x00\x00" +
 		"chdir\x00\x00/tmp/two words\x00" +
-		"sync-hook\x00\x00on\x00" +
 		"execute-file\x00\x00" + executePath + "\x00"
 	if string(got) != want {
 		t.Fatalf("protocol=%q, want %q", got, want)

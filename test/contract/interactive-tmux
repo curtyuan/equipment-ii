@@ -29,23 +29,32 @@ export II_CLIP_BACKEND=tmux
 export II_GO_BIN="${repo_dir}/build/ii-go"
 tmux -S "$socket" set-environment ii_lhost 192.0.2.10
 
-[[ "$("$II_GO_BIN" __route interactive)" == go ]]
-[[ "$("$II_GO_BIN" __route i)" == go ]]
-[[ "$("$II_GO_BIN" __route help interactive)" == go ]]
 
 FZF_DEFAULT_OPTS='--filter=lhost' II_INTERACTIVE_KEY=y "$II_GO_BIN" i >"${tmp_dir}/copy.out"
 grep -Fx 'copied lhost' "${tmp_dir}/copy.out"
 [[ "$(tmux -S "$socket" save-buffer -)" == 192.0.2.10 ]]
 
-FZF_DEFAULT_OPTS='--filter=add' II_ADD_VAR_FILTER=token II_ADD_VALUE_FILTER=abc123 \
+add_ops="${tmp_dir}/add.ops"
+: >"$add_ops"
+II_SHELL_OPS_FILE="$add_ops" FZF_DEFAULT_OPTS='--filter=add' II_ADD_VAR_FILTER=token II_ADD_VALUE_FILTER=abc123 \
   "$II_GO_BIN" i >"${tmp_dir}/add.out"
 grep -Fx 'token=abc123' "${tmp_dir}/add.out"
 [[ "$(tmux -S "$socket" show-environment ii_token)" == ii_token=abc123 ]]
+tr '\0' '\n' <"$add_ops" >"${tmp_dir}/add.records"
+grep -Fx 'export' "${tmp_dir}/add.records"
+grep -Fx 'token' "${tmp_dir}/add.records"
+grep -Fx 'abc123' "${tmp_dir}/add.records"
 
-FZF_DEFAULT_OPTS='--filter=token' II_INTERACTIVE_KEY=i II_EDIT_VALUE_FILTER=updated \
+edit_ops="${tmp_dir}/edit.ops"
+: >"$edit_ops"
+II_SHELL_OPS_FILE="$edit_ops" FZF_DEFAULT_OPTS='--filter=token' II_INTERACTIVE_KEY=i II_EDIT_VALUE_FILTER=updated \
   "$II_GO_BIN" i >"${tmp_dir}/edit.out"
 grep -Fx 'token=updated' "${tmp_dir}/edit.out"
 [[ "$(tmux -S "$socket" show-environment ii_token)" == ii_token=updated ]]
+tr '\0' '\n' <"$edit_ops" >"${tmp_dir}/edit.records"
+grep -Fx 'export' "${tmp_dir}/edit.records"
+grep -Fx 'token' "${tmp_dir}/edit.records"
+grep -Fx 'updated' "${tmp_dir}/edit.records"
 
 [[ -z "${token-}" ]]
 
@@ -60,16 +69,5 @@ set -e
 II_CLIP_BACKEND=unavailable FZF_DEFAULT_OPTS='--filter=lhost' \
   "$II_GO_BIN" i >"${tmp_dir}/clipboard-failure.out"
 grep -Fx 'selected lhost; clipboard copy failed' "${tmp_dir}/clipboard-failure.out"
-
-ops_file="${tmp_dir}/sync.ops"
-: >"$ops_file"
-II_SYNC_LOADED_VARS=1 II_SHELL_OPS_FILE="$ops_file" FZF_DEFAULT_OPTS='--filter=token' \
-  II_INTERACTIVE_KEY=i II_EDIT_VALUE_FILTER=synced "$II_GO_BIN" i >"${tmp_dir}/sync.out"
-tr '\0' '\n' <"$ops_file" >"${tmp_dir}/sync.records"
-grep -Fx 'export' "${tmp_dir}/sync.records"
-grep -Fx 'token' "${tmp_dir}/sync.records"
-grep -Fx 'synced' "${tmp_dir}/sync.records"
-grep -Fx 'sync-hook' "${tmp_dir}/sync.records"
-grep -Fx 'on' "${tmp_dir}/sync.records"
 
 printf 'interactive variable tmux contracts passed\n'

@@ -12,9 +12,6 @@ func (c *CLI) runInternal(args []string, stdout, stderr io.Writer) (int, bool) {
 		return 0, false
 	}
 	switch args[0] {
-	case "__route":
-		fmt.Fprintln(stdout, Route(args[1:]))
-		return 0, true
 	case "__payload_names":
 		names, err := c.payloads.ReferencedNames()
 		if err != nil {

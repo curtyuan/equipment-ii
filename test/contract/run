@@ -32,7 +32,6 @@ cases=(
   help-sf
   load-help
   help-load
-  sync-help
   unset-help
   get-help
   help-get
@@ -63,7 +62,6 @@ case_args() {
     help-sf) printf '%s\0' help sf ;;
     load-help) printf '%s\0' load --help ;;
     help-load) printf '%s\0' help load ;;
-    sync-help) printf '%s\0' sync --help ;;
     unset-help) printf '%s\0' help unset ;;
     get-help) printf '%s\0' get --help ;;
     help-get) printf '%s\0' help get ;;
@@ -100,6 +98,10 @@ run_case() {
   printf '%s\n' "$status" >"$status_file"
 }
 
+normalize_removed_routes() {
+  sed '/prompt auto-sync/d' "$1"
+}
+
 tmp_dir="$(mktemp -d)"
 trap 'rm -r "$tmp_dir"' EXIT
 
@@ -127,7 +129,8 @@ for name in "${cases[@]}"; do
     printf 'contract status mismatch: %s\n' "$name" >&2
     exit 1
   }
-  diff -u "$legacy_out" "$go_out" || {
+  normalize_removed_routes "$legacy_out" >"${legacy_out}.normalized"
+  diff -u "${legacy_out}.normalized" "$go_out" || {
     printf 'contract stdout mismatch: %s\n' "$name" >&2
     exit 1
   }
@@ -151,8 +154,16 @@ grep -Fq $'\033[36m' "$legacy_out" || {
 if [[ "$mode" != legacy ]]; then
   run_case go help "$go_out" "$go_err" "$go_status" always ""
   diff -u "$legacy_status" "$go_status"
-  diff -u "$legacy_out" "$go_out"
+  normalize_removed_routes "$legacy_out" >"${legacy_out}.normalized"
+  diff -u "${legacy_out}.normalized" "$go_out"
   diff -u "$legacy_err" "$go_err"
+
+  set +e
+  "$invoke" go sync >"${tmp_dir}/removed-sync.out" 2>"${tmp_dir}/removed-sync.err"
+  removed_sync_status=$?
+  set -e
+  [[ "$removed_sync_status" == 2 ]]
+  grep -Fq 'ii: unknown command: sync' "${tmp_dir}/removed-sync.err"
 fi
 
 printf 'public command contracts passed (%s)\n' "$mode"

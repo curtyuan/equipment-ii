@@ -10,11 +10,6 @@ import (
 	wwwdomain "github.com/curtyuan/equipment-ii/src/internal/www"
 )
 
-const (
-	RouteGo     = "go"
-	RouteLegacy = "legacy"
-)
-
 type CLI struct {
 	version           string
 	color             bool

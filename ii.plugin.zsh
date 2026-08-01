@@ -1,4 +1,4 @@
-# Go runtime adapter. Legacy behavior remains isolated under ori-ii during migration.
+# Go runtime parent-shell adapter.
 
 local ii_adapter_dir
 ii_adapter_dir="${${(%):-%x}:A:h}"
@@ -11,34 +11,8 @@ if [[ -z "${II_GO_BIN:-}" ]]; then
     typeset -g II_GO_BIN="${II_GO_ROOT}/build/ii-go"
   fi
 fi
-typeset -g II_LEGACY_ROOT="${II_LEGACY_ROOT:-${II_GO_ROOT}/ori-ii}"
-
-if [[ ! -r "${II_LEGACY_ROOT}/ii.plugin.zsh" ]]; then
-  print -u2 "ii: legacy adapter unavailable: ${II_LEGACY_ROOT}/ii.plugin.zsh"
-  unset ii_adapter_dir
-  return 1
-fi
-
-typeset -g II_PLUGIN_DIR="$II_LEGACY_ROOT"
-typeset -g II_PAYLOAD_DIR="${II_PAYLOAD_DIR:-${II_LEGACY_ROOT}/payloads}"
-local ii_adapter_tmux_present=${+TMUX}
-local ii_adapter_tmux_value="${TMUX-}"
-unset TMUX
-source "${II_LEGACY_ROOT}/ii.plugin.zsh" || {
-  (( ii_adapter_tmux_present )) && export TMUX="$ii_adapter_tmux_value"
-  unset ii_adapter_dir
-  return 1
-}
-if (( ii_adapter_tmux_present )); then
-  export TMUX="$ii_adapter_tmux_value"
-else
-  unset TMUX
-fi
-
-functions[ii_legacy]="${functions[ii]}"
-unfunction ii
-typeset -ga precmd_functions
-
+typeset -g II_PLUGIN_DIR="$II_GO_ROOT"
+typeset -g II_PAYLOAD_DIR="${II_PAYLOAD_DIR:-${II_GO_ROOT}/ori-ii/payloads}"
 if [[ -x "$II_GO_BIN" ]]; then
   II_PLUGIN_DIR="$II_PLUGIN_DIR" II_GO_ROOT="$II_GO_ROOT" \
     "$II_GO_BIN" __tmux_ensure || true
@@ -51,57 +25,38 @@ ii() {
     return 127
   fi
 
-  local route
-  route="$("$II_GO_BIN" __route "$@")" || {
-    print -u2 "ii: Go dispatcher failed"
+  local ops_file state_file exec_file ii_exit_status=0
+  ops_file="$(mktemp "${TMPDIR:-/tmp}/ii-shell-ops.XXXXXXXX")" || {
+    print -u2 "ii: failed to create parent-shell operation channel"
     return 1
   }
-
-  case "$route" in
-    go)
-      local ops_file state_file exec_file ii_exit_status=0
-      ops_file="$(mktemp "${TMPDIR:-/tmp}/ii-shell-ops.XXXXXXXX")" || {
-        print -u2 "ii: failed to create parent-shell operation channel"
-        return 1
-      }
-      state_file="$(mktemp "${TMPDIR:-/tmp}/ii-shell-state.XXXXXXXX")" || {
-        command rm -f -- "$ops_file"
-        print -u2 "ii: failed to create parent-shell state channel"
-        return 1
-      }
-      exec_file="$(mktemp "${TMPDIR:-/tmp}/ii-shell-exec.XXXXXXXX")" || {
-        command rm -f -- "$ops_file" "$state_file"
-        print -u2 "ii: failed to create parent-shell execution channel"
-        return 1
-      }
-      ii_write_requested_shell_state "$state_file" "$@" || {
-        command rm -f -- "$ops_file" "$state_file" "$exec_file"
-        return 1
-      }
-      local ii_hook_present=absent
-      (( ${precmd_functions[(I)ii_sync_loaded_vars_precmd]} )) && ii_hook_present=present
-      II_SHELL_OPS_FILE="$ops_file" \
-        II_SHELL_STATE_FILE="$state_file" \
-        II_SHELL_EXEC_FILE="$exec_file" \
-        II_PLUGIN_DIR="$II_PLUGIN_DIR" \
-        II_GO_ROOT="$II_GO_ROOT" \
-        II_SYNC_LOADED_VARS="${II_SYNC_LOADED_VARS:-0}" \
-        II_SYNC_HOOK_PRESENT="$ii_hook_present" \
-        "$II_GO_BIN" "$@" || ii_exit_status=$?
-      if [[ -s "$ops_file" ]]; then
-        ii_apply_shell_operations "$ops_file" "$exec_file" || ii_exit_status=1
-      fi
-      command rm -f -- "$ops_file"
-      command rm -f -- "$state_file"
-      command rm -f -- "$exec_file"
-      return "$ii_exit_status"
-      ;;
-    legacy) ii_legacy "$@" ;;
-    *)
-      print -u2 "ii: invalid Go dispatcher route: $route"
-      return 1
-      ;;
-  esac
+  state_file="$(mktemp "${TMPDIR:-/tmp}/ii-shell-state.XXXXXXXX")" || {
+    command rm -f -- "$ops_file"
+    print -u2 "ii: failed to create parent-shell state channel"
+    return 1
+  }
+  exec_file="$(mktemp "${TMPDIR:-/tmp}/ii-shell-exec.XXXXXXXX")" || {
+    command rm -f -- "$ops_file" "$state_file"
+    print -u2 "ii: failed to create parent-shell execution channel"
+    return 1
+  }
+  ii_write_requested_shell_state "$state_file" "$@" || {
+    command rm -f -- "$ops_file" "$state_file" "$exec_file"
+    return 1
+  }
+  II_SHELL_OPS_FILE="$ops_file" \
+    II_SHELL_STATE_FILE="$state_file" \
+    II_SHELL_EXEC_FILE="$exec_file" \
+    II_PLUGIN_DIR="$II_PLUGIN_DIR" \
+    II_GO_ROOT="$II_GO_ROOT" \
+    "$II_GO_BIN" "$@" || ii_exit_status=$?
+  if [[ -s "$ops_file" ]]; then
+    ii_apply_shell_operations "$ops_file" "$exec_file" || ii_exit_status=1
+  fi
+  command rm -f -- "$ops_file"
+  command rm -f -- "$state_file"
+  command rm -f -- "$exec_file"
+  return "$ii_exit_status"
 }
 
 ii_write_requested_shell_state() {
@@ -196,13 +151,6 @@ ii_apply_shell_operations() {
           }
           builtin cd -- "$value" || return
           ;;
-        sync-hook)
-          [[ -z "$name" && ( "$value" == "on" || "$value" == "off" ) ]] || {
-            print -u2 "ii: invalid parent-shell sync-hook operation"
-            return 1
-          }
-          ii_apply_sync_hook_operation "$value" || return
-          ;;
         execute-file)
           [[ -z "$name" && -n "$expected_exec_file" && "$value" == "$expected_exec_file" &&
             -f "$value" && ! -L "$value" ]] || {
@@ -220,23 +168,4 @@ ii_apply_shell_operations() {
   } < "$file"
 }
 
-ii_apply_sync_hook_operation() {
-  typeset -ga precmd_functions
-  case "$1" in
-    on)
-      typeset -g II_SYNC_LOADED_VARS=1
-      precmd_functions=(${precmd_functions:#ii_sync_loaded_vars_precmd} ii_sync_loaded_vars_precmd)
-      ;;
-    off)
-      typeset -g II_SYNC_LOADED_VARS=0
-      precmd_functions=(${precmd_functions:#ii_sync_loaded_vars_precmd})
-      ;;
-    *) return 1 ;;
-  esac
-}
-
-ii_sync_loaded_vars_precmd() {
-  ii load >/dev/null
-}
-
-unset ii_adapter_dir ii_adapter_tmux_present ii_adapter_tmux_value
+unset ii_adapter_dir

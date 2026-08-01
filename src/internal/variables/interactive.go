@@ -118,7 +118,7 @@ func (i *Interactive) add() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return i.mutator.SetInteractive(name, value, os.Getenv("II_SYNC_LOADED_VARS") == "1")
+	return i.mutator.SetInteractive(name, value)
 }
 
 func (i *Interactive) edit(name, current string) (string, error) {
@@ -130,7 +130,7 @@ func (i *Interactive) edit(name, current string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return i.mutator.SetInteractive(name, value, os.Getenv("II_SYNC_LOADED_VARS") == "1")
+	return i.mutator.SetInteractive(name, value)
 }
 
 func oneLine(value string) string {

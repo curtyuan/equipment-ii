@@ -37,8 +37,5 @@ output="$(tmux -S "$socket" capture-pane -p -t clipboard-contract:0.0 -S -180)"
 [[ "$output" == *"Use tmux for this tmux session? [y/N]"* ]]
 [[ "$output" == *"DOCTOR_BACKEND=tmux"* ]]
 [[ "$(tmux -S "$socket" show-environment II_CLIP_BACKEND)" == "II_CLIP_BACKEND=tmux" ]]
-[[ "$("${root}/build/ii-go" __route clip)" == go ]]
-[[ "$("${root}/build/ii-go" __route clipboard)" == go ]]
-[[ "$("${root}/build/ii-go" __route help clip)" == go ]]
 
 print "clipboard backend and doctor tmux contracts passed"

@@ -2,42 +2,32 @@ package cli
 
 import "strings"
 
-type owner string
-
-const (
-	ownerGo     owner = "go"
-	ownerLegacy owner = "legacy"
-)
-
 type commandSpec struct {
 	name      string
 	aliases   []string
-	owner     owner
 	helpPaths [][]string
 }
 
 var commandRegistry = []commandSpec{
-	{name: "version", aliases: []string{"-v", "--version"}, owner: ownerGo,
+	{name: "version", aliases: []string{"-v", "--version"},
 		helpPaths: [][]string{{"version"}, {"-v"}, {"--version"}}},
-	{name: "list", aliases: []string{"ls", "list", "variable", "vars", "var"}, owner: ownerGo,
+	{name: "list", aliases: []string{"ls", "list", "variable", "vars", "var"},
 		helpPaths: [][]string{{"ls"}, {"list"}, {"variable"}, {"vars"}, {"var"}}},
-	{name: "variable", aliases: []string{"v"}, owner: ownerGo,
+	{name: "variable", aliases: []string{"v"},
 		helpPaths: [][]string{{"v"}}},
-	{name: "output", aliases: []string{"vo", "voc"}, owner: ownerGo,
+	{name: "output", aliases: []string{"vo", "voc"},
 		helpPaths: [][]string{{"vo"}, {"voc"}, {"variables-output"}, {"v", "--out"}}},
-	{name: "set", aliases: []string{"set", "s", "sr", "sf", "sha"}, owner: ownerGo,
+	{name: "set", aliases: []string{"set", "s", "sr", "sf", "sha"},
 		helpPaths: [][]string{{"set"}, {"s"}, {"sr"}, {"sf"}, {"sha"}}},
-	{name: "get", aliases: []string{"get", "g", "gr", "gl"}, owner: ownerGo,
+	{name: "get", aliases: []string{"get", "g", "gr", "gl"},
 		helpPaths: [][]string{{"get"}, {"g"}, {"gr"}, {"gl"}}},
-	{name: "clipboard", aliases: []string{"clip", "clipboard"}, owner: ownerGo,
+	{name: "clipboard", aliases: []string{"clip", "clipboard"},
 		helpPaths: [][]string{{"clip"}, {"clipboard"}}},
-	{name: "load", aliases: []string{"load", "l", "la"}, owner: ownerGo,
+	{name: "load", aliases: []string{"load", "l", "la"},
 		helpPaths: [][]string{{"load"}, {"l"}, {"la"}, {"load", "--all-pane"}, {"l", "--all-pane"}}},
-	{name: "sync", aliases: []string{"sync"}, owner: ownerGo,
-		helpPaths: [][]string{{"sync"}}},
-	{name: "interactive", aliases: []string{"interactive", "i"}, owner: ownerGo,
+	{name: "interactive", aliases: []string{"interactive", "i"},
 		helpPaths: [][]string{{"interactive"}, {"i"}}},
-	{name: "payload", aliases: []string{"payload", "p", "pc", "pe", "pce"}, owner: ownerGo,
+	{name: "payload", aliases: []string{"payload", "p", "pc", "pe", "pce"},
 		helpPaths: [][]string{
 			{"payload"}, {"p"}, {"pc"}, {"pe"}, {"pce"}, {"payload-copy"},
 			{"payload", "--copy"}, {"p", "--copy"},
@@ -45,7 +35,7 @@ var commandRegistry = []commandSpec{
 			{"payload", "--copy", "--execute"}, {"payload", "--execute", "--copy"},
 			{"p", "--copy", "--execute"}, {"p", "--execute", "--copy"},
 		}},
-	{name: "payload-input", aliases: []string{"pic", "pie", "pice"}, owner: ownerGo,
+	{name: "payload-input", aliases: []string{"pic", "pie", "pice"},
 		helpPaths: [][]string{
 			{"payload-input"}, {"payload", "--input"}, {"payload", "input"},
 			{"p", "--input"}, {"p", "input"},
@@ -54,9 +44,9 @@ var commandRegistry = []commandSpec{
 			{"pice"}, {"payload", "--input", "--copy", "--execute"},
 			{"p", "--input", "--copy", "--execute"},
 		}},
-	{name: "tmux", aliases: []string{"tmux"}, owner: ownerGo,
+	{name: "tmux", aliases: []string{"tmux"},
 		helpPaths: [][]string{{"tmux"}, {"tmux", "status"}}},
-	{name: "unset", aliases: []string{"unset", "u"}, owner: ownerGo,
+	{name: "unset", aliases: []string{"unset", "u"},
 		helpPaths: [][]string{{"unset"}, {"u"}}},
 }
 

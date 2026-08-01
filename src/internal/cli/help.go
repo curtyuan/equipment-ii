@@ -35,7 +35,6 @@ Variables:
   gl                     Copy and print lhost (ii g l)
   load|l                 Load variables into this shell
   load --all-pane|la     Review panes, then load selected shells
-  sync [on|off|status]   Control optional tmux-to-shell prompt auto-sync
   interactive|i          Select, edit, add, and copy variables
   ls|list|variable|vars|var [PATTERN]
                           List non-empty variables, optionally filtered by key
@@ -310,22 +309,6 @@ as "likely ready". Review the selection with Space, then press Enter to load
 the current shell directly and dispatch ` + "`ii l`" + ` to the other selected panes.
 Other panes must already have ii loaded. "dispatched" means the command was
 sent successfully; it does not confirm that the destination shell ran it.
-`
-
-const syncHelp = `usage: ii sync [on|off|status]
-
-Aliases:
-  none
-
-Help:
-  ii help sync
-
-Control optional tmux-to-shell prompt synchronization.
-
-Commands:
-  on      Refresh exported shell variables from tmux before each prompt.
-  off     Stop prompt-time refresh for this shell.
-  status  Show II_SYNC_LOADED_VARS and hook state.
 `
 
 const getUsage = `usage: ii get FILTER

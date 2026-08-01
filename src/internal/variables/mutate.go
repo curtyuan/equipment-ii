@@ -66,18 +66,8 @@ func (m *Mutator) SetStored(raw, value string) (string, error) {
 	return strings.TrimPrefix(name, "ii_") + "=" + value, nil
 }
 
-func (m *Mutator) SetInteractive(raw, value string, sync bool) (string, error) {
-	if !sync {
-		return m.SetStored(raw, value)
-	}
-	line, err := m.Set(raw, value)
-	if err != nil {
-		return "", err
-	}
-	if err = m.shell.SetSyncHook(true); err != nil {
-		return "", err
-	}
-	return line, nil
+func (m *Mutator) SetInteractive(raw, value string) (string, error) {
+	return m.Set(raw, value)
 }
 
 func (m *Mutator) Unset(raw string) (string, error) {

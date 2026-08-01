@@ -26,7 +26,6 @@ type fakeShellOperations struct{}
 func (fakeShellOperations) Export(string, string) error { return nil }
 func (fakeShellOperations) Unset(string) error          { return nil }
 func (fakeShellOperations) Chdir(string) error          { return nil }
-func (fakeShellOperations) SetSyncHook(bool) error      { return nil }
 func (fakeShellOperations) ExecuteScript(string) error  { return nil }
 
 type fakeShellState struct{}

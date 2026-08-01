@@ -67,14 +67,6 @@ func (f *File) Chdir(path string) error {
 	return f.append("chdir", "", path)
 }
 
-func (f *File) SetSyncHook(enabled bool) error {
-	value := "off"
-	if enabled {
-		value = "on"
-	}
-	return f.append("sync-hook", "", value)
-}
-
 func (f *File) append(operation, name, value string) error {
 	if f.path == "" {
 		return ErrUnavailable

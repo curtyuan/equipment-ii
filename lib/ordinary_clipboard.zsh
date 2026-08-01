@@ -9,7 +9,9 @@ ii_zsh_clip_context() {
 }
 
 ii_zsh_clip_config() {
-  local name="$1" value="${(P)name:-}"
+  local name value
+  name="$1"
+  value="${(P)name:-}"
   if [[ -z "$value" && -n "${TMUX:-}" ]]; then
     value="$(tmux show-environment "$name" 2>/dev/null)"
     value="${value#${name}=}"

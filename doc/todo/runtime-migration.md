@@ -536,6 +536,9 @@ Current ownership-reversal checkpoint:
 - [x] Choose one clipboard-policy owner for combo handoff: Zsh resolves the
   configured/effective backend and passes that closed choice when launching
   combo; Go must not independently auto-detect a backend.
+- [x] Move interactive variable selection, add, edit, and copy to Zsh; add/edit
+  share the `ii s` mutation path and therefore update both tmux and the calling
+  shell, while copy shares the single Zsh clipboard policy.
 
 ### Next-Stage Discussion Queue
 

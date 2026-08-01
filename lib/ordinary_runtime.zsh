@@ -10,6 +10,7 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   variable-output ii_zsh_cmd_output
   variable-get ii_zsh_cmd_get
   clipboard ii_zsh_cmd_clip
+  variable-interactive ii_zsh_cmd_interactive
 )
 
 ii_ordinary_resolve() {
@@ -54,6 +55,9 @@ ii_ordinary_resolve() {
     clip|clipboard)
       [[ " $* " != *" -h "* && " $* " != *" --help "* && " $* " != *" help "* ]] &&
         print -r -- clipboard
+      ;;
+    interactive|i)
+      [[ $# -eq 0 ]] && print -r -- variable-interactive
       ;;
   esac
   return 0

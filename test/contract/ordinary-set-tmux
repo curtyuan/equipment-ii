@@ -21,7 +21,12 @@ printf 'ordinary command unexpectedly invoked Go: %s\n' "$*" >&2
 exit 99
 EOF
 chmod +x "${tmp_dir}/bin/ii-go"
-print -r -- '#!/usr/bin/env sh' 'head -n 1' >"${tmp_dir}/bin/fzf"
+cat >"${tmp_dir}/bin/fzf" <<'EOF'
+#!/usr/bin/env sh
+filter="${FZF_DEFAULT_OPTS#*--filter=}"
+filter="${filter%% *}"
+awk -v filter="$filter" 'BEGIN {IGNORECASE=1} filter == "" || index(tolower($0), tolower(filter)) {print; exit}'
+EOF
 chmod +x "${tmp_dir}/bin/fzf"
 export PATH="${tmp_dir}/bin:${PATH}"
 export II_GO_CALL_LOG="${tmp_dir}/go.calls"
@@ -80,6 +85,20 @@ grep -Fx '198.51.100.7' "${tmp_dir}/get.out"
 ii clip backend tmux >"${tmp_dir}/clip.out"
 [[ "$II_CLIP_BACKEND" == tmux ]]
 [[ "$(tmux -S "$socket" show-environment II_CLIP_BACKEND)" == II_CLIP_BACKEND=tmux ]]
+
+FZF_DEFAULT_OPTS='--filter=add' II_ADD_VAR_FILTER=interactive II_ADD_VALUE_FILTER=created \
+  ii i >"${tmp_dir}/interactive-add.out"
+[[ "$interactive" == created ]]
+[[ "$(tmux -S "$socket" show-environment ii_interactive)" == ii_interactive=created ]]
+
+FZF_DEFAULT_OPTS='--filter=interactive' II_INTERACTIVE_KEY=i II_EDIT_VALUE_FILTER=edited \
+  ii i >"${tmp_dir}/interactive-edit.out"
+[[ "$interactive" == edited ]]
+[[ "$(tmux -S "$socket" show-environment ii_interactive)" == ii_interactive=edited ]]
+
+FZF_DEFAULT_OPTS='--filter=interactive' II_INTERACTIVE_KEY=y II_CLIP_BACKEND=tmux \
+  ii i >"${tmp_dir}/interactive-copy.out"
+[[ "$(tmux -S "$socket" save-buffer -)" == edited ]]
 
 [[ ! -s "$II_GO_CALL_LOG" ]]
 print 'ordinary Zsh set contract passed'

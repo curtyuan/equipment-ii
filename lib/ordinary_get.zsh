@@ -51,7 +51,7 @@ ii_zsh_cmd_get() {
     selected="$(for line in "$matches[@]"; do
       name="${line%%=*}"
       value="${line#*=}"
-      print -r -- "${name#ii_}\t${value}\t${line}"
+      print -r -- "${name#ii_}"$'\t'"${value}"$'\t'"${line}"
     done | fzf -i --no-sort)" || return 1
     [[ -n "$selected" ]] || return 1
     line="${selected##*$'\t'}"

@@ -21,6 +21,9 @@ printf 'ordinary command unexpectedly invoked Go: %s\n' "$*" >&2
 exit 99
 EOF
 chmod +x "${tmp_dir}/bin/ii-go"
+print -r -- '#!/usr/bin/env sh' 'head -n 1' >"${tmp_dir}/bin/fzf"
+chmod +x "${tmp_dir}/bin/fzf"
+export PATH="${tmp_dir}/bin:${PATH}"
 export II_GO_CALL_LOG="${tmp_dir}/go.calls"
 export II_GO_BIN="${tmp_dir}/bin/ii-go"
 export II_CONFIG_FILE=/dev/null
@@ -69,6 +72,10 @@ grep -Fx 'two words' "${tmp_dir}/list.out"
 
 ii vo "${tmp_dir}/output.env" >"${tmp_dir}/output.out"
 grep -Fx "note='two words'" "${tmp_dir}/output.env"
+
+II_CLIP_BACKEND=tmux ii gr >"${tmp_dir}/get.out"
+grep -Fx '198.51.100.7' "${tmp_dir}/get.out"
+[[ "$(tmux -S "$socket" save-buffer -)" == 198.51.100.7 ]]
 
 [[ ! -s "$II_GO_CALL_LOG" ]]
 print 'ordinary Zsh set contract passed'

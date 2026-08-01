@@ -527,7 +527,12 @@ Current ownership-reversal checkpoint:
 - [x] Move `ls`/list aliases, `v [PATTERN]`, `v --out`, `vo`, and `voc` to Zsh,
   retaining color policy, deterministic filtering, atomic replacement, and
   shell-sourceable quoting without starting Go.
-- [ ] Move `g`/`g:`/`gr`/`gl` selection and clipboard behavior to Zsh.
+- [x] Move `g`/`g:`/`gr`/`gl` selection and clipboard behavior to Zsh,
+  retaining shortcut matching, fzf selection, configured clipboard copy, and
+  current output/status behavior without starting Go.
+- [ ] Move `clip`/`clipboard backend|doctor` to Zsh and consolidate its backend
+  resolution with the compact copy helper now used by `g`; do not retain two
+  divergent clipboard detection/configuration policies.
 
 ### Next-Stage Discussion Queue
 

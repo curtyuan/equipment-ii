@@ -8,6 +8,7 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   unset-variable ii_zsh_cmd_unset
   variable-list ii_zsh_cmd_list
   variable-output ii_zsh_cmd_output
+  variable-get ii_zsh_cmd_get
 )
 
 ii_ordinary_resolve() {
@@ -45,6 +46,9 @@ ii_ordinary_resolve() {
       ;;
     vo|voc)
       [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- variable-output
+      ;;
+    get|g|gr|gl|g:*)
+      [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- variable-get
       ;;
   esac
   return 0

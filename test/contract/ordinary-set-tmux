@@ -52,5 +52,16 @@ ii sf "${tmp_dir}/vars.env" >"${tmp_dir}/from-file.out"
 [[ "$file_only" == 'two words' ]]
 [[ "$(tmux -S "$socket" show-environment ii_file_only)" == 'ii_file_only=two words' ]]
 
+unset note
+ii l >"${tmp_dir}/load.out"
+[[ "$note" == 'two words' ]]
+
+ii u file_only >"${tmp_dir}/unset.out"
+(( ! ${+parameters[file_only]} ))
+if tmux -S "$socket" show-environment ii_file_only >/dev/null 2>&1; then
+  print -u2 'ordinary unset left ii_file_only in tmux'
+  exit 1
+fi
+
 [[ ! -s "$II_GO_CALL_LOG" ]]
 print 'ordinary Zsh set contract passed'

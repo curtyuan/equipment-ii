@@ -520,6 +520,10 @@ Current ownership-reversal checkpoint:
   forms preserve tmux and shell effects without starting Go.
 - [x] Move `s --from-shell`, `sha`, `s --from-file`, and `sf` into the same Zsh
   variable module before removing their Go handlers.
+- [x] Move current-pane `load`/`l` and `unset`/`u` (including confirmed `-a`)
+  to Zsh and preserve tmux plus parent-shell effects without starting Go.
+- [ ] Move `load --all-pane`/`la` with its pane selection and reviewed dispatch
+  behavior to Zsh.
 
 ### Next-Stage Discussion Queue
 

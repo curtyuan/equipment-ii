@@ -298,3 +298,63 @@ ii_zsh_cmd_set_explicit() {
     done
   done
 }
+
+ii_zsh_tmux_variable_lines() {
+  local output
+  output="$(tmux show-environment 2>&1)" || {
+    print -u2 -r -- "$output"
+    return 1
+  }
+  print -r -- "$output" | LC_ALL=C sort | while IFS= read -r line; do
+    [[ "$line" =~ '^ii_[a-z0-9_]+=' ]] && print -r -- "$line"
+  done
+}
+
+ii_zsh_cmd_load() {
+  shift
+  ii_zsh_tmux_available || return
+  local line name value count=0
+  while IFS= read -r line; do
+    [[ "$line" == *=* ]] || continue
+    name="${line%%=*}"
+    value="${line#*=}"
+    [[ -n "$value" ]] || continue
+    ii_zsh_export_value "$name" "$value" || return
+    (( ++count ))
+  done < <(ii_zsh_tmux_variable_lines) || return
+  print -r -- "loaded $count variable(s)"
+}
+
+ii_zsh_unset_one() {
+  local internal name
+  internal="$(ii_zsh_normalize_name "$1")" || return
+  tmux set-environment -u "$internal" || return
+  name="${internal#ii_}"
+  unset "$internal" "$name" "${(U)name}"
+  print -r -- "unset $name"
+}
+
+ii_zsh_cmd_unset() {
+  shift
+  ii_zsh_tmux_available || return
+  if [[ "${1:-}" == -a ]]; then
+    print -n -- "unset all ii_ variables in this tmux session? [y/N] "
+    local answer line name count=0
+    IFS= read -r answer || true
+    [[ "$answer" == y ]] || {
+      print -r -- aborted
+      return 1
+    }
+    while IFS= read -r line; do
+      name="${line%%=*}"
+      ii_zsh_unset_one "$name" || return
+      (( ++count ))
+    done < <(ii_zsh_tmux_variable_lines)
+    print -r -- "unset $count variable(s)"
+    return
+  fi
+  local raw
+  for raw in "$@"; do
+    ii_zsh_unset_one "$raw" || return
+  done
+}

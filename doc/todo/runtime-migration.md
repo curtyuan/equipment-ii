@@ -225,7 +225,7 @@ CGO_ENABLED=0 go build ./cmd/ii
 
 ## Phase 2: Public Entrypoint and Dispatcher
 
-- [ ] Define the stable one-process combo launch protocol between
+- [x] Define the stable one-process combo launch protocol between
   `ii.plugin.zsh` and the Go executable.
 - [x] Move top-level command registration, aliases, argument parsing, and the
   first help routes
@@ -248,18 +248,12 @@ CGO_ENABLED=0 go build ./cmd/ii
 
 ### Current Route Boundary
 
-Every public invocation now enters the Go dispatcher directly. The Zsh adapter
-does not load or dispatch to the frozen runtime. This records the current
-implementation checkpoint, not the approved final ownership boundary below.
+The root Zsh dispatcher owns migrated ordinary routes and falls through to the
+transitional Go adapter only for the remaining routes listed below.
 
-Go-owned:
+Zsh-owned public behavior:
 
 ```text
-no arguments
-top-level help, h, -h, --help without another command topic
-help version
-version, -v, --version
-unknown top-level commands
 ls, list, variable, vars, var
 v [PATTERN] without --out
 v --out, vo, voc
@@ -268,27 +262,24 @@ get, g, gr, gl, and compact g: forms
 load, l, load --all-pane, and la
 interactive and i
 clipboard and clip, including backend and doctor
-tmux status diagnostics
-tmux alias installation and popup execution
 unset and u, including confirmed -a
-help for the variable-list family
-help for the set family
-help for interactive variables
-payload --input, pic, pie, and pice, including their help paths
 payload, p, pc, pe, and pce stored-payload selection/copy/execute paths
-payload --www list/search/link/file paths
-workflow popup parsing, lane assignment, confirmation, and execution
+payload --input, pic, pie, and pice execution paths
 ```
 
-Legacy-owned:
+Transitional Go-owned public behavior:
 
 ```text
-none
+no arguments, top-level/command help, version, and unknown diagnostics
+tmux status, alias installation, and popup integration
+payload --www/www until replaced by the p -w migration diagnostic
 ```
 
-An error in a Go-owned route never falls back to legacy. The root adapter no
-longer loads or dispatches to the frozen implementation; `ori-ii` remains only
-as the differential contract baseline and temporary payload-data source.
+Combo render/copy/run is intentionally Go-owned behind internal
+`__combo-render`, `__combo-copy`, and `__combo-run` entry points selected by
+Zsh. The plugin still starts Go once during source for `__tmux_ensure`; removing
+that startup call is outstanding. `ori-ii` remains only as the differential
+contract baseline and temporary payload-data source.
 
 ### First Vertical Slice: Variable List
 
@@ -470,14 +461,14 @@ Current implementation gaps, in intended implementation order:
   `shellops/file_test.go`, `test/contract/shell-operations`,
   `test/contract/interactive-tmux`, `test/contract/variable-mutations-tmux`,
   and `test/contract/run`; add an unknown-command contract for `sync`.
-- [ ] Define one Zsh command specification table for ordinary aliases, help
+- [x] Define one Zsh command specification table for ordinary aliases, help
   paths, and handlers. Combo classification is the closed `# flow: 1` marker;
   do not invoke Go merely to classify an ordinary payload.
 - [ ] Restore/move variable set/get/list/load/unset/output and interactive
   behavior to the root Zsh runtime, retaining `ii_` normalization and tmux
   semantics. Remove the replaced Go variable handlers only after public
   contracts pass.
-- [ ] Keep `s --from-file` in Zsh with strict line-oriented data parsing,
+- [x] Keep `s --from-file` in Zsh with strict line-oriented data parsing,
   diagnostics with source line numbers, and no `source`/`eval` behavior.
 - [ ] Restore/move ordinary payload catalog, selection, shell-aware rendering,
   copy, output, and confirmed current-shell execution to Zsh. Go must not be
@@ -489,10 +480,10 @@ Current implementation gaps, in intended implementation order:
 - [ ] Change `/www` public routing and help to `ii p -w ...`; implement its
   containment, traversal rejection, symlink policy, deterministic list/search,
   no-overwrite linking, file publication, and diagnostics in Zsh.
-- [ ] Decide compatibility behavior for the old `payload --www`/`www` forms
+- [x] Decide compatibility behavior for the old `payload --www`/`www` forms
   before implementing `-w` (hard removal, diagnostic redirect, or temporary
   alias), then encode only the chosen public result in contracts.
-- [ ] Preserve tmux as the uncached source of truth: `set-environment` for
+- [x] Preserve tmux as the uncached source of truth: `set-environment` for
   writes, `show-environment` for reads, explicit `ii l` for pane-local
   hydration, and `ii la` for reviewed cross-pane dispatch.
 - [ ] Replace permanent legacy-vs-current diffs with one language-neutral
@@ -562,10 +553,11 @@ Resolve these together before implementing the ownership reversal:
   revalidates the relative payload through its catalog, resolves variables
   from tmux only, and receives the already-resolved clipboard choice; no
   shell-state or parent-shell operation channel is created.
-- [ ] Should the old `--www` forms fail as unknown immediately or print a
-  migration diagnostic pointing to `ii p -w` for one release?
-- [ ] What exact `ii p -w` child grammar replaces `--www --file`, `ln`, `ls`,
-  and `search`, including short forms and help paths?
+- [x] Keep the old `--www` forms for one release only as a migration
+  diagnostic pointing to `ii p -w`; they must not execute the old behavior.
+- [x] Use the new grammar `ii p -w file PATH`, `ii p -w ln SOURCE_PATH
+  [LINK_NAME]`, `ii p -w ls`, and `ii p -w search [FILTER]`. Implementation,
+  short-form policy, help paths, and correctness contracts remain pending.
 - [ ] Which Zsh filesystem primitives and checks are sufficient to retain the
   current `/www` containment and no-follow correctness without adding a new
   dependency?
@@ -574,6 +566,38 @@ Resolve these together before implementing the ownership reversal:
   regenerated from an explicitly reviewed public specification?
 - [ ] Should empty tmux values remain stored but hidden by list/load, or should
   setting an empty value become equivalent to unset in the final contract?
+
+### Remaining-Work Audit (2026-08-01)
+
+Completed ownership slices are intentionally not repeated here. Remaining
+implementation work, in dependency order:
+
+1. [ ] Implement `ii p -w file|ln|ls|search` in Zsh with containment,
+   traversal/symlink, deterministic output, and no-overwrite contracts; make
+   old `--www`/`www` forms print only the one-release migration diagnostic.
+2. [ ] Move public top-level help, command help, version, unknown-command
+   diagnostics, and tmux integration/status routes to Zsh. These are the last
+   non-www ordinary routes still falling through `ii_go_command`.
+3. [ ] Remove the plugin-load `ii-go __tmux_ensure` call. Replace it with the
+   Zsh-owned tmux integration setup so merely sourcing the plugin never starts
+   Go.
+4. [ ] Delete `ii_go_command`, shell-state serialization, parent-shell ops and
+   exec-file application after steps 1-3 leave no public consumer.
+5. [ ] Remove superseded Go CLI handlers/adapters/packages and old
+   `__payload_names`, `__payload_render`, `__payload_select`,
+   `__workflow_popup` entry points; retain only combo parsing/rendering/lane/
+   runner/tmux composition behind `__combo-render|copy|run`.
+6. [ ] Move payload data from the temporary `ori-ii/payloads` location to its
+   final root, update package/install contracts, then delete `ori-ii/` and
+   stale legacy/differential tests.
+7. [ ] Resolve the remaining contract decisions: empty tmux value semantics,
+   whether reviewed fixtures replace or freeze current differential output,
+   and the exact Zsh filesystem primitives for `p -w` correctness.
+8. [ ] Reconcile all user documentation and help text with the final runtime;
+   the currently dirty documentation set predates these completed code slices
+   and must be reviewed as one coherent documentation commit.
+9. [ ] Run final archive/install, cross-build, interactive tmux, and disposable
+   PowerShell/powercat validation; verify no generated binaries are committed.
 
 ## Phase 4: Remove the Legacy Runtime
 

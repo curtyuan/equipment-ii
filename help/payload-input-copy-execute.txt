@@ -11,7 +11,7 @@ Help:
 
 Read and render payload text, show unresolved variables, and ask [y/N]. After
 confirmation, ii copies the rendered payload and executes it in the current
-shell through the allowlisted parent-shell channel. Clipboard failure does not
+shell. Clipboard failure does not
 prevent confirmed execution.
 
 Enter finishes, Alt-Enter inserts a newline, and Esc cancels. Piped input ends

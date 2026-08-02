@@ -10,7 +10,7 @@ Help:
   ii help pie
 
 Read and render payload text, show unresolved variables, and ask [y/N] before
-executing it in the current shell through the allowlisted parent-shell channel.
+executing it directly in the current Zsh shell.
 Nothing is copied.
 
 Enter finishes, Alt-Enter inserts a newline, and Esc cancels. Piped and

@@ -12,10 +12,11 @@ pane="$(tmux -S "$socket" display-message -p -t tmux-install-contract:0.0 '#{pan
 export TMUX="${socket},${server_pid},0"
 export TMUX_PANE="$pane"
 export II_GO_BIN="${II_GO_BIN:-${repo_dir}/build/ii-go}"
-export II_PLUGIN_DIR="${repo_dir}/ori-ii"
 
 ensure() {
-  "$II_GO_BIN" __tmux_ensure >"${tmp_dir}/ensure.out" 2>"${tmp_dir}/ensure.err"
+  II_CONFIG_FILE=/dev/null II_GO_ROOT="$repo_dir" II_GO_BIN="$II_GO_BIN" \
+    zsh -f -c 'source "$1"; ii_zsh_tmux_ensure' zsh "${repo_dir}/ii.plugin.zsh" \
+    >"${tmp_dir}/ensure.out" 2>"${tmp_dir}/ensure.err"
 }
 
 ensure
@@ -49,8 +50,7 @@ II_TMUX_INTEGRATION=0 ensure
 tmux -S "$socket" set-option -su 'command-alias[100]'
 tmux -S "$socket" set-option -gu @ii_integration_marker
 tmux -S "$socket" set-option -gu @ii_integration_conflict_notice
-II_CONFIG_FILE=/dev/null II_GO_ROOT="$repo_dir" II_GO_BIN="$II_GO_BIN" \
-  zsh -f -c 'source "$1"' zsh "${repo_dir}/ii.plugin.zsh"
+ensure
 [[ "$(tmux -S "$socket" show-option -sv 'command-alias[100]')" == ii=display-popup*"${II_GO_BIN}"*"__tmux_popup execute" ]]
 [[ "$(tmux -S "$socket" show-option -gqv @ii_integration_marker)" == \
   "version=2 index=100 helper=${II_GO_BIN}" ]]

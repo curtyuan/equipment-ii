@@ -53,7 +53,7 @@ Payloads:
                           Render, confirm, and execute input
   payload|p --input --copy --execute [-o [PATH]] | pice
                           Render, confirm, copy, and execute input
-  payload|p --www        Render a file, list, search, or symlink under /www
+  payload|p -w COMMAND   Web helpers (planned; not implemented yet)
 
 Clipboard:
   clip|clipboard backend Show or set clipboard backend

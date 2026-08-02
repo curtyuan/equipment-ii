@@ -16,8 +16,17 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   payload-input ii_zsh_cmd_payload_input
   tmux-integration ii_zsh_cmd_tmux
   help-display ii_zsh_cmd_help
-  go-fallback ii_go_command
+  web-migration ii_zsh_cmd_web_migration
 )
+
+ii_zsh_cmd_web_migration() {
+  if [[ " $* " == *" -w "* ]]; then
+    print -u2 -- 'ii: p -w is not implemented yet'
+  else
+    print -u2 -- 'ii: payload --www/www moved to: ii p -w'
+  fi
+  return 2
+}
 
 ii_ordinary_resolve() {
   local command="${1:-}"
@@ -83,7 +92,7 @@ ii_ordinary_resolve() {
       ;;
     payload|p)
       if [[ " $* " == *" --www "* || " $* " == *" www "* || " $* " == *" -w "* ]]; then
-        print -r -- go-fallback
+        print -r -- web-migration
       else
         if [[ " $* " == *" --input "* || " $* " == *" input "* ]]; then
           print -r -- payload-input
@@ -110,5 +119,6 @@ ii() {
     "${II_ORDINARY_COMMAND_SPEC[$capability]}" "$@"
     return $?
   fi
-  ii_go_command "$@"
+  print -u2 -- "ii: unsupported command: ${1:-[missing]}"
+  return 2
 }

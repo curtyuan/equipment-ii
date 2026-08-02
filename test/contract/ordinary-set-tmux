@@ -16,7 +16,6 @@ mkdir "${tmp_dir}/bin"
 cat >"${tmp_dir}/bin/ii-go" <<'EOF'
 #!/usr/bin/env sh
 printf '%s\n' "$*" >>"$II_GO_CALL_LOG"
-[ "${1:-}" = __tmux_ensure ] && exit 0
 printf 'ordinary command unexpectedly invoked Go: %s\n' "$*" >&2
 exit 99
 EOF

@@ -3,7 +3,7 @@
 The docs are split by audience and maintenance task.
 Deployment instructions live in the root [README.md](../README.md).
 
-During the Go migration, root documentation is the working target contract.
+During the runtime ownership migration, root documentation is the working target contract.
 The documentation captured with the executable legacy baseline under
 [`../ori-ii/`](../ori-ii/) is the only source of truth for pre-Go behavior.
 Paths that still describe root-level `lib/`, `payloads/`, or `script/` belong
@@ -25,12 +25,11 @@ to the contract audit and must be reconciled as their features migrate.
 
 | File | Purpose |
 | --- | --- |
-| [architecture.md](architecture.md) | Current Go runtime boundaries, dependency direction, feature ownership, and target `/www` split. |
+| [architecture.md](architecture.md) | Current Zsh/tmux/Go ownership and invocation boundaries. |
 | [feature-inventory.md](feature-inventory.md) | Live feature ownership, migration status, and the `/www` compatibility inventory. |
 | [help.md](help.md) | Help output contract, per-feature registration, routing, and maintenance workflow. |
 | [testing.md](testing.md) | Syntax checks, smoke tests, and regression scenarios. |
 | [release.md](release.md) | Version bumping, package build output, and release tagging. |
-| [design.html](design.html) | Navigable design map for command behavior, docs ownership, and maintenance checks. |
 
 ## Active TODOs
 
@@ -38,6 +37,5 @@ Files under `todo/`, when present, track active implementation work. Update
 them together with the code and delete each file when its completion criteria
 are satisfied.
 
-- [Go runtime migration](todo/runtime-migration.md) — audit the current
-  contract, rebuild the command entrypoint in Go, migrate features vertically,
-  and finally remove the `ori-ii/` baseline.
+- [Runtime migration](todo/runtime-migration.md) — finish `p -w`, move the tmux
+  popup and payload data, validate packaging, and remove the frozen baseline.

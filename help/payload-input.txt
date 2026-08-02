@@ -34,5 +34,5 @@ Shell values win over ii tmux values. Missing values keep the original token
 and are reported.
 
 With --execute, ii asks [y/N] before executing through the allowlisted
-parent-shell channel. --copy copies the rendered text. -o writes it to a file;
+current Zsh shell. --copy copies the rendered text. -o writes it to a file;
 with no PATH, output goes to /www/p/att.txt.

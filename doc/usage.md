@@ -33,7 +33,6 @@ while preserving tmux as the shared fallback across panes.
 | `ii get FILTER` | `ii g FILTER`, `ii g:FILTER`, `ii gr` (rhost), `ii gl` (lhost) | Copy and print one tmux variable value without loading |
 | `ii load` | `ii l` | Load tmux variables into this shell without the internal `ii_` prefix |
 | `ii load --all-pane` | `ii la` | Review panes in the current window, then load the selected shells |
-| `ii sync on/off/status` | | Control optional prompt-time auto-sync from tmux into this shell |
 | `ii clip backend` | `ii clipboard backend` | Show or set clipboard backend |
 | `ii clip doctor` | `ii clipboard doctor` | Diagnose clipboard behavior and suggest a backend |
 | `ii interactive` | `ii i` | Select variable names with fzf, preview values, edit, add, and copy values |
@@ -49,7 +48,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii p --input --copy [-o [PATH]]` | `ii pic [-o [PATH]]` | Render pasted input and always copy it |
 | `ii p --input --execute [-o [PATH]]` | `ii pie` | Render input, confirm, and execute without copying |
 | `ii p --input --copy --execute [-o [PATH]]` | `ii pice` | Render input, confirm, copy, and execute it in the current shell; `pice` accepts no arguments |
-| `ii p --www --file PATH` / `ls` / `search [FILTER]` / `ln SOURCE_PATH [LINK_NAME]` | | Render a file, list, search, or symlink files under the configured web root |
+| `ii p -w file PATH` / `ln SOURCE_PATH [LINK_NAME]` / `ls` / `search [FILTER]` | | Planned Zsh web helpers; currently returns a not-implemented diagnostic |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
 | `ii tmux status` | | Diagnose the native tmux `:ii` command alias |
@@ -189,10 +188,9 @@ variable is written to tmux, exported into the current shell, and printed in the
 same style as `--from-shell`. Missing or unreadable files and malformed entries
 are reported on stdout.
 
-`ii l` is a one-time load from tmux into the current shell. It does not enable
-ongoing synchronization. Use `ii sync on` only when this shell should keep
-refreshing loaded variables from tmux before each prompt; use `ii sync off` to
-stop that refresh.
+`ii l` is an explicit one-time load from tmux into the current shell. There is
+no prompt-time background synchronization. Other panes retain their local
+values until they run `ii l` or receive an explicit `ii la` dispatch.
 
 `ii load --all-pane`, or `ii la`, opens a multi-select prompt for every pane in
 the current tmux window. Alive zsh panes that are not in a tmux mode are
@@ -204,15 +202,13 @@ have the plugin loaded. The final summary distinguishes local loads,
 dispatched commands, user skips, and failures; `dispatched` confirms delivery,
 not successful execution in the destination shell.
 
-When auto-sync is on, use inline assignments for local values that should be
-saved back immediately:
+Use inline assignments for local values that should be saved back explicitly:
 
 ```zsh
 usert=alice ii s:usert --from-shell
 ```
 
-For multi-command local edits, run `ii sync off` first so the next prompt does
-not refresh the same names from tmux before `--from-shell` can save them.
+Local edits remain local until `--from-shell` saves them into tmux.
 
 `ii g FILTER` uses case-insensitive name matching and the common single-letter
 name shortcuts. It copies the selected value through the clipboard layer and
@@ -447,18 +443,18 @@ After `y`, `ii` prints copy status and the selected payload's render report as
 the selector closes. Enter retains the normal render/output behavior. Aborting
 without Enter or `y` prints nothing.
 
-Render an existing file and expose it from the web-root `p` directory:
+Web helpers use the reserved grammar:
 
 ```zsh
-ii p --www --file ./payload.txt
+ii p -w file ./payload.txt
+ii p -w ln ./payload.txt
+ii p -w ls
+ii p -w search payload
 ```
 
-`ii p --www --file PATH` reads `PATH`, renders it with the shared payload render
-rules, prints the render report and rendered body, then creates a symlink to the
-original file under `/www/p`, or `$II_WWW_ROOT/p` when the web root is
-overridden. Existing targets are not overwritten. After linking, it prints the
-relative web directory, absolute symlink path, and paste-ready shell commands:
-`relative_file=/p/`, `file=...`, and `rfile=FILENAME`.
+These forms are not implemented yet and return status 2. The old
+`--www`/`www` spellings no longer perform filesystem work; for one migration
+release they print a diagnostic pointing to `ii p -w`.
 
 Write the rendered payload to a file with `-o`:
 
@@ -553,10 +549,9 @@ Use inline assignments for one-command shell overrides:
 lhost=10.10.14.3 file=/tmp/drop/agent.exe ii p --input --copy
 ```
 
-`ii l` is a one-time load. This matters only when prompt auto-sync has been
-enabled explicitly with `ii sync on`, because prompt sync can refresh same-name
-shell variables from tmux before the next command prompt. Use `ii sync off` to
-stop that refresh in the current shell.
+`ii l` is a one-time explicit load. Shell-local overrides remain unchanged
+until the user runs `ii l`, `ii s`, or another operation that explicitly
+updates those names.
 
 Example input:
 
@@ -591,10 +586,10 @@ ii p sqli
 
 ## Payload Directory
 
-By default, the plugin points `II_PAYLOAD_DIR` to the bundled payload directory:
+The current transitional package points `II_PAYLOAD_DIR` to:
 
 ```text
-${II_PLUGIN_DIR}/payloads
+${II_PLUGIN_DIR}/ori-ii/payloads
 ```
 
 Override it only if you keep payloads somewhere else:
@@ -603,8 +598,8 @@ Override it only if you keep payloads somewhere else:
 export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
 ```
 
-`ii p --www ...` uses `/www` by default. Override it in your ii config when your
-web root lives elsewhere:
+`II_WWW_ROOT` is reserved for the planned `ii p -w ...` commands. Its default
+will be `/www`; it has no effect until those commands are implemented.
 
 ```zsh
 export II_WWW_ROOT="$HOME/www"

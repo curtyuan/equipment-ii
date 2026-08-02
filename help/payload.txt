@@ -8,10 +8,10 @@ usage: ii payload [CATEGORY]
        ii pe [KEYWORD ...]
        ii p --copy --execute [KEYWORD ...]
        ii pce [KEYWORD ...]
-       ii p --www --file PATH
-       ii p --www ln SOURCE_PATH [LINK_NAME]
-       ii p --www ls
-       ii p --www search [FILTER]
+       ii p -w file PATH
+       ii p -w ln SOURCE_PATH [LINK_NAME]
+       ii p -w ls
+       ii p -w search [FILTER]
        ii p --input [-o [PATH]]
        ii p --input --copy [-o [PATH]]
        ii pic [-o [PATH]]
@@ -39,7 +39,6 @@ Help:
   ii help payload --input --execute
   ii help pie
   ii help pice
-  ii help payload --www
 
 Payload files:
   Open the payload selector, render the selected template, and print the output.
@@ -90,22 +89,9 @@ Output:
   to /www/FILENAME. Directory paths use att.txt. After rendering, ii prints the
   output file note and ends with the absolute output path on its own line.
 
-/www helpers:
-  ii p --www --file PATH
-    Read PATH, render it with the normal payload renderer, print the render
-    report and rendered output, then symlink PATH into /www/p and print
-    relative_file, file, and rfile shell commands for manual copy.
-
-  ii p --www ln SOURCE_PATH [LINK_NAME]
-    Select a directory under /www and create a symlink to SOURCE_PATH there.
-
-  ii p --www ls
-    Print files and directories under /www as a tree.
-
-  ii p --www search [FILTER]
-    Fuzzy-select an entry under /www and print its containing directory relative
-    to /www, then its absolute path. FILTER preselects the first
-    case-insensitive fzf match.
+Web helpers:
+  The planned Zsh-owned grammar is `ii p -w file|ln|ls|search`. It is not
+  implemented yet. The old --www/www forms print a migration diagnostic only.
 
 Categories:
   all, shell, script, linux, windows, sqli, xss

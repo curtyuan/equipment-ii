@@ -2,74 +2,39 @@
 
 ![ii icon](doc/asset/ii-icon2.png)
 
-`ii` is being rebuilt from its public entrypoint inward as a Go runtime with a
-thin Zsh parent-shell adapter.
+`ii` is a Zsh plugin for tmux-scoped variables, payload rendering, clipboard
+work, and multi-pane combo workflows.
 
-## Repository State
+## Runtime ownership
 
-- [`ori-ii/`](ori-ii/) is the only source of truth for the complete pre-Go Zsh
-  implementation, payload set, scripts, tests, and matching documentation.
-- `src/` will contain the new Go implementation.
-- [`doc/todo/runtime-migration.md`](doc/todo/runtime-migration.md) is the living
-  audit and migration plan.
-- Root documentation is the working target contract and must be reconciled
-  against `ori-ii/` before implementation behavior changes.
+- Zsh owns every public command, current-shell mutation, ordinary payload,
+  help route, clipboard decision, and tmux integration setup.
+- tmux is the persistent, session-wide store for `ii_*` variables.
+- Go is an internal helper for opted-in `# flow: 1` combo workflows. The
+  existing tmux input popup also remains in Go until its separate migration.
 
-Do not add features to `ori-ii/`. Use it to reproduce legacy behavior and run
-differential contract tests while migrating one public route at a time.
+Sourcing the plugin and running ordinary commands do not start Go. Zsh selects
+and confirms a combo before launching one `ii-go __combo-*` process. There is
+no daemon, shell-state file, parent-shell operation file, or Go public-command
+fallback.
 
-## First Go Runtime
-
-Build and test the current entrypoint-first runtime:
+## Build and test
 
 ```zsh
 make build
 make test
 ```
 
-The migration bridge sends every invocation through `ii-go`. Migrated routes
-run in Go; explicitly unmigrated routes run in the same parent shell through
-the `ori-ii` adapter. There is no fallback after a Go-owned route fails.
+`make` writes a deployment package to `export/ii`. The bundled payload data is
+temporarily read from `ori-ii/payloads`; moving it to the root package and
+retiring the remaining frozen baseline are tracked in
+[`doc/todo/runtime-migration.md`](doc/todo/runtime-migration.md).
 
-Current Go-owned routes are top-level help, version, unknown-command handling,
-the read-only `ls`/`list`/`variable`/`vars`/`var` family, `v [PATTERN]`, and
-the `v --out`/`vo`/`voc` file-output family. The complete `set` family,
-`load/l/la`, `sync`, and `unset/u` are also Go-owned, including all-pane load
-and confirmed unset-all modes. `get/g/gr/gl/g:*` selection and clipboard copy
-are Go-owned as well. Public pasted-input execution through `pic`, `pie`,
-`pice`, and `payload --input` is Go-owned, including its nested help topics.
+## Source layout
 
-`make` writes the current Go deployment package to `export/ii`. The immutable
-legacy package is built separately under `ori-ii/export/ii`:
+- `ii.plugin.zsh`, `lib/`, and `help/`: live Zsh public runtime.
+- `src/`: Go combo workflow helper and temporary tmux popup helper.
+- `test/contract/`: public Zsh and combo boundary contracts.
+- `ori-ii/`: frozen pre-migration reference and temporary payload source.
 
-```zsh
-./ori-ii/script/make
-make
-```
-
-## Legacy Baseline
-
-Load the original implementation independently:
-
-```zsh
-II_CONFIG_FILE=/dev/null source ./ori-ii/ii.plugin.zsh
-ii version
-```
-
-Run its automated baseline from `ori-ii/`:
-
-```zsh
-cd ori-ii
-zsh -n ii.plugin.zsh lib/*.zsh script/ii-tmux-*
-./script/help
-./script/test-color
-./script/test-workflow-parser
-./script/test-workflow
-./script/test-workflow-tmux
-./script/test-tmux-input
-./script/test-tmux-popup-input
-./script/test-tmux-integration
-```
-
-Deployment instructions for the legacy version remain in
-[`ori-ii/README.md`](ori-ii/README.md).
+Do not add features to `ori-ii/`.

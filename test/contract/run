@@ -3,167 +3,56 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 invoke="${repo_dir}/test/harness/invoke"
-mode="${1:-both}"
-
-case "$mode" in
-  legacy|go|both) ;;
-  *)
-    printf 'usage: %s [legacy|go|both]\n' "$0" >&2
-    exit 2
-    ;;
-esac
-
-cases=(
-  empty
-  help
-  h
-  short-help
-  long-help
-  version
-  short-version
-  long-version
-  version-help
-  help-version
-  list-help
-  ls-help
-  ls-outside-tmux
-  set-help
-  help-set
-  help-sf
-  load-help
-  help-load
-  unset-help
-  get-help
-  help-get
-  payload-help
-  payload-copy-help
-  payload-execute-help
-  payload-copy-execute-help
-  unknown
-)
-
-case_args() {
-  case "$1" in
-    empty) return ;;
-    help) printf '%s\0' help ;;
-    h) printf '%s\0' h ;;
-    short-help) printf '%s\0' -h ;;
-    long-help) printf '%s\0' --help ;;
-    version) printf '%s\0' version ;;
-    short-version) printf '%s\0' -v ;;
-    long-version) printf '%s\0' --version ;;
-    version-help) printf '%s\0' version --help ;;
-    help-version) printf '%s\0' help version ;;
-    list-help) printf '%s\0' help list ;;
-    ls-help) printf '%s\0' ls --help ;;
-    ls-outside-tmux) printf '%s\0' ls ;;
-    set-help) printf '%s\0' set --help ;;
-    help-set) printf '%s\0' help set ;;
-    help-sf) printf '%s\0' help sf ;;
-    load-help) printf '%s\0' load --help ;;
-    help-load) printf '%s\0' help load ;;
-    unset-help) printf '%s\0' help unset ;;
-    get-help) printf '%s\0' get --help ;;
-    help-get) printf '%s\0' help get ;;
-    payload-help) printf '%s\0' help payload ;;
-    payload-copy-help) printf '%s\0' help pc ;;
-    payload-execute-help) printf '%s\0' help pe ;;
-    payload-copy-execute-help) printf '%s\0' help pce ;;
-    unknown) printf '%s\0' no-such-command ;;
-  esac
-}
-
-expected_status() {
-  case "$1" in
-    unknown) printf 2 ;;
-    ls-outside-tmux) printf 1 ;;
-    *) printf 0 ;;
-  esac
-}
-
-run_case() {
-  local backend="$1" name="$2" out="$3" err="$4" status_file="$5"
-  local color="${6:-never}" no_color="${7-1}"
-  local -a args=()
-  while IFS= read -r -d '' arg; do
-    args+=("$arg")
-  done < <(case_args "$name")
-
-  set +e
-  TMUX= TMUX_PANE= \
-    II_CONTRACT_COLOR="$color" II_CONTRACT_NO_COLOR="$no_color" \
-    "$invoke" "$backend" "${args[@]}" >"$out" 2>"$err"
-  status=$?
-  set -e
-  printf '%s\n' "$status" >"$status_file"
-}
-
-normalize_removed_routes() {
-  sed '/prompt auto-sync/d' "$1"
-}
-
 tmp_dir="$(mktemp -d)"
 trap 'rm -r "$tmp_dir"' EXIT
 
-for name in "${cases[@]}"; do
-  legacy_out="${tmp_dir}/${name}.legacy.out"
-  legacy_err="${tmp_dir}/${name}.legacy.err"
-  legacy_status="${tmp_dir}/${name}.legacy.status"
-  run_case legacy "$name" "$legacy_out" "$legacy_err" "$legacy_status"
-
-  expected="$(expected_status "$name")"
-  actual="$(<"$legacy_status")"
-  if [[ "$actual" != "$expected" ]]; then
-    printf 'legacy contract %s: status %s, expected %s\n' "$name" "$actual" "$expected" >&2
-    exit 1
-  fi
-
-  [[ "$mode" == legacy ]] && continue
-
-  go_out="${tmp_dir}/${name}.go.out"
-  go_err="${tmp_dir}/${name}.go.err"
-  go_status="${tmp_dir}/${name}.go.status"
-  run_case go "$name" "$go_out" "$go_err" "$go_status"
-
-  diff -u "$legacy_status" "$go_status" || {
-    printf 'contract status mismatch: %s\n' "$name" >&2
-    exit 1
-  }
-  normalize_removed_routes "$legacy_out" >"${legacy_out}.normalized"
-  diff -u "${legacy_out}.normalized" "$go_out" || {
-    printf 'contract stdout mismatch: %s\n' "$name" >&2
-    exit 1
-  }
-  diff -u "$legacy_err" "$go_err" || {
-    printf 'contract stderr mismatch: %s\n' "$name" >&2
-    exit 1
-  }
-done
-
-legacy_out="${tmp_dir}/colored-help.legacy.out"
-legacy_err="${tmp_dir}/colored-help.legacy.err"
-legacy_status="${tmp_dir}/colored-help.legacy.status"
-go_out="${tmp_dir}/colored-help.go.out"
-go_err="${tmp_dir}/colored-help.go.err"
-go_status="${tmp_dir}/colored-help.go.status"
-run_case legacy help "$legacy_out" "$legacy_err" "$legacy_status" always ""
-grep -Fq $'\033[36m' "$legacy_out" || {
-  printf 'legacy colored-help contract did not emit ANSI aliases\n' >&2
-  exit 1
+check_help() {
+  local name="$1" topic="$2"
+  shift 2
+  TMUX= TMUX_PANE= II_CONTRACT_COLOR=never II_CONTRACT_NO_COLOR=1 \
+    "$invoke" go "$@" >"${tmp_dir}/${name}.out" 2>"${tmp_dir}/${name}.err"
+  diff -u "${repo_dir}/help/${topic}.txt" "${tmp_dir}/${name}.out"
+  [[ ! -s "${tmp_dir}/${name}.err" ]]
 }
-if [[ "$mode" != legacy ]]; then
-  run_case go help "$go_out" "$go_err" "$go_status" always ""
-  diff -u "$legacy_status" "$go_status"
-  normalize_removed_routes "$legacy_out" >"${legacy_out}.normalized"
-  diff -u "${legacy_out}.normalized" "$go_out"
-  diff -u "$legacy_err" "$go_err"
 
-  set +e
-  "$invoke" go sync >"${tmp_dir}/removed-sync.out" 2>"${tmp_dir}/removed-sync.err"
-  removed_sync_status=$?
-  set -e
-  [[ "$removed_sync_status" == 2 ]]
-  grep -Fq 'ii: unknown command: sync' "${tmp_dir}/removed-sync.err"
-fi
+check_help empty top
+check_help help top help
+check_help h top h
+check_help short-help top -h
+check_help long-help top --help
+check_help list list help list
+check_help list-alias list ls --help
+check_help set set help set
+check_help set-alias set help sf
+check_help load load load --help
+check_help unset unset help unset
+check_help get get get --help
+check_help payload payload help payload
+check_help payload-copy payload-copy help pc
+check_help payload-execute payload-execute help pe
+check_help payload-copy-execute payload-copy-execute help pce
+check_help payload-input payload-input help payload --input
+check_help tmux tmux help tmux
+check_help version-help version version --help
 
-printf 'public command contracts passed (%s)\n' "$mode"
+TMUX= TMUX_PANE= "$invoke" go version >"${tmp_dir}/version.out" 2>"${tmp_dir}/version.err"
+grep -Fx "ii $(<"${repo_dir}/VERSION")" "${tmp_dir}/version.out"
+[[ ! -s "${tmp_dir}/version.err" ]]
+
+set +e
+TMUX= TMUX_PANE= "$invoke" go no-such-command >"${tmp_dir}/unknown.out" 2>"${tmp_dir}/unknown.err"
+unknown_status=$?
+TMUX= TMUX_PANE= "$invoke" go sync >"${tmp_dir}/sync.out" 2>"${tmp_dir}/sync.err"
+sync_status=$?
+set -e
+[[ "$unknown_status" == 2 && "$sync_status" == 2 ]]
+grep -Fx 'ii: unknown command: no-such-command' "${tmp_dir}/unknown.err"
+grep -Fx 'ii: unknown command: sync' "${tmp_dir}/sync.err"
+diff -u "${repo_dir}/help/top.txt" "${tmp_dir}/unknown.out"
+
+TMUX= TMUX_PANE= II_CONTRACT_COLOR=always II_CONTRACT_NO_COLOR= \
+  "$invoke" go help >"${tmp_dir}/color.out" 2>"${tmp_dir}/color.err"
+grep -Fq $'\033[36m' "${tmp_dir}/color.out"
+[[ ! -s "${tmp_dir}/color.err" ]]
+
+printf 'public command contracts passed (repository help fixtures)\n'

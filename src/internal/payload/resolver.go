@@ -7,11 +7,12 @@ import (
 )
 
 type VariableResolver struct {
-	shell   port.ShellState
 	session map[string]string
 }
 
-func NewVariableResolver(shell port.ShellState, environment port.EnvironmentReader) (*VariableResolver, string, error) {
+// NewSessionVariableResolver intentionally uses tmux as the sole state source
+// for combo workflows and the tmux input popup.
+func NewSessionVariableResolver(environment port.EnvironmentReader) (*VariableResolver, string, error) {
 	read, err := environment.Read()
 	if err != nil {
 		return nil, "", err
@@ -24,23 +25,10 @@ func NewVariableResolver(shell port.ShellState, environment port.EnvironmentRead
 		}
 		session[strings.TrimPrefix(name, "ii_")] = value
 	}
-	return &VariableResolver{shell: shell, session: session}, read.Diagnostic, nil
+	return &VariableResolver{session: session}, read.Diagnostic, nil
 }
-
-// NewSessionVariableResolver intentionally excludes parent-shell state. Combo
-// workflows use tmux as their reproducible source of truth.
-func NewSessionVariableResolver(environment port.EnvironmentReader) (*VariableResolver, string, error) {
-	return NewVariableResolver(emptyShellState{}, environment)
-}
-
-type emptyShellState struct{}
-
-func (emptyShellState) Lookup(string) port.ShellValue { return port.ShellValue{} }
 
 func (r *VariableResolver) Resolve(name string) (Value, bool) {
-	if shell := r.shell.Lookup(name); shell.Present && shell.Value != "" {
-		return Value{Value: shell.Value, Source: SourceShell}, true
-	}
 	if value := r.session[name]; value != "" {
 		return Value{Value: value, Source: SourceSession}, true
 	}

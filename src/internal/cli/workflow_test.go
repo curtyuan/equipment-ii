@@ -8,9 +8,10 @@ import (
 	"github.com/curtyuan/equipment-ii/src/internal/port"
 )
 
-type workflowPayloadStoreFake struct {
-	text string
-}
+type workflowPayloadStoreFake struct{ text string }
+
+func (f workflowPayloadStoreFake) List() ([]string, error)     { return []string{"flow"}, nil }
+func (f workflowPayloadStoreFake) Read(string) (string, error) { return f.text, nil }
 
 type workflowEnvironmentFake struct{ lines []string }
 
@@ -19,13 +20,6 @@ func (f workflowEnvironmentFake) Read() (port.EnvironmentRead, error) {
 }
 func (workflowEnvironmentFake) Set(string, string) error { return nil }
 func (workflowEnvironmentFake) Unset(string) error       { return nil }
-
-type workflowShellStateFake map[string]port.ShellValue
-
-func (f workflowShellStateFake) Lookup(name string) port.ShellValue { return f[name] }
-
-func (f workflowPayloadStoreFake) List() ([]string, error)     { return []string{"flow"}, nil }
-func (f workflowPayloadStoreFake) Read(string) (string, error) { return f.text, nil }
 
 type workflowRuntimeCLIFake struct {
 	sent    []string
@@ -62,121 +56,36 @@ func (f *workflowRuntimeCLIFake) SendWorkflowStage(_, pane, text string) error {
 
 type workflowSelectorCLIFake struct{}
 
-func (workflowSelectorCLIFake) SelectWorkflowLanes(
-	lanes []string, state *payload.WorkflowSession,
-) error {
+func (workflowSelectorCLIFake) SelectWorkflowLanes(lanes []string, state *payload.WorkflowSession) error {
 	state.Assignments.Assign(lanes[0], "%1", "manual")
 	state.Assignments.Assign(lanes[1], "%2", "manual")
 	return nil
 }
 
-type workflowConfirmerCLIFake struct {
-	views []payload.WorkflowStageView
-}
+type workflowConfirmerCLIFake struct{ views []payload.WorkflowStageView }
 
-type workflowPayloadSelectorFake struct{}
-
-func (workflowPayloadSelectorFake) SelectPayload(
-	[]port.PayloadSelectionItem, string, string,
-) (port.PayloadSelection, error) {
-	return port.PayloadSelection{Action: "enter", Path: "flow"}, nil
-}
-
-type workflowPopupCLIFake struct {
-	helper string
-	path   string
-	copy   bool
-}
-
-func (f *workflowPopupCLIFake) LaunchWorkflowPopup(helper, path string, copyStages bool) error {
-	f.helper, f.path, f.copy = helper, path, copyStages
-	return nil
-}
-
-func (f *workflowConfirmerCLIFake) ConfirmWorkflowStage(
-	view payload.WorkflowStageView,
-) (bool, error) {
+func (f *workflowConfirmerCLIFake) ConfirmWorkflowStage(view payload.WorkflowStageView) (bool, error) {
 	f.views = append(f.views, view)
 	return true, nil
 }
 
-func TestRunWorkflowPopupComposesSelectionAndRunner(t *testing.T) {
-	const document = `# description: demo
+const comboDocument = `# description: demo
 # flow: 1
 # note: wait
 # stage: zsh | listen
 # lane: kali-main
 # advance: confirm
-echo one
+echo $rhost
 # stage: powershell | connect
 # lane: remote-main
 # advance: confirm
-echo two
+echo $rhost
 `
-	app := newTestCLI()
-	app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: document})
-	runtime := &workflowRuntimeCLIFake{}
-	confirmer := &workflowConfirmerCLIFake{}
-	app.workflowRuntime = runtime
-	app.workflowSelector = workflowSelectorCLIFake{}
-	app.workflowConfirmer = confirmer
-	var stdout, stderr strings.Builder
-
-	status := app.Run(
-		[]string{"__workflow_popup", "flow", "%1", "$1", "0"},
-		&stdout, &stderr,
-	)
-	if status != 0 || stderr.String() != "" {
-		t.Fatalf("status=%d stdout=%q stderr=%q", status, stdout.String(), stderr.String())
-	}
-	if runtime.written != "kali-main=%1\nremote-main=%2" {
-		t.Fatalf("memory = %q", runtime.written)
-	}
-	if len(runtime.sent) != 2 || runtime.sent[0] != "%1:echo one" ||
-		runtime.sent[1] != "%2:echo two" {
-		t.Fatalf("sent = %#v", runtime.sent)
-	}
-	if len(confirmer.views) != 2 || confirmer.views[0].Notes[0] != "wait" {
-		t.Fatalf("views = %#v", confirmer.views)
-	}
-	if !strings.Contains(stdout.String(), "workflow completed: 2 stage(s) sent") {
-		t.Fatalf("stdout = %q", stdout.String())
-	}
-}
-
-func TestRunWorkflowPopupRejectsChangedOrigin(t *testing.T) {
-	app := newTestCLI()
-	app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: `# flow: 1
-# stage: zsh | one
-# lane: kali-main
-# advance: confirm
-echo one
-`})
-	app.workflowRuntime = &workflowRuntimeCLIFake{}
-	var stdout, stderr strings.Builder
-	status := app.Run(
-		[]string{"__workflow_popup", "flow", "%9", "$1", "0"},
-		&stdout, &stderr,
-	)
-	if status != 1 || !strings.Contains(stderr.String(), "origin pane is no longer available") {
-		t.Fatalf("status=%d stderr=%q", status, stderr.String())
-	}
-}
 
 func TestComboRunUsesTmuxStateOnly(t *testing.T) {
 	app := newTestCLI()
-	app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: `# flow: 1
-# stage: zsh | one
-# lane: kali-main
-# advance: confirm
-echo $rhost
-# stage: powershell | two
-# lane: remote-main
-# advance: confirm
-echo $rhost
-`})
+	app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: comboDocument})
 	app.environment = workflowEnvironmentFake{lines: []string{"ii_rhost=tmux-value"}}
-	app.state = workflowShellStateFake{"rhost": {Present: true, Value: "shell-value"}}
 	runtime := &workflowRuntimeCLIFake{}
 	app.workflowRuntime = runtime
 	app.workflowSelector = workflowSelectorCLIFake{}
@@ -186,9 +95,20 @@ echo $rhost
 	if status != 0 || stderr.String() != "" {
 		t.Fatalf("status=%d stdout=%q stderr=%q", status, stdout.String(), stderr.String())
 	}
-	if len(runtime.sent) != 2 || runtime.sent[0] != "%1:echo tmux-value" ||
-		runtime.sent[1] != "%2:echo tmux-value" {
+	if len(runtime.sent) != 2 || runtime.sent[0] != "%1:echo tmux-value" || runtime.sent[1] != "%2:echo tmux-value" {
 		t.Fatalf("sent = %#v", runtime.sent)
+	}
+}
+
+func TestComboRunRejectsChangedOrigin(t *testing.T) {
+	app := newTestCLI()
+	app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: comboDocument})
+	app.environment = workflowEnvironmentFake{lines: []string{"ii_rhost=value"}}
+	app.workflowRuntime = &workflowRuntimeCLIFake{}
+	var stdout, stderr strings.Builder
+	status := app.Run([]string{"__combo-run", "flow", "%9", "$1", "0", "none"}, &stdout, &stderr)
+	if status != 1 || !strings.Contains(stderr.String(), "origin pane is no longer available") {
+		t.Fatalf("status=%d stderr=%q", status, stderr.String())
 	}
 }
 
@@ -201,55 +121,11 @@ func TestComboRunRejectsOpenClipboardChoice(t *testing.T) {
 	}
 }
 
-func TestRunPayloadLaunchesWorkflowPopupWithCopyMode(t *testing.T) {
+func TestGoHelperRejectsPublicCommands(t *testing.T) {
 	app := newTestCLI()
-	app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: `# flow: 1
-# stage: zsh | one
-# lane: kali-main
-# advance: confirm
-echo one
-`})
-	app.payloadSelector = workflowPayloadSelectorFake{}
-	popup := &workflowPopupCLIFake{}
-	app.workflowPopup = popup
 	var stdout, stderr strings.Builder
-	status := app.Run([]string{"__payload_select", "--execute", "--copy"}, &stdout, &stderr)
-	if status != 0 || stderr.String() != "" {
-		t.Fatalf("status=%d stdout=%q stderr=%q", status, stdout.String(), stderr.String())
-	}
-	if popup.path != "flow" || !popup.copy || popup.helper == "" {
-		t.Fatalf("popup = %#v", popup)
-	}
-}
-
-func TestPublicPayloadAliasesLaunchWorkflowPopup(t *testing.T) {
-	tests := []struct {
-		command string
-		copy    bool
-	}{
-		{command: "pe"},
-		{command: "pce", copy: true},
-	}
-	for _, test := range tests {
-		t.Run(test.command, func(t *testing.T) {
-			app := newTestCLI()
-			app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: `# flow: 1
-# stage: zsh | one
-# lane: kali-main
-# advance: confirm
-echo one
-`})
-			app.payloadSelector = workflowPayloadSelectorFake{}
-			popup := &workflowPopupCLIFake{}
-			app.workflowPopup = popup
-			var stdout, stderr strings.Builder
-			status := app.Run([]string{test.command, "flow"}, &stdout, &stderr)
-			if status != 0 || stderr.String() != "" {
-				t.Fatalf("status=%d stdout=%q stderr=%q", status, stdout.String(), stderr.String())
-			}
-			if popup.path != "flow" || popup.copy != test.copy {
-				t.Fatalf("popup = %#v", popup)
-			}
-		})
+	status := app.Run([]string{"set", "rhost", "value"}, &stdout, &stderr)
+	if status != 2 || !strings.Contains(stderr.String(), "unsupported Go helper command") {
+		t.Fatalf("status=%d stderr=%q", status, stderr.String())
 	}
 }

@@ -101,31 +101,12 @@ func validComboClipboard(backend string) bool {
 	return strings.HasPrefix(backend, "cmd:") && len(strings.TrimPrefix(backend, "cmd:")) > 0
 }
 
-func (c *CLI) runWorkflowPopup(args []string, stdout, stderr io.Writer) int {
-	if len(args) != 4 || (args[3] != "0" && args[3] != "1") {
-		fmt.Fprintln(stderr, "ii: usage: ii-go __workflow_popup PATH ORIGIN SESSION COPY")
-		return 2
-	}
+func (c *CLI) runWorkflow(args []string, stdout, stderr io.Writer, _ bool) int {
 	if c.workflowRuntime == nil {
 		fmt.Fprintln(stderr, "ii: workflow tmux runtime is unavailable")
 		return 1
 	}
-	return c.runWorkflow(args, stdout, stderr, false)
-}
-
-func (c *CLI) runWorkflow(args []string, stdout, stderr io.Writer, tmuxOnly bool) int {
-	if c.workflowRuntime == nil {
-		fmt.Fprintln(stderr, "ii: workflow tmux runtime is unavailable")
-		return 1
-	}
-	var resolver *payload.VariableResolver
-	var diagnostic string
-	var err error
-	if tmuxOnly {
-		resolver, diagnostic, err = payload.NewSessionVariableResolver(c.environment)
-	} else {
-		resolver, diagnostic, err = payload.NewVariableResolver(c.state, c.environment)
-	}
+	resolver, diagnostic, err := payload.NewSessionVariableResolver(c.environment)
 	fmt.Fprint(stderr, diagnostic)
 	if err != nil {
 		fmt.Fprintln(stderr, err)

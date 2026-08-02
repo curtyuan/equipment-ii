@@ -1,97 +1,24 @@
 # Feature Inventory
 
-This document is the live migration inventory. The frozen legacy design remains
-in `ori-ii/doc/architecture.md`; the current Go design is described in
-`doc/architecture.md`.
+| Feature family | Live owner | Status / remaining work |
+| --- | --- | --- |
+| Bootstrap, configuration, public dispatch | Zsh | Complete; sourcing and ordinary commands do not start Go |
+| Help and version | Zsh static help | Complete |
+| Set/get/list/load/unset/output | Zsh + tmux state | Complete |
+| Interactive variables | Zsh + fzf + tmux | Complete; add/edit also update the caller |
+| Clipboard policy | Zsh | Complete; a closed backend is handed to combo Go |
+| Ordinary stored payloads | Zsh | Complete |
+| Pasted payload input | Zsh | Complete |
+| Combo workflows | Go payload/terminal/tmux packages | Complete ownership boundary; final integration validation remains |
+| Tmux alias setup/status | Zsh | Complete |
+| Tmux `:ii` input popup | Go internal helper | Temporary; migrate to Zsh |
+| `p -w` web helpers | Zsh target | Not implemented; old spellings diagnose migration only |
+| Payload data/package | `ori-ii/payloads` temporarily | Move to root and remove frozen baseline |
 
-## Status Meanings
+Go has no public dispatcher and rejects public command names. Its accepted
+runtime entries are `__combo-render`, `__combo-copy`, `__combo-run`, and the
+temporary `__tmux_popup` input helper. Shell-state and parent-shell operation
+protocols and their superseded tests have been removed.
 
-- **Go**: the public route and its behavior are implemented in Go.
-- **Hybrid**: Go owns part of the route or provides a reusable foundation, but
-  the compatibility bridge still owns user-visible behavior.
-- **Legacy**: the Zsh compatibility bridge still owns the feature.
-- **Foundation**: reusable Go support exists, but the public feature has not
-  migrated yet.
-
-## Current Inventory
-
-| Feature family | Status | Current owner | Remaining work |
-| --- | --- | --- | --- |
-| Bootstrap and configuration | Hybrid | Go plus compatibility bridge | Reduce bridge-only environment setup after dependent routes migrate. |
-| Route resolution and dispatch | Go | `internal/cli` | Replace remaining resolver special cases with one declarative command specification. |
-| Version and top-level help | Go | `internal/cli` | Keep help registration aligned with command specifications. |
-| Variable families (`s`, `g`, compact forms) | Go | `internal/variables` and `internal/cli` | Consolidate repeated CLI parsing and help wiring. |
-| Clipboard | Go | `internal/clipboard` and adapters | No migration blocker; retain platform contract tests. |
-| Payload catalog and stored payload actions | Go | `internal/payload`, `internal/cli`, and filesystem/fzf adapters | Retain differential rendering, selector, shell-operation, and help contracts while removing the baseline. |
-| Pasted payload input | Go | `internal/payload` and `internal/cli` | Reuse the input renderer from future input-consuming routes. |
-| Tmux alias installation and popup execution | Go | `internal/tmux` and `internal/cli` | Split the concrete session adapter into smaller interfaces over a shared runner. |
-| `/www` publication and browsing | Go | `internal/www`, filesystem/fzf adapters, and `internal/cli` | Retain semantic contracts while later removing the legacy baseline. |
-| Workflow helpers | Go | `internal/payload`, terminal/tmux adapters, and `internal/cli` | Retain cancellation, identity-revalidation, literal-send, and popup composition coverage. |
-| Build, generated wrappers, and compatibility bridge | Hybrid | Make targets and generated shell | Remove bridge paths only after parity and shell-usage checks pass. |
-
-## `/www` Functional Inventory
-
-The legacy implementation exposes two route spellings for publication:
-`p --www --file PATH` and `p www --file PATH`. Both must resolve to the same Go
-operation.
-
-### Publish a file
-
-- Require a regular source file.
-- Render and report the file contents using the payload input rules.
-- Resolve the source to an absolute path.
-- Create a symbolic link in `${II_WWW_ROOT:-/www}/p` using the source basename.
-- Link the original source file; do not copy generated contents.
-- Refuse to overwrite an existing destination.
-- Return the body/report, link path, analysis-relative directory, absolute
-  source path, and shell assignments required by the compatibility contract.
-
-### Create a link
-
-- Route: `www ln SOURCE [LINK_NAME]`.
-- Require the configured web root to exist.
-- Select a destination directory when the route requires interactive choice.
-- Reject an empty name, names containing `/`, and `.` or `..`.
-- Refuse to overwrite an existing destination.
-
-### List entries
-
-- Route: `www ls`.
-- Walk entries deterministically.
-- Include files, directories, and symbolic links.
-- Do not follow symbolic-link targets while walking.
-
-### Search entries
-
-- Route: `www search [FILTER]`.
-- Select an entry using the selector adapter.
-- Return the relative containing directory and absolute selected path.
-
-### Help and compatibility
-
-- Preserve the legacy route spellings and accepted `file` / `--file` forms.
-- Keep machine-readable output stable enough for the generated shell bridge.
-- Add semantic contract tests before removing the legacy implementation.
-
-## Structural Work Before `/www`
-
-Completed in the current refactoring checkpoint:
-
-- Replaced the positional CLI constructor with named `Dependencies`.
-- Split hidden shell-bridge entrypoints from public command dispatch.
-- Added a shared `Resolution` entry used by routing and public dispatch.
-- Added a reusable payload `InputRenderer` for public input and tmux popup
-  execution.
-- Split CLI composition, dispatch, resolution, and variable-family behavior
-  into responsibility-specific files.
-- Added the `/www` domain service, feature-owned Store interface, filesystem
-  adapter, and initial safety tests.
-
-Still open:
-
-- Consolidate remaining route-owner and canonical-command special cases into a
-  declarative command specification.
-- Separate the concrete tmux session environment into environment, pane, and
-  integration adapters backed by one command runner.
-- Remove `/www` path policy from payload output after compatibility behavior is
-  covered by contracts.
+Detailed ordering and unresolved decisions are tracked in
+[`todo/runtime-migration.md`](todo/runtime-migration.md).

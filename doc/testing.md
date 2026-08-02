@@ -7,17 +7,15 @@ All commands below are intended to be run from the project root.
 The repository keeps three intentionally different test layers:
 
 ```text
-src/**/*_test.go          fast Go unit and adapter-boundary tests
-test/contract/            current public, shell-operation, and tmux contracts
+src/**/*_test.go          combo-domain and retained adapter tests
+test/contract/            current Zsh public, architecture, and tmux contracts
 ori-ii/script/test-*      frozen pre-Go compatibility baseline
 ```
 
-Go unit tests follow their production package and file responsibility. Shared
-CLI fakes live in `src/internal/cli/test_support_test.go`; command, resolution,
-help, and variable CLI behavior have separate test files.
+Go unit tests cover only the combo helper and the temporary tmux popup support.
 
 Contract tests exercise process boundaries and durable effects that unit tests
-cannot represent, including Zsh dispatch, parent-shell operations, isolated
+cannot represent, including Zsh dispatch, isolated
 tmux servers, popup terminal input, and fzf-driven selection. They are not
 duplicates of the Go tests.
 
@@ -26,9 +24,9 @@ the same feature. It remains the executable comparison baseline until the
 legacy runtime is removed. Files under generated `build/` and `export/`
 directories are not test sources.
 
-## Go Migration Baseline
+## Current Runtime Baseline
 
-The root test/build interface now belongs to `ii-go`:
+Use these root targets:
 
 ```zsh
 make test
@@ -40,13 +38,9 @@ make test-set-tmux
 make test-unset-all-tmux
 make test-load-all-tmux
 make test-get-tmux
-make test-interactive-tmux
 make test-clipboard-tmux
 make test-tmux-status
-make test-payload-render-tmux
-make test-payload-select-tmux
 make test-payload-input-usage-tmux
-make test-www
 make test-tmux-install
 make test-tmux-popup
 make test-tmux-popup-interactive
@@ -54,11 +48,11 @@ make cross-build
 make
 ```
 
-`make test` runs format, vet, Go unit tests, a static build, and public
-differential contracts, including the versioned parent-shell operation
-protocol. The tmux targets use isolated servers to verify the temporary legacy
-bridge, the complete Go-owned variable family, native alias installation,
-popup execution and real heredoc/interactive `ii pic` and `ii pice` input. A
+`make test` runs format, vet, Go unit tests, shared render/routing/combo
+architecture contracts, a static build, and public Zsh compatibility checks.
+The tmux targets use isolated servers to verify Zsh variable behavior, native
+alias installation/status, popup execution, and real heredoc/interactive
+`ii pic` and `ii pice` input. A
 bare `make` creates the current deployment package under `export/ii`.
 
 Current feature ownership and known coverage gaps are tracked in
@@ -122,8 +116,7 @@ Check every feature-registered help topic and verify that short help flags do
 not enter normal command execution:
 
 ```zsh
-./script/help
-zsh -fc 'source ./ii.plugin.zsh; for command in "get -h" "load -h" "sync -h" "interactive -h" "ls -h" "payload -h" "unset -h" "version -h" "p --input -h" "p --www -h" "p --www --file -h" "p --www ln -h" "p --www ls -h" "p --www search -h"; do ii ${(z)command} >/dev/null || exit; done'
+zsh -fc 'source ./ii.plugin.zsh; for command in "get -h" "load -h" "interactive -h" "ls -h" "payload -h" "unset -h" "version -h" "p --input -h"; do ii ${(z)command} >/dev/null || exit; done'
 zsh -fc 'source ./ii.plugin.zsh; ii help pic | grep -Fq "ii pic [-o [PATH]]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pe | grep -Fq "ii pe [KEYWORD ...]"'
 zsh -fc 'source ./ii.plugin.zsh; ii help pce | grep -Fq "ii pce [KEYWORD ...]"'
@@ -139,20 +132,11 @@ zsh -fc 'source ./ii.plugin.zsh; ii la --help | grep -Fq "likely ready"'
 ```
 
 Each command must return zero without requiring tmux, fzf, a source path, or a
-configured web root. `script/help` also fails when any canonical topic or
-direct dispatcher alias is missing its `usage`, `Aliases`, or `Help` section.
-It also verifies that parent help enumerates every direct child path and fixed
-alias for the top-level dispatcher, payload, input, `/www`, variable-output,
-and tmux command trees. Both `-h` and `--help` are exercised for every direct
-dispatcher spelling and fixed child path, including sync actions, clipboard
-actions, tmux actions, and `unset -a`; the same paths are also checked through
-`ii help ...`.
-
-Registry conflicts must be rejected without partially adding the failed topic:
-
-```zsh
-zsh -fc 'source ./lib/help_registry.zsh; a() { :; }; b() { :; }; ii_help_register one a shared; ii_help_register two b unique shared && exit 1; [[ "$II_HELP_REGISTRY_ERROR" == 1 && -z "${II_HELP_HANDLERS[two]-}" && -z "${II_HELP_ROUTES[unique]-}" ]]'
-```
+configured web root. `make test-contract` compares public help output, status,
+and streams with the frozen baseline while it remains available. Go resolution
+tests must cover every direct alias and nested help path. Once an intentionally
+removed route such as `sync` is dropped, replace its differential expectation
+with an explicit unknown-command contract.
 
 ## Interactive Payload Input
 

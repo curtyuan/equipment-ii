@@ -552,8 +552,11 @@ Resolve these together before implementing the ownership reversal:
   while using different state precedence: ordinary resolves shell then tmux;
   combo resolves tmux only. One language-neutral fixture corpus supplies both
   contexts to the Zsh and Go renderer contracts.
-- [ ] What exact argv/environment contract launches one combo Go process from
-  Zsh without shell-state or operation channels?
+- [x] Zsh launches one combo Go process as `ii-go __combo-run PATH ORIGIN
+  SESSION COPY CLIPBOARD` after path/classification/confirmation checks. Go
+  revalidates the relative payload through its catalog, resolves variables
+  from tmux only, and receives the already-resolved clipboard choice; no
+  shell-state or parent-shell operation channel is created.
 - [ ] Should the old `--www` forms fail as unknown immediately or print a
   migration diagnostic pointing to `ii p -w` for one release?
 - [ ] What exact `ii p -w` child grammar replaces `--www --file`, `ln`, `ls`,

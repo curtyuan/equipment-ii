@@ -1,0 +1,41 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+trap 'command rm -rf -- "$tmp_dir"' EXIT
+mkdir -p "${tmp_dir}/payloads/combo"
+print -rl -- '# flow: 1' '# stage: zsh | test' '# lane: local' '# advance: confirm' 'echo ok' \
+  >"${tmp_dir}/payloads/combo/test"
+
+typeset -g II_GO_ROOT="$root"
+typeset -g II_GO_BIN="${tmp_dir}/ii-go"
+typeset -g II_PAYLOAD_DIR="${tmp_dir}/payloads"
+typeset -g II_INTERACTIVE_KEY=y
+typeset -g TMUX='fake,1,0'
+typeset -g TMUX_CALL_LOG="${tmp_dir}/tmux.calls"
+touch "$II_GO_BIN"
+chmod +x "$II_GO_BIN"
+
+tmux() {
+  if [[ "$1" == display-message ]]; then
+    print -r -- '$7'$'\t''%4'
+    return
+  fi
+  print -rl -- "$@" >|"$TMUX_CALL_LOG"
+}
+
+source "${root}/lib/ordinary_variables.zsh"
+source "${root}/lib/ordinary_clipboard.zsh"
+source "${root}/lib/ordinary_payload_render.zsh"
+
+ii_zsh_combo_launch combo/test 0 >"${tmp_dir}/stdout"
+grep -Fx 'Execute this combo workflow? [y/N] y' "${tmp_dir}/stdout"
+grep -Fx -- 'display-popup' "$TMUX_CALL_LOG"
+grep -F -- '__combo-run' "$TMUX_CALL_LOG"
+grep -F -- 'combo/test' "$TMUX_CALL_LOG"
+grep -F -- '%4' "$TMUX_CALL_LOG"
+grep -F -- '$7' "$TMUX_CALL_LOG"
+grep -F -- 'none' "$TMUX_CALL_LOG"
+
+print 'single-process combo launch contract passed'

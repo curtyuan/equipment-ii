@@ -12,6 +12,18 @@ type workflowPayloadStoreFake struct {
 	text string
 }
 
+type workflowEnvironmentFake struct{ lines []string }
+
+func (f workflowEnvironmentFake) Read() (port.EnvironmentRead, error) {
+	return port.EnvironmentRead{Lines: f.lines}, nil
+}
+func (workflowEnvironmentFake) Set(string, string) error { return nil }
+func (workflowEnvironmentFake) Unset(string) error       { return nil }
+
+type workflowShellStateFake map[string]port.ShellValue
+
+func (f workflowShellStateFake) Lookup(name string) port.ShellValue { return f[name] }
+
 func (f workflowPayloadStoreFake) List() ([]string, error)     { return []string{"flow"}, nil }
 func (f workflowPayloadStoreFake) Read(string) (string, error) { return f.text, nil }
 
@@ -147,6 +159,44 @@ echo one
 		&stdout, &stderr,
 	)
 	if status != 1 || !strings.Contains(stderr.String(), "origin pane is no longer available") {
+		t.Fatalf("status=%d stderr=%q", status, stderr.String())
+	}
+}
+
+func TestComboRunUsesTmuxStateOnly(t *testing.T) {
+	app := newTestCLI()
+	app.payloads = payload.NewCatalog(workflowPayloadStoreFake{text: `# flow: 1
+# stage: zsh | one
+# lane: kali-main
+# advance: confirm
+echo $rhost
+# stage: powershell | two
+# lane: remote-main
+# advance: confirm
+echo $rhost
+`})
+	app.environment = workflowEnvironmentFake{lines: []string{"ii_rhost=tmux-value"}}
+	app.state = workflowShellStateFake{"rhost": {Present: true, Value: "shell-value"}}
+	runtime := &workflowRuntimeCLIFake{}
+	app.workflowRuntime = runtime
+	app.workflowSelector = workflowSelectorCLIFake{}
+	app.workflowConfirmer = &workflowConfirmerCLIFake{}
+	var stdout, stderr strings.Builder
+	status := app.Run([]string{"__combo-run", "flow", "%1", "$1", "0", "none"}, &stdout, &stderr)
+	if status != 0 || stderr.String() != "" {
+		t.Fatalf("status=%d stdout=%q stderr=%q", status, stdout.String(), stderr.String())
+	}
+	if len(runtime.sent) != 2 || runtime.sent[0] != "%1:echo tmux-value" ||
+		runtime.sent[1] != "%2:echo tmux-value" {
+		t.Fatalf("sent = %#v", runtime.sent)
+	}
+}
+
+func TestComboRunRejectsOpenClipboardChoice(t *testing.T) {
+	app := newTestCLI()
+	var stdout, stderr strings.Builder
+	status := app.Run([]string{"__combo-run", "flow", "%1", "$1", "1", "auto"}, &stdout, &stderr)
+	if status != 2 || !strings.Contains(stderr.String(), "invalid combo clipboard backend") {
 		t.Fatalf("status=%d stderr=%q", status, stderr.String())
 	}
 }

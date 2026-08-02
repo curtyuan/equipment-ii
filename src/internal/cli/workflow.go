@@ -4,10 +4,44 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 
 	"github.com/curtyuan/equipment-ii/src/internal/payload"
 	"github.com/curtyuan/equipment-ii/src/internal/terminal"
 )
+
+func (c *CLI) runCombo(args []string, stdout, stderr io.Writer) int {
+	if len(args) != 5 || (args[3] != "0" && args[3] != "1") {
+		fmt.Fprintln(stderr, "ii: usage: ii-go __combo-run PATH ORIGIN SESSION COPY CLIPBOARD")
+		return 2
+	}
+	backend := args[4]
+	if !validComboClipboard(backend) || (args[3] == "1" && backend == "none") {
+		fmt.Fprintln(stderr, "ii: invalid combo clipboard backend")
+		return 2
+	}
+	if strings.HasPrefix(backend, "cmd:") {
+		_ = os.Unsetenv("II_CLIP_BACKEND")
+		_ = os.Setenv("II_CLIP_CMD", strings.TrimPrefix(backend, "cmd:"))
+	} else {
+		_ = os.Unsetenv("II_CLIP_CMD")
+		if backend == "none" {
+			_ = os.Unsetenv("II_CLIP_BACKEND")
+		} else {
+			_ = os.Setenv("II_CLIP_BACKEND", backend)
+		}
+	}
+	return c.runWorkflow(args[:4], stdout, stderr, true)
+}
+
+func validComboClipboard(backend string) bool {
+	switch backend {
+	case "none", "tmux", "wl-copy", "pbcopy", "clip.exe", "xclip", "xclip-both", "xsel", "osc52":
+		return true
+	}
+	return strings.HasPrefix(backend, "cmd:") && len(strings.TrimPrefix(backend, "cmd:")) > 0
+}
 
 func (c *CLI) runWorkflowPopup(args []string, stdout, stderr io.Writer) int {
 	if len(args) != 4 || (args[3] != "0" && args[3] != "1") {
@@ -18,7 +52,22 @@ func (c *CLI) runWorkflowPopup(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "ii: workflow tmux runtime is unavailable")
 		return 1
 	}
-	resolver, diagnostic, err := payload.NewVariableResolver(c.state, c.environment)
+	return c.runWorkflow(args, stdout, stderr, false)
+}
+
+func (c *CLI) runWorkflow(args []string, stdout, stderr io.Writer, tmuxOnly bool) int {
+	if c.workflowRuntime == nil {
+		fmt.Fprintln(stderr, "ii: workflow tmux runtime is unavailable")
+		return 1
+	}
+	var resolver *payload.VariableResolver
+	var diagnostic string
+	var err error
+	if tmuxOnly {
+		resolver, diagnostic, err = payload.NewSessionVariableResolver(c.environment)
+	} else {
+		resolver, diagnostic, err = payload.NewVariableResolver(c.state, c.environment)
+	}
 	fmt.Fprint(stderr, diagnostic)
 	if err != nil {
 		fmt.Fprintln(stderr, err)

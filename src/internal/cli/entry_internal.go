@@ -48,6 +48,8 @@ func (c *CLI) runInternal(args []string, stdout, stderr io.Writer) (int, bool) {
 		return c.runTmuxPopup(args[1:], stdout, stderr), true
 	case "__workflow_popup":
 		return c.runWorkflowPopup(args[1:], stdout, stderr), true
+	case "__combo-run":
+		return c.runCombo(args[1:], stdout, stderr), true
 	default:
 		return 0, false
 	}

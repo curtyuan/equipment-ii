@@ -7,7 +7,7 @@ VERSION := $(shell tr -d '\n' < VERSION)
 GO_LDFLAGS := -s -w -X main.version=$(VERSION)
 export GOCACHE := $(CURDIR)/$(BUILD_DIR)/.gocache
 
-.PHONY: all build package package-linux-amd64 package-linux-arm64 package-arch fmt-check vet test test-go test-contract test-shell-operations test-ordinary-set-tmux test-payload-render-shared test-www test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy test-legacy-tmux cross-build clean
+.PHONY: all build package package-linux-amd64 package-linux-arm64 package-arch fmt-check vet test test-go test-contract test-shell-operations test-ordinary-set-tmux test-payload-render-shared test-combo-launch test-www test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy test-legacy-tmux cross-build clean
 
 all: package
 
@@ -79,6 +79,9 @@ test-ordinary-set-tmux:
 test-payload-render-shared:
 	./test/contract/payload-render-shared
 
+test-combo-launch:
+	./test/contract/combo-launch
+
 test-www: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/www
 
@@ -133,7 +136,7 @@ test-payload-select-tmux: build
 test-payload-input-usage-tmux: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/payload-input-usage-tmux
 
-test: fmt-check vet test-go test-payload-render-shared test-contract test-shell-operations
+test: fmt-check vet test-go test-payload-render-shared test-combo-launch test-contract test-shell-operations
 
 test-legacy:
 	cd ori-ii && zsh -n ii.plugin.zsh lib/*.zsh script/ii-tmux-* \

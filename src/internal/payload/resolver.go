@@ -27,6 +27,16 @@ func NewVariableResolver(shell port.ShellState, environment port.EnvironmentRead
 	return &VariableResolver{shell: shell, session: session}, read.Diagnostic, nil
 }
 
+// NewSessionVariableResolver intentionally excludes parent-shell state. Combo
+// workflows use tmux as their reproducible source of truth.
+func NewSessionVariableResolver(environment port.EnvironmentReader) (*VariableResolver, string, error) {
+	return NewVariableResolver(emptyShellState{}, environment)
+}
+
+type emptyShellState struct{}
+
+func (emptyShellState) Lookup(string) port.ShellValue { return port.ShellValue{} }
+
 func (r *VariableResolver) Resolve(name string) (Value, bool) {
 	if shell := r.shell.Lookup(name); shell.Present && shell.Value != "" {
 		return Value{Value: shell.Value, Source: SourceShell}, true

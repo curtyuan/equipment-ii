@@ -105,3 +105,45 @@ ii_zsh_payload_render_text() {
   typeset -g II_PAYLOAD_RENDERED_TEXT="$rendered"
   print -rn -- "$rendered"
 }
+
+ii_zsh_combo_launch() {
+  local relative_path="$1" copy_stages="${2:-0}"
+  local root="${II_PAYLOAD_DIR:A}" payload_path backend identity session origin popup_command answer
+  [[ "$relative_path" != /* && "$relative_path" != (..|../*|*/../*|*/..) ]] || {
+    print -u2 -- "ii: invalid payload path: $relative_path"
+    return 1
+  }
+  payload_path="${root}/${relative_path}"
+  [[ -f "$payload_path" && "${payload_path:A}" == "${root}/"* ]] || {
+    print -u2 -- "ii: payload not found: $relative_path"
+    return 1
+  }
+  awk 'BEGIN { found=0 } /^[[:space:]]*#[[:space:]]*flow:[[:space:]]*1[[:space:]]*$/ { found=1 } END { exit !found }' "$payload_path" || {
+    print -u2 -- "ii: selected payload is not an executable workflow"
+    return 1
+  }
+  print -n -- 'Execute this combo workflow? [y/N] '
+  if [[ -n "${II_INTERACTIVE_KEY:-}" ]]; then
+    answer="$II_INTERACTIVE_KEY"
+    print -r -- "$answer"
+  else
+    IFS= read -r answer || true
+  fi
+  [[ "${(L)answer}" == y ]] || {
+    print -u2 -- 'ii: execution cancelled'
+    return 1
+  }
+  if [[ "$copy_stages" == 1 ]]; then
+    backend="$(ii_zsh_clip_effective)" || {
+      print -u2 -- 'ii: clipboard unavailable'
+      return 1
+    }
+  else
+    backend=none
+  fi
+  identity="$(tmux display-message -p '#{session_id}'$'\t''#{pane_id}')" || return
+  session="${identity%%$'\t'*}"
+  origin="${identity#*$'\t'}"
+  popup_command="${(q)II_GO_BIN} __combo-run ${(q)relative_path} ${(q)origin} ${(q)session} ${(q)copy_stages} ${(q)backend}"
+  tmux display-popup -EE -T 'ii workflow' -w '90%' -h '90%' -d '#{pane_current_path}' "$popup_command"
+}

@@ -548,9 +548,10 @@ Resolve these together before implementing the ownership reversal:
   point, and which should be rewritten to avoid reintroducing obsolete global
   load-order coupling? Decision: clean ordinary modules; frozen modules are
   reference/fixtures only and combo is never restored to Zsh.
-- [ ] Should ordinary and combo rendering intentionally share identical token
-  syntax while using different state precedence (ordinary: shell then tmux;
-  combo: tmux only), and how will one fixture corpus express both contexts?
+- [x] Ordinary and combo rendering intentionally share identical token syntax
+  while using different state precedence: ordinary resolves shell then tmux;
+  combo resolves tmux only. One language-neutral fixture corpus supplies both
+  contexts to the Zsh and Go renderer contracts.
 - [ ] What exact argv/environment contract launches one combo Go process from
   Zsh without shell-state or operation channels?
 - [ ] Should the old `--www` forms fail as unknown immediately or print a

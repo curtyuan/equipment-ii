@@ -1,0 +1,6 @@
+# id<TAB>input<TAB>shell assignments<TAB>tmux assignments<TAB>ordinary expected<TAB>combo expected
+precedence	$rhost	rhost=shell	rhost=tmux	shell	tmux
+fallback	$lhost	-	lhost=session	session	session
+empty-shell	$domain	domain=	domain=example.test	example.test	example.test
+tokens	$rhost ${rhost} %rhost% ${file:t} $missing $RHOST $env:Path	rhost=192.0.2.20	rhost=198.51.100.10;file=C:\share\tool.exe	192.0.2.20 192.0.2.20 192.0.2.20 tool.exe $missing $RHOST $env:Path	198.51.100.10 198.51.100.10 198.51.100.10 tool.exe $missing $RHOST $env:Path
+malformed	$ ${broken $Mixed ${name:-x} %missing $global:value	-	-	$ ${broken $Mixed ${name:-x} %missing $global:value	$ ${broken $Mixed ${name:-x} %missing $global:value

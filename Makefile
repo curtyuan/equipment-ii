@@ -7,7 +7,7 @@ VERSION := $(shell tr -d '\n' < VERSION)
 GO_LDFLAGS := -s -w -X main.version=$(VERSION)
 export GOCACHE := $(CURDIR)/$(BUILD_DIR)/.gocache
 
-.PHONY: all build package package-linux-amd64 package-linux-arm64 package-arch fmt-check vet test test-go test-contract test-shell-operations test-ordinary-set-tmux test-www test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy test-legacy-tmux cross-build clean
+.PHONY: all build package package-linux-amd64 package-linux-arm64 package-arch fmt-check vet test test-go test-contract test-shell-operations test-ordinary-set-tmux test-payload-render-shared test-www test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-interactive-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-render-tmux test-payload-select-tmux test-payload-input-usage-tmux test-legacy test-legacy-tmux cross-build clean
 
 all: package
 
@@ -21,7 +21,7 @@ package: build
 	rm -rf $(EXPORT_DIR)
 	mkdir -p $(EXPORT_DIR)/lib $(EXPORT_DIR)/ori-ii/script
 	cp ii.plugin.zsh README.md VERSION $(EXPORT_DIR)/
-	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh lib/ordinary_read.zsh lib/ordinary_clipboard.zsh lib/ordinary_get.zsh lib/ordinary_interactive.zsh $(EXPORT_DIR)/lib/
+	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh lib/ordinary_read.zsh lib/ordinary_clipboard.zsh lib/ordinary_get.zsh lib/ordinary_interactive.zsh lib/ordinary_payload_render.zsh $(EXPORT_DIR)/lib/
 	cp $(II_GO) $(EXPORT_DIR)/ii-go
 	cp ori-ii/ii.plugin.zsh ori-ii/VERSION $(EXPORT_DIR)/ori-ii/
 	cp -R ori-ii/lib ori-ii/payloads $(EXPORT_DIR)/ori-ii/
@@ -45,7 +45,7 @@ package-arch:
 	rm -rf export/linux-$(ARCH)
 	mkdir -p export/linux-$(ARCH)/ii/lib export/linux-$(ARCH)/ii/ori-ii/script
 	cp ii.plugin.zsh README.md VERSION export/linux-$(ARCH)/ii/
-	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh lib/ordinary_read.zsh lib/ordinary_clipboard.zsh lib/ordinary_get.zsh lib/ordinary_interactive.zsh export/linux-$(ARCH)/ii/lib/
+	cp lib/ordinary_runtime.zsh lib/ordinary_variables.zsh lib/ordinary_read.zsh lib/ordinary_clipboard.zsh lib/ordinary_get.zsh lib/ordinary_interactive.zsh lib/ordinary_payload_render.zsh export/linux-$(ARCH)/ii/lib/
 	cp $(BUILD_DIR)/ii-go-linux-$(ARCH) export/linux-$(ARCH)/ii/ii-go
 	cp ori-ii/ii.plugin.zsh ori-ii/VERSION export/linux-$(ARCH)/ii/ori-ii/
 	cp -R ori-ii/lib ori-ii/payloads export/linux-$(ARCH)/ii/ori-ii/
@@ -75,6 +75,9 @@ test-shell-operations: build
 
 test-ordinary-set-tmux:
 	./test/contract/ordinary-set-tmux
+
+test-payload-render-shared:
+	./test/contract/payload-render-shared
 
 test-www: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/www
@@ -130,7 +133,7 @@ test-payload-select-tmux: build
 test-payload-input-usage-tmux: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/payload-input-usage-tmux
 
-test: fmt-check vet test-go test-contract test-shell-operations
+test: fmt-check vet test-go test-payload-render-shared test-contract test-shell-operations
 
 test-legacy:
 	cd ori-ii && zsh -n ii.plugin.zsh lib/*.zsh script/ii-tmux-* \

@@ -1,0 +1,44 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+fixture="${root}/test/fixtures/payload-render.tsv"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+
+tmux -f /dev/null -S "$socket" new-session -d -s payload-render-shared 'sleep 30'
+export TMUX="${socket},1,0"
+source "${root}/ii.plugin.zsh"
+
+apply_assignments() {
+  local target="$1" assignments="$2" assignment name value
+  [[ "$assignments" != - ]] || return 0
+  for assignment in ${(s:;:)assignments}; do
+    name="${assignment%%=*}"
+    value="${assignment#*=}"
+    if [[ "$target" == shell ]]; then export "$name=$value"
+    else tmux set-environment "ii_${name}" "$value"
+    fi
+  done
+}
+
+while IFS=$'\t' read -r case_id input shell_values tmux_values ordinary_want combo_want; do
+  [[ -n "$case_id" && "$case_id" != \#* ]] || continue
+  for name in rhost lhost domain file; do unset "$name" 2>/dev/null || true; done
+  for name in rhost lhost domain file; do tmux set-environment -u "ii_${name}" 2>/dev/null || true; done
+  apply_assignments shell "$shell_values"
+  apply_assignments tmux "$tmux_values"
+  ordinary_got="$(ii_zsh_payload_render_text "$input" ordinary)"
+  combo_got="$(ii_zsh_payload_render_text "$input" tmux)"
+  [[ "$ordinary_got" == "$ordinary_want" ]] || {
+    print -u2 -- "$case_id ordinary: got ${(qqq)ordinary_got}, want ${(qqq)ordinary_want}"
+    return 1
+  }
+  [[ "$combo_got" == "$combo_want" ]] || {
+    print -u2 -- "$case_id combo: got ${(qqq)combo_got}, want ${(qqq)combo_want}"
+    return 1
+  }
+done <"$fixture"
+
+print 'shared payload render contract passed (Zsh)'

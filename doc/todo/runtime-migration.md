@@ -539,6 +539,9 @@ Current ownership-reversal checkpoint:
 - [x] Move interactive variable selection, add, edit, and copy to Zsh; add/edit
   share the `ii s` mutation path and therefore update both tmux and the calling
   shell, while copy shares the single Zsh clipboard policy.
+- [x] Move the public payload selector to Zsh: ordinary render/copy/output/
+  execute remain in-process, while a Zsh-selected combo invokes exactly one of
+  `__combo-render`, `__combo-copy`, or `__combo-run` according to the action.
 
 ### Next-Stage Discussion Queue
 

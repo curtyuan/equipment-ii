@@ -12,6 +12,7 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   variable-get ii_zsh_cmd_get
   clipboard ii_zsh_cmd_clip
   variable-interactive ii_zsh_cmd_interactive
+  payload-select ii_zsh_cmd_payload
 )
 
 ii_ordinary_resolve() {
@@ -66,6 +67,17 @@ ii_ordinary_resolve() {
       ;;
     interactive|i)
       [[ $# -eq 0 ]] && print -r -- variable-interactive
+      ;;
+    pc|pe|pce)
+      [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- payload-select
+      ;;
+    payload|p)
+      if [[ " $* " != *" -h "* && " $* " != *" --help "* &&
+            " $* " != *" --input "* && " $* " != *" input "* &&
+            " $* " != *" --www "* && " $* " != *" www "* &&
+            " $* " != *" -w "* ]]; then
+        print -r -- payload-select
+      fi
       ;;
   esac
   return 0

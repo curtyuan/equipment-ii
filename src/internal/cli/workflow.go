@@ -16,10 +16,68 @@ func (c *CLI) runCombo(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "ii: usage: ii-go __combo-run PATH ORIGIN SESSION COPY CLIPBOARD")
 		return 2
 	}
-	backend := args[4]
-	if !validComboClipboard(backend) || (args[3] == "1" && backend == "none") {
-		fmt.Fprintln(stderr, "ii: invalid combo clipboard backend")
+	if !configureComboClipboard(args[4], args[3] == "1", stderr) {
 		return 2
+	}
+	return c.runWorkflow(args[:4], stdout, stderr, true)
+}
+
+func (c *CLI) runComboRender(args []string, stdout, stderr io.Writer) int {
+	if len(args) != 1 {
+		fmt.Fprintln(stderr, "ii: usage: ii-go __combo-render PATH")
+		return 2
+	}
+	result, ok := c.renderCombo(args[0], stderr)
+	if !ok {
+		return 1
+	}
+	printPayloadReport(result.Report, c.color, stdout)
+	if len(result.Report) > 0 {
+		fmt.Fprintln(stdout, Color(34, result.Path, c.color))
+		fmt.Fprintln(stdout)
+	}
+	fmt.Fprint(stdout, result.Text)
+	return 0
+}
+
+func (c *CLI) runComboCopy(args []string, stdout, stderr io.Writer) int {
+	if len(args) != 2 {
+		fmt.Fprintln(stderr, "ii: usage: ii-go __combo-copy PATH CLIPBOARD")
+		return 2
+	}
+	if !configureComboClipboard(args[1], true, stderr) {
+		return 2
+	}
+	result, ok := c.renderCombo(args[0], stderr)
+	if !ok {
+		return 1
+	}
+	return c.copySelectedPayload(result, stdout, stderr)
+}
+
+func (c *CLI) renderCombo(path string, stderr io.Writer) (payload.PayloadResult, bool) {
+	resolver, diagnostic, err := payload.NewSessionVariableResolver(c.environment)
+	fmt.Fprint(stderr, diagnostic)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return payload.PayloadResult{}, false
+	}
+	result, err := payload.NewService(c.payloads, resolver).Render(path)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return payload.PayloadResult{}, false
+	}
+	if result.Workflow == nil {
+		fmt.Fprintln(stderr, "ii: selected payload is not an executable workflow")
+		return payload.PayloadResult{}, false
+	}
+	return result, true
+}
+
+func configureComboClipboard(backend string, required bool, stderr io.Writer) bool {
+	if !validComboClipboard(backend) || (required && backend == "none") {
+		fmt.Fprintln(stderr, "ii: invalid combo clipboard backend")
+		return false
 	}
 	if strings.HasPrefix(backend, "cmd:") {
 		_ = os.Unsetenv("II_CLIP_BACKEND")
@@ -32,7 +90,7 @@ func (c *CLI) runCombo(args []string, stdout, stderr io.Writer) int {
 			_ = os.Setenv("II_CLIP_BACKEND", backend)
 		}
 	}
-	return c.runWorkflow(args[:4], stdout, stderr, true)
+	return true
 }
 
 func validComboClipboard(backend string) bool {

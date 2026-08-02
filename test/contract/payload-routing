@@ -1,0 +1,47 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+mkdir -p "${tmp_dir}/bin" "${tmp_dir}/payloads/shell" "${tmp_dir}/payloads/combo"
+print -rl -- '# description: ordinary' 'echo $rhost' >"${tmp_dir}/payloads/shell/ordinary"
+print -rl -- '# flow: 1' '# stage: zsh | test' '# lane: local' '# advance: confirm' 'echo $rhost' \
+  >"${tmp_dir}/payloads/combo/test"
+
+print -rl -- '#!/usr/bin/env sh' \
+  'awk -v selected="$II_TEST_SELECT" '\''index($0, selected) { print; exit }'\''' \
+  >"${tmp_dir}/bin/fzf"
+chmod +x "${tmp_dir}/bin/fzf"
+print -rl -- '#!/usr/bin/env sh' \
+  'printf "%s\n" "$*" >>"$II_GO_CALL_LOG"' \
+  'printf "combo handled: %s\n" "$1"' \
+  >"${tmp_dir}/bin/ii-go"
+chmod +x "${tmp_dir}/bin/ii-go"
+
+tmux -f /dev/null -S "$socket" new-session -d -s payload-routing 'sleep 30'
+tmux -S "$socket" set-environment ii_rhost tmux-value
+export TMUX="${socket},1,0"
+export PATH="${tmp_dir}/bin:${PATH}"
+export II_GO_BIN="${tmp_dir}/bin/ii-go"
+export II_GO_CALL_LOG="${tmp_dir}/go.calls"
+export II_PAYLOAD_DIR="${tmp_dir}/payloads"
+export II_CONFIG_FILE=/dev/null
+source "${root}/ii.plugin.zsh"
+print -n >|"$II_GO_CALL_LOG"
+
+export rhost=shell-value
+export II_TEST_SELECT=ordinary
+ii p >"${tmp_dir}/ordinary.out"
+grep -Fx 'rhost used from shell: shell-value' "${tmp_dir}/ordinary.out"
+grep -Fx 'echo shell-value' "${tmp_dir}/ordinary.out"
+[[ ! -s "$II_GO_CALL_LOG" ]]
+
+export II_TEST_SELECT=combo/test
+ii p >"${tmp_dir}/combo.out"
+grep -Fx 'combo handled: __combo-render' "${tmp_dir}/combo.out"
+[[ "$(wc -l <"$II_GO_CALL_LOG")" == 1 ]]
+grep -Fx '__combo-render combo/test' "$II_GO_CALL_LOG"
+
+print 'public payload ownership contract passed'

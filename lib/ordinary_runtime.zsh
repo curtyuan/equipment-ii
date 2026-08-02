@@ -14,6 +14,7 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   variable-interactive ii_zsh_cmd_interactive
   payload-select ii_zsh_cmd_payload
   payload-input ii_zsh_cmd_payload_input
+  tmux-integration ii_zsh_cmd_tmux
 )
 
 ii_ordinary_resolve() {
@@ -85,6 +86,9 @@ ii_ordinary_resolve() {
       ;;
     pic|pie|pice)
       [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- payload-input
+      ;;
+    tmux)
+      [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- tmux-integration
       ;;
   esac
   return 0

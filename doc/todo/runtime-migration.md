@@ -578,7 +578,7 @@ implementation work, in dependency order:
 2. [ ] Move public top-level help, command help, version, unknown-command
    diagnostics, and tmux integration/status routes to Zsh. These are the last
    non-www ordinary routes still falling through `ii_go_command`.
-3. [ ] Remove the plugin-load `ii-go __tmux_ensure` call. Replace it with the
+3. [x] Remove the plugin-load `ii-go __tmux_ensure` call. Replace it with the
    Zsh-owned tmux integration setup so merely sourcing the plugin never starts
    Go.
 4. [ ] Delete `ii_go_command`, shell-state serialization, parent-shell ops and

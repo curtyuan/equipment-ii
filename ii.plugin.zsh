@@ -176,6 +176,7 @@ source "${II_GO_ROOT}/lib/ordinary_interactive.zsh"
 source "${II_GO_ROOT}/lib/ordinary_payload_render.zsh"
 source "${II_GO_ROOT}/lib/ordinary_payload.zsh"
 source "${II_GO_ROOT}/lib/ordinary_tmux.zsh"
+source "${II_GO_ROOT}/lib/ordinary_help.zsh"
 source "${II_GO_ROOT}/lib/ordinary_runtime.zsh"
 
 ii_zsh_tmux_ensure || true

@@ -15,11 +15,19 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   payload-select ii_zsh_cmd_payload
   payload-input ii_zsh_cmd_payload_input
   tmux-integration ii_zsh_cmd_tmux
+  help-display ii_zsh_cmd_help
+  go-fallback ii_go_command
 )
 
 ii_ordinary_resolve() {
   local command="${1:-}"
   shift 2>/dev/null || true
+
+  if [[ -z "$command" || "$command" == (help|h|-h|--help|version|-v|--version) ||
+        " $* " == *" -h "* || " $* " == *" --help "* ]]; then
+    print -r -- help-display
+    return 0
+  fi
 
   case "$command" in
     sr|sf|sha)
@@ -74,9 +82,9 @@ ii_ordinary_resolve() {
       [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- payload-select
       ;;
     payload|p)
-      if [[ " $* " != *" -h "* && " $* " != *" --help "* &&
-            " $* " != *" --www "* && " $* " != *" www "* &&
-            " $* " != *" -w "* ]]; then
+      if [[ " $* " == *" --www "* || " $* " == *" www "* || " $* " == *" -w "* ]]; then
+        print -r -- go-fallback
+      else
         if [[ " $* " == *" --input "* || " $* " == *" input "* ]]; then
           print -r -- payload-input
         else
@@ -90,6 +98,7 @@ ii_ordinary_resolve() {
     tmux)
       [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- tmux-integration
       ;;
+    *) print -r -- help-display ;;
   esac
   return 0
 }

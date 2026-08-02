@@ -1,0 +1,66 @@
+usage: ii set NAME=VALUE [NAME=VALUE...]
+       ii s NAME=VALUE [NAME=VALUE...]
+       ii set NAME VALUE
+       ii s NAME VALUE
+       ii sr VALUE
+       ii s:NAME=VALUE[,NAME=VALUE...]
+       ii set NAME[,NAME...] [--from-shell]
+       ii s:NAME[,NAME...] [--from-shell]
+       ii set --from-shell -a
+       ii s --from-shell -a
+       ii sha
+       ii set --from-file [PATH]
+       ii s --from-file [PATH]
+       ii sf [PATH]
+       ii s NAME -d [INTERFACE]
+       ii s -d [INTERFACE]
+       ii s:lhost -d [INTERFACE]
+
+Aliases:
+  s
+  sr
+  sf
+  sha
+
+Help:
+  ii help set
+
+Forms:
+  NAME=VALUE
+    Set NAME=VALUE in the current tmux session and export it into this shell.
+    Multiple assignments can be separate arguments or comma-separated shortcut
+    entries, such as ii s:usert=alice,passt=secret.
+
+  NAME VALUE
+    Set one variable from explicit command-line arguments. Use NAME=VALUE for
+    batches or when the value could otherwise be confused with an option.
+
+  NAME[,NAME...] --from-shell
+    Save existing shell variables back into the tmux session. Lowercase shell
+    names are checked first, then uppercase names. Missing shell variables print
+    red warnings and are skipped.
+
+  --from-shell -a
+    Check every default ii variable name against non-empty lowercase, then
+    uppercase shell variables. Save and print each value found; silently skip
+    unset or empty defaults.
+
+  --from-file [PATH]
+    Read NAME=VALUE entries from PATH, defaulting to .env in the current
+    directory. Blank lines, comments, an optional export prefix, and the
+    quoting written by ii v --out are supported. Each imported value is saved
+    to tmux, exported into this shell, and printed.
+
+  -d [INTERFACE]
+    Detect lhost from INTERFACE. The default INTERFACE is tun0. Detect is only
+    supported for lhost.
+
+  automatic lhost detect
+    When rhost or rhosts is set, ii automatically detects lhost from the
+    configured interface and prints the detected value. This is controlled by
+    II_AUTO_DETECT_LHOST and II_AUTO_DETECT_LHOST_INTERFACE.
+
+Notes:
+  User-facing names do not include the internal ii_ prefix. Single-letter
+  shortcuts include r for rhost, l for lhost, and d for domain. II_EXPORT_CASE
+  controls whether exported shell variables use lower, upper, or both cases.

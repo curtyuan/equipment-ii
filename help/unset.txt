@@ -1,0 +1,12 @@
+usage: ii unset NAME [NAME...]
+       ii unset -a
+
+Aliases:
+  u
+
+Help:
+  ii help unset
+  ii help u
+
+Remove ii_name from the current tmux session and unset it in this shell.
+With -a, remove all ii_ variables after confirmation.

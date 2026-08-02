@@ -1,0 +1,24 @@
+usage: ii load
+       ii l
+       ii load --all-pane
+       ii la
+
+Aliases:
+  l
+  la    ii load --all-pane
+
+Help:
+  ii help load
+  ii help load --all-pane
+
+Load non-empty variables from the current tmux session into this shell.
+The current shell exports use names without the internal ii_ prefix.
+II_EXPORT_CASE controls exported shell names: lower, upper, or both.
+The default is lower.
+
+With --all-pane or la, show every pane in the current tmux window in a
+multi-select prompt. Panes that appear to be idle zsh shells are preselected
+as "likely ready". Review the selection with Space, then press Enter to load
+the current shell directly and dispatch `ii l` to the other selected panes.
+Other panes must already have ii loaded. "dispatched" means the command was
+sent successfully; it does not confirm that the destination shell ran it.

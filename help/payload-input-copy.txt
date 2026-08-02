@@ -1,0 +1,17 @@
+usage: ii payload --input --copy [-o [PATH]]
+       ii p --input --copy [-o [PATH]]
+       ii pic [-o [PATH]]
+
+Aliases:
+  pic
+
+Help:
+  ii help payload --input --copy
+  ii help pic
+
+Read payload text, render lowercase variables, copy the complete rendered
+result, and print it. Enter finishes, Alt-Enter inserts a newline, and Esc
+cancels. Piped and here-document input reads through EOF; :w finishes early.
+
+-o writes the rendered text to a file while preserving copy behavior. With no
+PATH, output goes to /www/p/att.txt.

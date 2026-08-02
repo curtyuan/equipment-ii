@@ -1,0 +1,12 @@
+usage: ii p --copy [KEYWORD ...]
+       ii pc [KEYWORD ...]
+
+Aliases:
+  pc
+
+Help:
+  ii help payload-copy
+  ii help pc
+
+Open the payload selector with all keywords joined as its initial query. Review
+the preview, then press y to copy the selected payload.

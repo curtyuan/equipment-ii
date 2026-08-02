@@ -1,0 +1,9 @@
+usage: ii version
+
+Aliases:
+  -v, --version
+
+Help:
+  ii help version
+
+Print the installed ii version.

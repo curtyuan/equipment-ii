@@ -1,0 +1,18 @@
+usage: ii v [PATTERN]
+       ii v --out [PATH]
+       ii vo [PATH]
+       ii voc [PATH]
+
+Aliases:
+  vo
+  voc
+
+Help:
+  ii help v
+  ii help v --out
+  ii help vo
+  ii help voc
+
+Without --out, list non-empty variables using the same optional key filter as
+ii ls. With --out, write all non-empty variables to PATH in shell-sourceable
+name='value' format. PATH defaults to .env in the current directory.

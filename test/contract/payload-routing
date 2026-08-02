@@ -30,6 +30,11 @@ export II_PAYLOAD_DIR="${tmp_dir}/payloads"
 export II_CONFIG_FILE=/dev/null
 source "${root}/ii.plugin.zsh"
 [[ ! -s "$II_GO_CALL_LOG" ]]
+ii help >"${tmp_dir}/help.out"
+ii version >"${tmp_dir}/version.out"
+grep -Fx 'usage: ii COMMAND [ARGS]' "${tmp_dir}/help.out"
+grep -Fx 'ii 0.2.4' "${tmp_dir}/version.out"
+[[ ! -s "$II_GO_CALL_LOG" ]]
 
 export rhost=shell-value
 export II_TEST_SELECT=ordinary

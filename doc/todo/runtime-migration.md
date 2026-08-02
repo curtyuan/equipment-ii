@@ -575,7 +575,7 @@ implementation work, in dependency order:
 1. [ ] Implement `ii p -w file|ln|ls|search` in Zsh with containment,
    traversal/symlink, deterministic output, and no-overwrite contracts; make
    old `--www`/`www` forms print only the one-release migration diagnostic.
-2. [ ] Move public top-level help, command help, version, unknown-command
+2. [x] Move public top-level help, command help, version, unknown-command
    diagnostics, and tmux integration/status routes to Zsh. These are the last
    non-www ordinary routes still falling through `ii_go_command`.
 3. [x] Remove the plugin-load `ii-go __tmux_ensure` call. Replace it with the

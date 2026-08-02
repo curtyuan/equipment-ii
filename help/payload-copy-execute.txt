@@ -1,0 +1,16 @@
+usage: ii payload --copy --execute [KEYWORD ...]
+       ii p --copy --execute [KEYWORD ...]
+       ii pce [KEYWORD ...]
+
+Aliases:
+  pce
+
+Help:
+  ii help payload --copy --execute
+  ii help pce
+
+Open the payload selector with all keywords joined as its initial query. Enter
+renders the selected payload, shows unresolved lowercase variables when
+present, and asks [y/N]. After y, ii copies the rendered payload and executes
+it in the current shell. Clipboard failure is reported but does not prevent
+confirmed execution. The letter c in pce always means copy.

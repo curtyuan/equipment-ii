@@ -1,0 +1,16 @@
+usage: ii interactive
+       ii i
+
+Aliases:
+  i
+
+Help:
+  ii help interactive
+
+Select variables with fzf, edit values, and copy values.
+Default variable names are shown even before they have values.
+Variables with values are listed before empty default names.
+Select "add new variable" to create or update a variable.
+Enter copies the selected value and closes.
+i or l edits the selected variable. y copies without closing.
+h, q, Esc, or Ctrl-C aborts. Use ii load to load variables into this shell.

@@ -1,0 +1,13 @@
+usage: ii ls [PATTERN]
+
+Aliases:
+  list, variable, vars, var
+
+Help:
+  ii help ls
+
+Print non-empty variables from the current tmux session.
+PATTERN filters variable names only, case-insensitively.
+Output format is blue key, then value, without blank lines between entries.
+ii v [PATTERN] uses this same listing behavior; see ii v --help for its --out
+file-output mode.

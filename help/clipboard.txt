@@ -1,0 +1,19 @@
+usage: ii clip backend
+       ii clip backend auto
+       ii clip backend BACKEND
+       ii clip doctor
+
+Aliases:
+  clipboard
+
+Help:
+  ii help clip
+
+Inspect or change clipboard backend settings for this shell and tmux session.
+
+backend prints the effective backend. backend auto clears II_CLIP_BACKEND and
+II_CLIP_CMD from this shell and the current tmux session. backend BACKEND sets
+II_CLIP_BACKEND in this shell and the current tmux session.
+
+doctor prints clipboard context, copies a test token, asks whether it reached
+the desired clipboard, and can set a context-appropriate backend.

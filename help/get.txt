@@ -1,0 +1,20 @@
+usage: ii get FILTER
+       ii g FILTER
+       ii g:FILTER
+       ii gr
+       ii gl
+
+Aliases:
+  g
+  gr (ii g r)
+  gl (ii g l)
+
+Help:
+  ii help get
+  ii help g
+
+Get a variable value from the current tmux session, copy it, and print it.
+FILTER matches variable names case-insensitively, with the same shortcut
+handling as ii set. No matches prints "no matched". One match copies the value.
+Multiple matches open a prompt; Enter or Space selects one value. q, Esc, or
+Ctrl-C aborts without changing variables or copying anything.

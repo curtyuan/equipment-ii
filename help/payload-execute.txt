@@ -1,0 +1,16 @@
+usage: ii payload --execute [KEYWORD ...]
+       ii p --execute [KEYWORD ...]
+       ii pe [KEYWORD ...]
+
+Aliases:
+  pe
+
+Help:
+  ii help payload --execute
+  ii help pe
+
+Open the payload selector with all keywords joined as its initial query. Enter
+renders the selected payload, shows unresolved lowercase variables when
+present, and asks [y/N] before executing in the current shell. Nothing is
+copied. Execution is not isolated: cwd, variables, functions, and other shell
+side effects persist.

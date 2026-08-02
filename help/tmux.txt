@@ -1,0 +1,16 @@
+usage: ii tmux status
+
+Aliases:
+  none
+
+Help:
+  ii help tmux
+
+The tmux command alias is installed automatically when the plugin loads inside
+tmux. It adds ii to tmux's native Prefix + : command prompt without replacing
+that key binding. Enter ii at the prompt to open an isolated payload popup.
+
+Set II_TMUX_INTEGRATION=0 before loading the plugin to disable automatic setup.
+If another tmux command alias already owns the name ii, ii leaves it unchanged;
+set II_TMUX_INTEGRATION_FORCE=1 to replace that conflicting alias. Status is
+read-only and reports the command alias, native Prefix+: binding, and helper.

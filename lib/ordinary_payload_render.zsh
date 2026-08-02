@@ -19,33 +19,33 @@ ii_zsh_payload_record() {
 }
 
 ii_zsh_payload_resolve() {
-  local variable_name="$1" modifier="$2" original="$3" mode="${4:-ordinary}"
-  local internal line variable_value rendered_value source
-  if [[ "$mode" == ordinary && ${+parameters[$variable_name]} -eq 1 && -n "${(P)variable_name}" ]]; then
-    variable_value="${(P)variable_name}"
-    source=shell
+  local ii_pr_name="$1" ii_pr_modifier="$2" ii_pr_original="$3" ii_pr_mode="${4:-ordinary}"
+  local ii_pr_internal ii_pr_line ii_pr_value ii_pr_rendered ii_pr_source
+  if [[ "$ii_pr_mode" == ordinary && ${+parameters[$ii_pr_name]} -eq 1 && -n "${(P)ii_pr_name}" ]]; then
+    ii_pr_value="${(P)ii_pr_name}"
+    ii_pr_source=shell
   else
-    internal="$(ii_zsh_normalize_name "$variable_name")" || return
-    line="$(tmux show-environment "$internal" 2>/dev/null)" || line=''
-    if [[ -n "$line" && -n "${line#*=}" ]]; then
-      variable_value="${line#*=}"
-      source=ii
+    ii_pr_internal="$(ii_zsh_normalize_name "$ii_pr_name")" || return
+    ii_pr_line="$(tmux show-environment "$ii_pr_internal" 2>/dev/null)" || ii_pr_line=''
+    if [[ -n "$ii_pr_line" && -n "${ii_pr_line#*=}" ]]; then
+      ii_pr_value="${ii_pr_line#*=}"
+      ii_pr_source=ii
     else
-      variable_value="$original"
-      source=missing
+      ii_pr_value="$ii_pr_original"
+      ii_pr_source=missing
     fi
   fi
-  rendered_value="$variable_value"
-  if [[ "$source" != missing && "$modifier" == :t ]]; then
-    rendered_value="$(ii_zsh_payload_path_tail "$variable_value")"
+  ii_pr_rendered="$ii_pr_value"
+  if [[ "$ii_pr_source" != missing && "$ii_pr_modifier" == :t ]]; then
+    ii_pr_rendered="$(ii_zsh_payload_path_tail "$ii_pr_value")"
   fi
-  ii_zsh_payload_record "$variable_name" "$source" "$variable_value"
-  typeset -g II_PAYLOAD_RESOLVED_VALUE="$rendered_value"
+  ii_zsh_payload_record "$ii_pr_name" "$ii_pr_source" "$ii_pr_value"
+  typeset -g II_PAYLOAD_RESOLVED_VALUE="$ii_pr_rendered"
 }
 
 ii_zsh_payload_render_text() {
   local text="$1" mode="${2:-ordinary}"
-  local rendered='' ch next expression variable_name modifier token original
+  local rendered='' ch next expression variable_name modifier parsed_name original
   local -i length=${#1} index=1 end
   typeset -gA II_PAYLOAD_RENDER_REPORT_SOURCE=()
   typeset -gA II_PAYLOAD_RENDER_REPORT_VALUE=()
@@ -73,15 +73,15 @@ ii_zsh_payload_render_text() {
       elif [[ "$next" =~ '[A-Za-z_]' ]]; then
         end=$(( index + 1 ))
         while (( end <= length )) && [[ "${text[end]}" =~ '[A-Za-z0-9_]' ]]; do (( ++end )); done
-        token="${text[index+1,end-1]}"
-        if [[ "$token" =~ '^[a-z_][a-z0-9_]*$' ]]; then
-          if [[ "${text[end]}" == : ]] && ii_zsh_payload_is_powershell_scope "$token"; then
+        parsed_name="${text[index+1,end-1]}"
+        if [[ "$parsed_name" =~ '^[a-z_][a-z0-9_]*$' ]]; then
+          if [[ "${text[end]}" == : ]] && ii_zsh_payload_is_powershell_scope "$parsed_name"; then
             rendered+="${text[index,end]}"
             index=$(( end + 1 ))
             continue
           fi
           original="${text[index,end-1]}"
-          ii_zsh_payload_resolve "$token" '' "$original" "$mode" || return
+          ii_zsh_payload_resolve "$parsed_name" '' "$original" "$mode" || return
           rendered+="$II_PAYLOAD_RESOLVED_VALUE"
           index=$end
           continue
@@ -91,9 +91,9 @@ ii_zsh_payload_render_text() {
       end=$(( index + 2 ))
       while (( end <= length )) && [[ "${text[end]}" =~ '[a-z0-9_]' ]]; do (( ++end )); done
       if (( end <= length )) && [[ "${text[end]}" == '%' ]]; then
-        token="${text[index+1,end-1]}"
+        parsed_name="${text[index+1,end-1]}"
         original="${text[index,end]}"
-        ii_zsh_payload_resolve "$token" '' "$original" "$mode" || return
+        ii_zsh_payload_resolve "$parsed_name" '' "$original" "$mode" || return
         rendered+="$II_PAYLOAD_RESOLVED_VALUE"
         index=$(( end + 1 ))
         continue

@@ -13,6 +13,7 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   clipboard ii_zsh_cmd_clip
   variable-interactive ii_zsh_cmd_interactive
   payload-select ii_zsh_cmd_payload
+  payload-input ii_zsh_cmd_payload_input
 )
 
 ii_ordinary_resolve() {
@@ -73,11 +74,17 @@ ii_ordinary_resolve() {
       ;;
     payload|p)
       if [[ " $* " != *" -h "* && " $* " != *" --help "* &&
-            " $* " != *" --input "* && " $* " != *" input "* &&
             " $* " != *" --www "* && " $* " != *" www "* &&
             " $* " != *" -w "* ]]; then
-        print -r -- payload-select
+        if [[ " $* " == *" --input "* || " $* " == *" input "* ]]; then
+          print -r -- payload-input
+        else
+          print -r -- payload-select
+        fi
       fi
+      ;;
+    pic|pie|pice)
+      [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- payload-input
       ;;
   esac
   return 0

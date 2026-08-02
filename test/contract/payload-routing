@@ -38,6 +38,13 @@ grep -Fx 'rhost used from shell: shell-value' "${tmp_dir}/ordinary.out"
 grep -Fx 'echo shell-value' "${tmp_dir}/ordinary.out"
 [[ ! -s "$II_GO_CALL_LOG" ]]
 
+export II_CLIP_BACKEND=tmux
+print -r -- 'echo $rhost' | ii pic >"${tmp_dir}/input.out"
+grep -Fx 'payload copied successfully' "${tmp_dir}/input.out"
+grep -Fx 'echo shell-value' "${tmp_dir}/input.out"
+[[ "$(tmux -S "$socket" save-buffer -)" == 'echo shell-value' ]]
+[[ ! -s "$II_GO_CALL_LOG" ]]
+
 export II_TEST_SELECT=combo/test
 ii p >"${tmp_dir}/combo.out"
 grep -Fx 'combo handled: __combo-render' "${tmp_dir}/combo.out"

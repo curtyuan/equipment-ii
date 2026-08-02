@@ -542,6 +542,8 @@ Current ownership-reversal checkpoint:
 - [x] Move the public payload selector to Zsh: ordinary render/copy/output/
   execute remain in-process, while a Zsh-selected combo invokes exactly one of
   `__combo-render`, `__combo-copy`, or `__combo-run` according to the action.
+- [x] Move pasted payload input (`pic`, `pie`, `pice`, and `p --input`) to the
+  same Zsh renderer, clipboard, output, confirmation, and current-shell paths.
 
 ### Next-Stage Discussion Queue
 

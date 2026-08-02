@@ -116,8 +116,18 @@ ii_zsh_payload_confirm() {
   else
     print -n -- 'Execute this payload? [y/N] '
   fi
-  if [[ -n "${II_INTERACTIVE_KEY:-}" ]]; then answer="$II_INTERACTIVE_KEY"; print -r -- "$answer"
-  else IFS= read -r answer || true
+  if [[ -n "${II_INTERACTIVE_KEY:-}" ]]; then
+    answer="$II_INTERACTIVE_KEY"
+    print -r -- "$answer"
+  elif [[ -t 0 ]]; then
+    read -r -k 1 answer
+    print
+  elif [[ -r /dev/tty ]]; then
+    read -r -k 1 answer </dev/tty
+    print
+  else
+    print -u2 -- 'ii: cannot confirm execution without a terminal'
+    return 1
   fi
   [[ "${(L)answer}" == y ]]
 }
@@ -219,5 +229,76 @@ ii_zsh_cmd_payload() {
   else
     print -rn -- "$rendered"
     if [[ -n "${II_PAYLOAD_OUTPUT_PATH:-}" ]]; then print -r -- '' 'payload output written to:' "$II_PAYLOAD_OUTPUT_PATH"; fi
+  fi
+}
+
+ii_zsh_payload_read_input() {
+  typeset -g II_PAYLOAD_INPUT_TEXT=''
+  if [[ -t 0 ]]; then
+    local input=''
+    print -r -- 'Paste payload input below. Enter renders; Alt-Enter adds a line; Esc cancels.' ''
+    vared -p 'ii input> ' input || { print -u2 -- 'ii: input cancelled'; return 130; }
+    [[ "$input" != (:q|:q!) ]] || { print -u2 -- 'ii: input cancelled'; return 130; }
+    [[ "$input" == *$'\n':w ]] && input="${input%$'\n':w}"
+    [[ "$input" == :w ]] && input=''
+    typeset -g II_PAYLOAD_INPUT_TEXT="$input"
+    return
+  fi
+  local line input=''
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" == :w ]] && break
+    [[ "$line" != (:q|:q!) ]] || { print -u2 -- 'ii: input cancelled'; return 130; }
+    input+="${line}"$'\n'
+  done
+  typeset -g II_PAYLOAD_INPUT_TEXT="${input%$'\n'}"
+}
+
+ii_zsh_cmd_payload_input() {
+  local command="$1" copy=0 execute=0 output=0 output_spec=''
+  shift
+  local supplied=$#
+  case "$command" in pic) copy=1 ;; pie) execute=1 ;; pice) copy=1; execute=1 ;; esac
+  while (( $# )); do
+    case "$1" in
+      --input|input) ;;
+      --copy) copy=1 ;;
+      --execute) execute=1 ;;
+      -o|--output)
+        output=1
+        if (( $# > 1 )) && [[ "$2" != -* ]]; then output_spec="$2"; shift; fi
+        ;;
+      *) print -u2 -- "ii: unknown payload input option: $1"; return 2 ;;
+    esac
+    shift
+  done
+  if [[ "$command" == (pie|pice) && $supplied -gt 0 ]]; then
+    print -u2 -- "ii: usage: ii $command"
+    return 2
+  fi
+  ii_zsh_payload_read_input || return
+  ii_zsh_payload_render_text "$II_PAYLOAD_INPUT_TEXT" ordinary >/dev/null || return
+  local rendered="$II_PAYLOAD_RENDERED_TEXT" report
+  report="$(ii_zsh_payload_report)"
+  typeset -g II_PAYLOAD_OUTPUT_PATH=''
+  if (( output )); then ii_zsh_payload_write "$rendered" "$output_spec" || return; fi
+  if (( copy && ! execute )); then
+    if ii_zsh_clip_copy "$rendered"; then print -r -- 'payload copied successfully'
+    else print -r -- 'payload rendered; clipboard copy failed'; return 1
+    fi
+    print
+  fi
+  [[ -n "$report" ]] && print -r -- "$report"
+  [[ -n "$report" ]] && print
+  print -r -- '----------------------------------------'
+  print -r -- "$rendered"
+  if (( execute )); then
+    ii_zsh_payload_confirm || { print -u2 -- 'ii: execution cancelled'; return 1; }
+    if (( copy )); then ii_zsh_clip_copy "$rendered" && print -r -- 'payload copied successfully' || print -u2 -- 'ii: clipboard copy failed; executing payload anyway'; fi
+    eval "$rendered"
+  fi
+  if [[ -n "$II_PAYLOAD_OUTPUT_PATH" ]]; then
+    print
+    print -r -- 'payload output written to:'
+    print -r -- "$II_PAYLOAD_OUTPUT_PATH"
   fi
 }

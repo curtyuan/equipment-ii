@@ -13,22 +13,18 @@ pane="$(tmux -S "$socket" display-message -p -t tmux-status-contract:0.0 '#{pane
 export TMUX="${socket},${server_pid},0"
 export TMUX_PANE="$pane"
 
-"$invoke" legacy tmux status >"${tmp_dir}/legacy.out" 2>"${tmp_dir}/legacy.err"
-"$invoke" go tmux status >"${tmp_dir}/go.out" 2>"${tmp_dir}/go.err"
-sed '/^helper:/d' "${tmp_dir}/legacy.out" >"${tmp_dir}/legacy.normalized"
-sed '/^helper:/d' "${tmp_dir}/go.out" >"${tmp_dir}/go.normalized"
-diff -u "${tmp_dir}/legacy.normalized" "${tmp_dir}/go.normalized"
-diff -u "${tmp_dir}/legacy.err" "${tmp_dir}/go.err"
-
-grep -Fx 'command alias: installed' "${tmp_dir}/go.out"
-grep -Fx 'Prefix+: native or user-defined' "${tmp_dir}/go.out"
-grep -Fx "helper: ${repo_dir}/build/ii-go" "${tmp_dir}/go.out"
+"$invoke" tmux status >"${tmp_dir}/status.out" 2>"${tmp_dir}/status.err"
+[[ ! -s "${tmp_dir}/status.err" ]]
+grep -Fx "server: $socket" "${tmp_dir}/status.out"
+grep -Fx "helper: ${repo_dir}/script/ii-tmux-popup" "${tmp_dir}/status.out"
+sed -e '/^server:/d' -e '/^helper:/d' "${tmp_dir}/status.out" >"${tmp_dir}/status.stable"
+diff -u "${repo_dir}/test/fixtures/tmux-status.txt" "${tmp_dir}/status.stable"
 
 set +e
-"$invoke" go tmux invalid >"${tmp_dir}/invalid.out" 2>"${tmp_dir}/invalid.err"
+"$invoke" tmux invalid >"${tmp_dir}/invalid.out" 2>"${tmp_dir}/invalid.err"
 status=$?
 set -e
-[[ "$status" == 2 ]]
+[[ "$status" == 2 && ! -s "${tmp_dir}/invalid.out" ]]
 grep -Fx 'ii: usage: ii tmux status' "${tmp_dir}/invalid.err"
 
-printf 'tmux status differential contracts passed\n'
+printf 'tmux status fixture contracts passed\n'

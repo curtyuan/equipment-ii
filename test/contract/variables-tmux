@@ -26,42 +26,20 @@ tmux set-environment -t variable-contract ii_empty ""
 tmux set-environment -t variable-contract ii_note "a=b"
 tmux set-environment -t variable-contract unrelated ignored
 
-compare() {
-  name="$1"
-  shift
-  legacy_out="${tmp_dir}/${name}.legacy.out"
-  legacy_err="${tmp_dir}/${name}.legacy.err"
-  go_out="${tmp_dir}/${name}.go.out"
-  go_err="${tmp_dir}/${name}.go.err"
-
-  set +e
-  "$invoke" legacy "$@" >"$legacy_out" 2>"$legacy_err"
-  legacy_status=$?
-  "$invoke" go "$@" >"$go_out" 2>"$go_err"
-  go_status=$?
-  set -e
-
-  [[ "$legacy_status" == "$go_status" ]] || {
-    printf '%s status mismatch: legacy=%s go=%s\n' "$name" "$legacy_status" "$go_status" >&2
-    exit 1
-  }
-  diff -u "$legacy_out" "$go_out"
-  diff -u "$legacy_err" "$go_err"
-}
-
-compare all ls
-compare filter ls HOST
-compare alias-list list host
-compare alias-variable variable NOTE
-compare alias-vars vars
-compare alias-var var rhost ignored-extra-argument
-compare v-list v
-compare v-filter v HOST
+while IFS=$'\t' read -r name arguments expected; do
+  [[ -n "$name" && "$name" != \#* ]] || continue
+  read -r -a command_args <<<"$arguments"
+  printf '%b' "$expected" >"${tmp_dir}/${name}.expected"
+  "$invoke" "${command_args[@]}" >"${tmp_dir}/${name}.out" 2>"${tmp_dir}/${name}.err"
+  diff -u "${tmp_dir}/${name}.expected" "${tmp_dir}/${name}.out"
+  [[ ! -s "${tmp_dir}/${name}.err" ]]
+done <"${repo_dir}/test/fixtures/variable-list.tsv"
 
 export II_CONTRACT_COLOR=always
 export II_CONTRACT_NO_COLOR=""
-compare colored ls host
+"$invoke" ls host >"${tmp_dir}/colored.out" 2>"${tmp_dir}/colored.err"
 unset II_CONTRACT_COLOR II_CONTRACT_NO_COLOR
-grep -Fq $'\033[34mlhost\033[0m' "${tmp_dir}/colored.legacy.out"
+grep -Fq $'\033[34mlhost\033[0m' "${tmp_dir}/colored.out"
+[[ ! -s "${tmp_dir}/colored.err" ]]
 
 printf 'variable list tmux contracts passed\n'

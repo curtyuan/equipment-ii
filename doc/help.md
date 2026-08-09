@@ -22,6 +22,5 @@ status, stdout, stderr, alias coloring, version, and that help does not invoke
 the Go helper.
 
 When a route changes, update its `help/*.txt` file, the Zsh help resolver,
-`doc/usage.md`, and the public routing contract together. `p -w` help must not
-claim filesystem behavior until that Zsh implementation exists; old
-`--www`/`www` forms are diagnostic redirects only.
+`doc/usage.md`, and the public routing contract together. Removed options have
+explicit status and stderr contracts and must not silently become search terms.

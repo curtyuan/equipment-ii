@@ -90,8 +90,12 @@ Output:
   output file note and ends with the absolute output path on its own line.
 
 Web helpers:
-  The planned Zsh-owned grammar is `ii p -w file|ln|ls|search`. It is not
-  implemented yet. The old --www/www forms print a migration diagnostic only.
+  `ii p -w file PATH` renders PATH and creates a non-overwriting symlink under
+  the configured web root's p directory. `ln SOURCE_PATH [LINK_NAME]` selects a
+  directory under the root and creates a non-overwriting symlink there. `ls`
+  walks the root without following symlinks. `search [FILTER]` selects an entry
+  and prints its relative directory, absolute path, and shell assignments.
+  Set II_WWW_ROOT to override /www.
 
 Categories:
   all, shell, script, linux, windows, sqli, xss

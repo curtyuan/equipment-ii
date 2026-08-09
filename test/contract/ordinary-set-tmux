@@ -41,6 +41,25 @@ ii s note 'two words' >"${tmp_dir}/set.out"
 [[ "$(tmux -S "$socket" show-environment ii_note)" == 'ii_note=two words' ]]
 grep -Fx 'note=two words' "${tmp_dir}/set.out"
 
+ii s note= >"${tmp_dir}/empty-assignment.out"
+grep -Fx 'unset note' "${tmp_dir}/empty-assignment.out"
+(( ! ${+parameters[note]} ))
+if tmux -S "$socket" show-environment ii_note >/dev/null 2>&1; then
+  print -u2 'empty assignment left ii_note in tmux'
+  exit 1
+fi
+
+typeset empty_shell=''
+tmux -S "$socket" set-environment ii_empty_shell stale
+ii s empty_shell --from-shell >"${tmp_dir}/empty-shell.out"
+grep -Fx 'unset empty_shell' "${tmp_dir}/empty-shell.out"
+if tmux -S "$socket" show-environment ii_empty_shell >/dev/null 2>&1; then
+  print -u2 'empty --from-shell value left ii_empty_shell in tmux'
+  exit 1
+fi
+
+ii s note 'two words' >"${tmp_dir}/restore-note.out"
+
 ii s:domain=example.test,lport=4444 >"${tmp_dir}/compact.out"
 [[ "$domain" == example.test && "$lport" == 4444 ]]
 [[ "$(tmux -S "$socket" show-environment ii_domain)" == 'ii_domain=example.test' ]]
@@ -55,9 +74,17 @@ ii s shell_only --from-shell >"${tmp_dir}/from-shell.out"
 [[ "$(tmux -S "$socket" show-environment ii_shell_only)" == 'ii_shell_only=from-shell' ]]
 
 print -r -- "file_only='two words'" >"${tmp_dir}/vars.env"
+print -r -- "empty_file=''" >>"${tmp_dir}/vars.env"
+tmux -S "$socket" set-environment ii_empty_file stale
+typeset empty_file=stale
 ii sf "${tmp_dir}/vars.env" >"${tmp_dir}/from-file.out"
 [[ "$file_only" == 'two words' ]]
 [[ "$(tmux -S "$socket" show-environment ii_file_only)" == 'ii_file_only=two words' ]]
+(( ! ${+parameters[empty_file]} ))
+if tmux -S "$socket" show-environment ii_empty_file >/dev/null 2>&1; then
+  print -u2 'empty --from-file value left ii_empty_file in tmux'
+  exit 1
+fi
 
 unset note
 ii l >"${tmp_dir}/load.out"

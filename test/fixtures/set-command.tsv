@@ -1,0 +1,9 @@
+# case|variable|comma-separated arguments|status|stdout|stderr|state
+assignment|ii_note|set,note=value|0|note=value\n||ii_note=value\n
+pair|ii_note|s,note,two words|0|note=two words\n||ii_note=two words\n
+compact|ii_note|s:note=a=b|0|note=a=b\n||ii_note=a=b\n
+empty-assignment|ii_note|set,note=|0|unset note\n||
+invalid|ii_note|set,note|2||ii: set requires a value; use NAME=VALUE or NAME VALUE\n|
+conflict|ii_note|set,note,--from-shell,--from-file|2||ii: --from-shell and --from-file cannot be used together\n|
+sf-usage|ii_note|sf,one,two|2||ii: usage: ii sf [PATH]\n|
+from-file|ii_domain|sf,@VARS@|0|domain=example.test\n||ii_domain=example.test\n

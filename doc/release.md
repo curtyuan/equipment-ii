@@ -14,7 +14,6 @@ Edit the root `VERSION` with the next SemVer value:
 MAJOR.MINOR.PATCH
 ```
 
-Do not update `ori-ii/VERSION`; it identifies the immutable legacy baseline.
 Automated Go version bump tooling has not migrated yet. Commit the changed root
 `VERSION` file before tagging.
 
@@ -32,23 +31,13 @@ This creates `export/ii`, which is the deployment unit:
 export/ii/
   ii.plugin.zsh
   ii-go
-  ori-ii/
+  lib/
+  payloads/
+  script/ii-tmux-popup
   README.md
   VERSION
   RELEASE
 ```
-
-During migration, `ori-ii/` is included as the explicit bridge for command
-families that have not moved to Go. It disappears from this package when the
-last legacy route is removed.
-
-The immutable pre-Go package has a separate build boundary:
-
-```zsh
-./ori-ii/script/make
-```
-
-It writes only `ori-ii/export/ii`; root `make` never overwrites that directory.
 
 ## Tag Release
 

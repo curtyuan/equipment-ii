@@ -48,7 +48,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii p --input --copy [-o [PATH]]` | `ii pic [-o [PATH]]` | Render pasted input and always copy it |
 | `ii p --input --execute [-o [PATH]]` | `ii pie` | Render input, confirm, and execute without copying |
 | `ii p --input --copy --execute [-o [PATH]]` | `ii pice` | Render input, confirm, copy, and execute it in the current shell; `pice` accepts no arguments |
-| `ii p -w file PATH` / `ln SOURCE_PATH [LINK_NAME]` / `ls` / `search [FILTER]` | | Planned Zsh web helpers; currently returns a not-implemented diagnostic |
+| `ii p -w file PATH` / `ln SOURCE_PATH [LINK_NAME]` / `ls` / `search [FILTER]` | | Render/link, link, list, or search below the configured web root |
 | `ii unset NAME [...]` | `ii u NAME [...]` | Remove `ii_` variables from tmux and this shell |
 | `ii unset -a` | `ii u -a` | Prompt, then remove all `ii_` variables from the current tmux session |
 | `ii tmux status` | | Diagnose the native tmux `:ii` command alias |
@@ -158,6 +158,11 @@ ii set usert=alice passt='S3cret!'
 ii s:usert=alice,passt='S3cret!'
 ii s:rhost=192.168.201.175
 ```
+
+An empty value is equivalent to unset. Every set path removes the tmux entry
+and the configured variable from the caller shell when its resolved value is
+empty; this includes explicit assignments, `--from-shell`, `--from-file`, and
+interactive add/edit.
 
 When `II_AUTO_DETECT_LHOST` is enabled, setting `rhost` or `rhosts` also detects
 `lhost` from `II_AUTO_DETECT_LHOST_INTERFACE` and prints
@@ -282,7 +287,7 @@ Keys:
 
 Aborting while editing preserves the original value. A value is replaced only
 after confirming with Return. Edit prompts show Return to save or continue, and
-Esc to abort. Clearing a value and confirming stores an empty value.
+Esc to abort. Clearing a value and confirming unsets it.
 
 `ii i` does not load variables into the shell. Use `ii l` to load all non-empty
 variables into the current shell.
@@ -452,9 +457,10 @@ ii p -w ls
 ii p -w search payload
 ```
 
-These forms are not implemented yet and return status 2. The old
-`--www`/`www` spellings no longer perform filesystem work; for one migration
-release they print a diagnostic pointing to `ii p -w`.
+The helpers use `II_WWW_ROOT` (default `/www`), reject paths outside that
+canonical root, never overwrite links, and do not follow symlinks while
+listing. The removed `--www` and `www` spellings are invalid payload options
+and return status 2.
 
 Write the rendered payload to a file with `-o`:
 
@@ -586,10 +592,10 @@ ii p sqli
 
 ## Payload Directory
 
-The current transitional package points `II_PAYLOAD_DIR` to:
+The package points `II_PAYLOAD_DIR` to:
 
 ```text
-${II_PLUGIN_DIR}/ori-ii/payloads
+${II_PLUGIN_DIR}/payloads
 ```
 
 Override it only if you keep payloads somewhere else:
@@ -598,8 +604,7 @@ Override it only if you keep payloads somewhere else:
 export II_PAYLOAD_DIR="$HOME/.config/ii/payloads"
 ```
 
-`II_WWW_ROOT` is reserved for the planned `ii p -w ...` commands. Its default
-will be `/www`; it has no effect until those commands are implemented.
+`II_WWW_ROOT` configures the root used by `ii p -w ...`. Its default is `/www`.
 
 ```zsh
 export II_WWW_ROOT="$HOME/www"

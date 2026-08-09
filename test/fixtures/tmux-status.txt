@@ -1,0 +1,4 @@
+configured: default
+command alias: installed
+command: ii
+Prefix+: native or user-defined

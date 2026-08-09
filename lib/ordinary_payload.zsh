@@ -164,6 +164,7 @@ ii_zsh_cmd_payload() {
   local -a terms
   while (( $# )); do
     case "$1" in
+      --www|www) print -u2 -- "ii: unknown payload option: $1"; return 2 ;;
       --copy) copy=1 ;;
       --execute) execute=1 ;;
       -o|--output)
@@ -237,7 +238,14 @@ ii_zsh_payload_read_input() {
   if [[ -t 0 ]]; then
     local input=''
     print -r -- 'Paste payload input below. Enter renders; Alt-Enter adds a line; Esc cancels.' ''
-    vared -p 'ii input> ' input || { print -u2 -- 'ii: input cancelled'; return 130; }
+    ii_zsh_payload_input_newline() { LBUFFER+=$'\n'; zle redisplay; }
+    ii_zsh_payload_input_cancel() { BUFFER=:q; zle accept-line; }
+    zle -N ii-zsh-payload-input-newline ii_zsh_payload_input_newline
+    zle -N ii-zsh-payload-input-cancel ii_zsh_payload_input_cancel
+    bindkey -N ii-zsh-payload-input emacs
+    bindkey -M ii-zsh-payload-input $'\e\r' ii-zsh-payload-input-newline
+    bindkey -M ii-zsh-payload-input $'\e' ii-zsh-payload-input-cancel
+    vared -M ii-zsh-payload-input -p 'ii input> ' input || { print -u2 -- 'ii: input cancelled'; return 130; }
     [[ "$input" != (:q|:q!) ]] || { print -u2 -- 'ii: input cancelled'; return 130; }
     [[ "$input" == *$'\n':w ]] && input="${input%$'\n':w}"
     [[ "$input" == :w ]] && input=''

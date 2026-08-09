@@ -30,10 +30,10 @@ for attempt in {1..40}; do
 done
 
 [[ "$pane_output" == *"ENTRY_SHELL_RHOST=192.0.2.40"* ]] ||
-  fail "legacy route did not preserve the parent-shell export"
+  fail "set did not preserve the caller-shell export"
 
 tmux_value="$(tmux -S "$socket" show-environment -t adapter-test ii_rhost 2>/dev/null)"
 [[ "$tmux_value" == "ii_rhost=192.0.2.40" ]] ||
-  fail "legacy route did not preserve the tmux session value"
+  fail "set did not preserve the tmux session value"
 
-print "Go entrypoint legacy bridge contract passed"
+print "Zsh entrypoint tmux contract passed"

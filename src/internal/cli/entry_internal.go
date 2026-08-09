@@ -11,8 +11,6 @@ func (c *CLI) runInternal(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	switch args[0] {
-	case "__tmux_popup":
-		return c.runTmuxPopup(args[1:], stdout, stderr)
 	case "__combo-run":
 		return c.runCombo(args[1:], stdout, stderr)
 	case "__combo-render":

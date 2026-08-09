@@ -1,0 +1,5 @@
+equals='a=b'
+plain='value'
+quote='a'\''b'
+space='two words'
+symbols='dollar$ back\slash;bang!'

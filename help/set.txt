@@ -61,6 +61,9 @@ Forms:
     II_AUTO_DETECT_LHOST and II_AUTO_DETECT_LHOST_INTERFACE.
 
 Notes:
+  An empty value is equivalent to unset: ii removes the tmux entry and the
+  configured caller-shell variable instead of storing an empty value. This
+  applies to explicit, --from-shell, --from-file, and interactive set paths.
   User-facing names do not include the internal ii_ prefix. Single-letter
   shortcuts include r for rhost, l for lhost, and d for domain. II_EXPORT_CASE
   controls whether exported shell variables use lower, upper, or both cases.

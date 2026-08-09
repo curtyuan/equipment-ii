@@ -60,6 +60,10 @@ ii_zsh_detect_interface_ipv4() {
 
 ii_zsh_store_value() {
   local internal="$1" value="$2"
+  if [[ -z "$value" ]]; then
+    ii_zsh_unset_one "$internal"
+    return
+  fi
   tmux set-environment "$internal" "$value" || return
   ii_zsh_export_value "$internal" "$value" || return
   print -r -- "${internal#ii_}=${value}"
@@ -86,7 +90,9 @@ ii_zsh_set_assignment() {
   value="${assignment#*=}"
   internal="$(ii_zsh_normalize_name "$raw_name")" || return
   ii_zsh_store_value "$internal" "$value" || return
-  ii_zsh_maybe_detect_lhost "$internal"
+  if [[ -n "$value" ]]; then
+    ii_zsh_maybe_detect_lhost "$internal"
+  fi
 }
 
 ii_zsh_default_names() {
@@ -282,7 +288,9 @@ ii_zsh_cmd_set_explicit() {
     local internal
     internal="$(ii_zsh_normalize_name "$1")" || return
     ii_zsh_store_value "$internal" "$2" || return
-    ii_zsh_maybe_detect_lhost "$internal"
+    if [[ -n "$2" ]]; then
+      ii_zsh_maybe_detect_lhost "$internal"
+    fi
     return
   fi
 

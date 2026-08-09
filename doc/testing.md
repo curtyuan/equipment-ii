@@ -4,25 +4,24 @@ All commands below are intended to be run from the project root.
 
 ## Test Structure
 
-The repository keeps three intentionally different test layers:
+The repository keeps two intentionally different test layers:
 
 ```text
 src/**/*_test.go          combo-domain and retained adapter tests
-test/contract/            current Zsh public, architecture, and tmux contracts
-ori-ii/script/test-*      frozen pre-Go compatibility baseline
+test/contract/            Zsh public, architecture, and tmux contracts
 ```
 
-Go unit tests cover only the combo helper and the temporary tmux popup support.
+Go unit tests cover only the combo helper.
 
 Contract tests exercise process boundaries and durable effects that unit tests
 cannot represent, including Zsh dispatch, isolated
 tmux servers, popup terminal input, and fzf-driven selection. They are not
 duplicates of the Go tests.
 
-Do not remove a frozen `ori-ii` test merely because a Go or root contract covers
-the same feature. It remains the executable comparison baseline until the
-legacy runtime is removed. Files under generated `build/` and `export/`
-directories are not test sources.
+Public expectations are reviewed repository fixtures under `help/` and
+`test/fixtures/`; contract tests do not execute an older runtime to generate
+expected results. Files under generated `build/` and `export/` directories are
+not test sources.
 
 ## Current Runtime Baseline
 
@@ -57,18 +56,6 @@ bare `make` creates the current deployment package under `export/ii`.
 
 Current feature ownership and known coverage gaps are tracked in
 [`feature-inventory.md`](feature-inventory.md).
-
-Run the immutable legacy baseline separately:
-
-```zsh
-make test-legacy
-make test-legacy-tmux
-./ori-ii/script/make
-```
-
-The remaining legacy procedures below describe the contract captured under
-`ori-ii/`. Until each section receives a root contract equivalent, run its
-commands from `ori-ii/`, not from repository root.
 
 ## Syntax Check
 
@@ -133,10 +120,9 @@ zsh -fc 'source ./ii.plugin.zsh; ii la --help | grep -Fq "likely ready"'
 
 Each command must return zero without requiring tmux, fzf, a source path, or a
 configured web root. `make test-contract` compares public help output, status,
-and streams with the frozen baseline while it remains available. Go resolution
-tests must cover every direct alias and nested help path. Once an intentionally
-removed route such as `sync` is dropped, replace its differential expectation
-with an explicit unknown-command contract.
+and streams with repository-owned fixtures. Resolution tests cover every direct
+alias and nested help path. Intentionally removed routes such as `sync` have an
+explicit unknown-command contract.
 
 ## Interactive Payload Input
 
@@ -834,7 +820,7 @@ stdout.
 ## Interactive Add Variable Test
 
 This verifies that `ii i` can create a new variable through the final add
-option, and that empty values are stored but skipped by `ii l`.
+option, and that confirming an empty value removes an existing variable.
 
 ```zsh
 tmux kill-session -t codex-ii-add 2>/dev/null || true

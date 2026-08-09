@@ -3,11 +3,9 @@
 The docs are split by audience and maintenance task.
 Deployment instructions live in the root [README.md](../README.md).
 
-During the runtime ownership migration, root documentation is the working target contract.
-The documentation captured with the executable legacy baseline under
-[`../ori-ii/`](../ori-ii/) is the only source of truth for pre-Go behavior.
-Paths that still describe root-level `lib/`, `payloads/`, or `script/` belong
-to the contract audit and must be reconciled as their features migrate.
+Root documentation describes the current runtime contract. Reviewed public
+results are stored in `help/` and `test/fixtures/` rather than generated from
+an older executable implementation.
 
 ## User Docs
 
@@ -33,9 +31,5 @@ to the contract audit and must be reconciled as their features migrate.
 
 ## Active TODOs
 
-Files under `todo/`, when present, track active implementation work. Update
-them together with the code and delete each file when its completion criteria
-are satisfied.
-
-- [Runtime migration](todo/runtime-migration.md) — finish `p -w`, move the tmux
-  popup and payload data, validate packaging, and remove the frozen baseline.
+Files under `todo/`, when present, track active implementation work. There are
+currently no active runtime migration TODOs.

@@ -1,0 +1,2 @@
+# description: Windows cmd certutil download of $file into %TEMP%
+certutil.exe -urlcache -f "$file" "%TEMP%\$file"

@@ -1,0 +1,57 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+trap 'command rm -rf -- "$tmp_dir"' EXIT
+mkdir -p "${tmp_dir}/bin" "${tmp_dir}/payloads" "${tmp_dir}/www/a/deep" "${tmp_dir}/outside"
+print -r -- secret >"${tmp_dir}/outside/secret"
+ln -s -- "${tmp_dir}/outside" "${tmp_dir}/www/escape"
+print -rl -- '# description: web input' 'echo $rhost' >"${tmp_dir}/input.txt"
+
+cat >"${tmp_dir}/bin/fzf" <<'EOF'
+#!/bin/sh
+awk -v selected="${II_TEST_SELECT:-}" 'selected == "" || index($0, selected) { print; exit }'
+EOF
+chmod +x "${tmp_dir}/bin/fzf"
+
+export PATH="${tmp_dir}/bin:${PATH}"
+export II_CONFIG_FILE=/dev/null II_PAYLOAD_DIR="${tmp_dir}/payloads" II_WWW_ROOT="${tmp_dir}/www"
+source "${root}/ii.plugin.zsh"
+export rhost=web-host
+
+ii p -w file "${tmp_dir}/input.txt" >"${tmp_dir}/file.out"
+grep -Fx 'echo web-host' "${tmp_dir}/file.out"
+grep -Fx 'relative_file=/p/' "${tmp_dir}/file.out"
+[[ -L "${tmp_dir}/www/p/input.txt" ]]
+[[ "$(readlink "${tmp_dir}/www/p/input.txt")" == "${tmp_dir}/input.txt" ]]
+
+set +e
+ii p -w file "${tmp_dir}/input.txt" >"${tmp_dir}/again.out" 2>"${tmp_dir}/again.err"
+again_status=$?
+set -e
+[[ $again_status == 1 ]]
+grep -Fx "ii: target already exists: ${tmp_dir}/www/p/input.txt" "${tmp_dir}/again.err"
+
+export II_TEST_SELECT=$'a\t'
+ii p -w ln "${tmp_dir}/outside/secret" safe-link >"${tmp_dir}/ln.out"
+[[ -L "${tmp_dir}/www/a/safe-link" ]]
+
+ii p -w ls >"${tmp_dir}/ls.out"
+grep -Fx '  safe-link' "${tmp_dir}/ls.out"
+grep -Fx 'escape' "${tmp_dir}/ls.out"
+! grep -Fq secret "${tmp_dir}/ls.out"
+
+export II_TEST_SELECT='a/safe-link'
+ii p -w search safe >"${tmp_dir}/search.out"
+grep -Fx '/a/' "${tmp_dir}/search.out"
+grep -Fx "file=${tmp_dir}/www/a/safe-link" "${tmp_dir}/search.out"
+
+set +e
+ii p -w ln "${tmp_dir}/outside/secret" ../bad >"${tmp_dir}/bad.out" 2>"${tmp_dir}/bad.err"
+bad_status=$?
+set -e
+[[ $bad_status == 2 ]]
+grep -Fx 'ii: invalid link name: ../bad' "${tmp_dir}/bad.err"
+
+print 'web helper contract passed'

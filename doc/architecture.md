@@ -25,8 +25,8 @@ assignment, ordered stage confirmation, pane identity validation, and literal
 tmux transport. Combo rendering reads tmux state only. Zsh resolves the
 clipboard backend and passes a closed value to Go.
 
-The tmux `:ii` input popup still invokes `ii-go __tmux_popup execute`. It is a
-temporary non-combo internal entrypoint and is tracked for migration to Zsh.
+The tmux `:ii` input popup invokes the packaged Zsh popup helper and does not
+start the Go binary.
 
 ## Invocation contracts
 
@@ -68,7 +68,7 @@ src/internal/adapter/tmux/     tmux state, panes, memory, literal transport
 src/internal/adapter/clipboard combo stage copy transport
 src/internal/adapter/filesystem combo payload catalog boundary
 test/contract/                 public/runtime architecture contracts
-ori-ii/                        frozen reference; temporary payload source
+payloads/                      bundled payload data
 ```
 
 Generated binaries and packages live under `build/` and `export/`.
@@ -84,15 +84,10 @@ Payload text sent to panes is loaded through a tmux buffer and pasted
 literally; it is not embedded in a shell command or `send-keys` argument. Pane
 and session identity are checked again immediately before transport.
 
-## Remaining boundaries
+## Maintained boundaries
 
-- `ii p -w file|ln|ls|search` will be Zsh-owned; it is not implemented yet.
-  Old `--www`/`www` forms only emit a migration diagnostic.
-- The `:ii` tmux input popup still uses Go and must move to Zsh before Go is
-  strictly combo-only.
-- Payload data and packaging still depend on `ori-ii/payloads` temporarily.
-- Frozen differential tests remain only where they still provide useful public
-  expectations; superseded Go-backend tests are removed with their code.
-
-See [`todo/runtime-migration.md`](todo/runtime-migration.md) for the ordered
-cleanup and validation work.
+- `ii p -w file|ln|ls|search` and the `:ii` popup are Zsh-owned.
+- Payload data and packaging use the root `payloads` directory.
+- Public command results are checked against reviewed repository fixtures;
+  tests never execute an older runtime to generate expected output.
+- Go remains strictly scoped to selected combo workflows.

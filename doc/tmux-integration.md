@@ -63,14 +63,14 @@ The installed array value is conceptually:
 ```tmux
 set-option -s command-alias[INDEX] \
   "ii=display-popup -EE -T 'ii pie VERSION' -w 90% -h 90% \
-  -d '#{pane_current_path}' /absolute/path/to/ii-go \
-  __tmux_popup execute"
+  -d '#{pane_current_path}' /absolute/path/to/script/ii-tmux-popup \
+  execute '#{pane_id}' '#{session_id}'"
 ```
 
 `command-alias[]` is a native tmux server option. When tmux parses the unknown
 command `ii`, it expands the alias to `display-popup`. No command-prompt input
 is intercepted and no fallback dispatcher is involved. The installer verifies
-that the selected Go runtime is an executable regular file before publishing
+that the packaged Zsh helper is executable before publishing
 the alias.
 
 The intended interaction is:
@@ -86,28 +86,26 @@ Arguments are not part of the public contract; use exactly `ii`.
 
 ## Popup Entrypoint
 
-The native alias enters the hidden Go popup operation directly:
+The native alias enters the packaged Zsh popup helper directly:
 
 ```text
 tmux command alias
   -> display-popup
-  -> ii-go __tmux_popup execute
+  -> script/ii-tmux-popup execute ORIGIN SESSION
   -> render and confirm
   -> validate and send to the originating pane
 ```
 
 The native `:ii` alias therefore renders, confirms, sends, and executes without
-copying. The legacy scripts remain packaged temporarily for compatibility and
-for help topics that have not yet migrated.
+copying.
 
-The Go terminal reader preserves the popup editing contract: Enter finishes,
+The Zsh ZLE reader preserves the popup editing contract: Enter finishes,
 Alt-Enter inserts a newline, Esc cancels, and `:q`/`:q!` cancel a complete
 buffer. Streamed input supports EOF and the standalone `:w` finish line.
 
-No pane or session format crosses the popup shell boundary: tmux does not expand
-`#{pane_id}` inside this command-alias shell command. The popup queries the
-invoking client's current pane ID, then queries that pane's session ID directly
-from tmux. It uses both resolved values for the final pre-send identity check.
+The alias captures `#{pane_id}` and `#{session_id}` when opening the popup. The
+helper snapshots the pane and uses both values for the final pre-send identity
+check.
 
 The popup process cannot rely on the originating pane's functions or startup
 state. Running the controller in a popup also leaves the originating pane at

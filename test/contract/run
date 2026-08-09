@@ -10,7 +10,7 @@ check_help() {
   local name="$1" topic="$2"
   shift 2
   TMUX= TMUX_PANE= II_CONTRACT_COLOR=never II_CONTRACT_NO_COLOR=1 \
-    "$invoke" go "$@" >"${tmp_dir}/${name}.out" 2>"${tmp_dir}/${name}.err"
+    "$invoke" "$@" >"${tmp_dir}/${name}.out" 2>"${tmp_dir}/${name}.err"
   diff -u "${repo_dir}/help/${topic}.txt" "${tmp_dir}/${name}.out"
   [[ ! -s "${tmp_dir}/${name}.err" ]]
 }
@@ -35,23 +35,30 @@ check_help payload-input payload-input help payload --input
 check_help tmux tmux help tmux
 check_help version-help version version --help
 
-TMUX= TMUX_PANE= "$invoke" go version >"${tmp_dir}/version.out" 2>"${tmp_dir}/version.err"
+TMUX= TMUX_PANE= "$invoke" version >"${tmp_dir}/version.out" 2>"${tmp_dir}/version.err"
 grep -Fx "ii $(<"${repo_dir}/VERSION")" "${tmp_dir}/version.out"
 [[ ! -s "${tmp_dir}/version.err" ]]
 
 set +e
-TMUX= TMUX_PANE= "$invoke" go no-such-command >"${tmp_dir}/unknown.out" 2>"${tmp_dir}/unknown.err"
+TMUX= TMUX_PANE= "$invoke" no-such-command >"${tmp_dir}/unknown.out" 2>"${tmp_dir}/unknown.err"
 unknown_status=$?
-TMUX= TMUX_PANE= "$invoke" go sync >"${tmp_dir}/sync.out" 2>"${tmp_dir}/sync.err"
+TMUX= TMUX_PANE= "$invoke" sync >"${tmp_dir}/sync.out" 2>"${tmp_dir}/sync.err"
 sync_status=$?
+TMUX= TMUX_PANE= "$invoke" p --www >"${tmp_dir}/www-option.out" 2>"${tmp_dir}/www-option.err"
+www_option_status=$?
+TMUX= TMUX_PANE= "$invoke" p www >"${tmp_dir}/www-word.out" 2>"${tmp_dir}/www-word.err"
+www_word_status=$?
 set -e
-[[ "$unknown_status" == 2 && "$sync_status" == 2 ]]
+[[ "$unknown_status" == 2 && "$sync_status" == 2 && "$www_option_status" == 2 && "$www_word_status" == 2 ]]
 grep -Fx 'ii: unknown command: no-such-command' "${tmp_dir}/unknown.err"
 grep -Fx 'ii: unknown command: sync' "${tmp_dir}/sync.err"
+grep -Fx 'ii: unknown payload option: --www' "${tmp_dir}/www-option.err"
+grep -Fx 'ii: unknown payload option: www' "${tmp_dir}/www-word.err"
+[[ ! -s "${tmp_dir}/www-option.out" && ! -s "${tmp_dir}/www-word.out" ]]
 diff -u "${repo_dir}/help/top.txt" "${tmp_dir}/unknown.out"
 
 TMUX= TMUX_PANE= II_CONTRACT_COLOR=always II_CONTRACT_NO_COLOR= \
-  "$invoke" go help >"${tmp_dir}/color.out" 2>"${tmp_dir}/color.err"
+  "$invoke" help >"${tmp_dir}/color.out" 2>"${tmp_dir}/color.err"
 grep -Fq $'\033[36m' "${tmp_dir}/color.out"
 [[ ! -s "${tmp_dir}/color.err" ]]
 

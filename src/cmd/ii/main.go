@@ -22,7 +22,6 @@ func main() {
 	app := cli.New(cli.ColorEnabled(os.Stdout, os.Getenv), cli.Dependencies{
 		Environment:     sessionEnvironment,
 		Stdin:           os.Stdin,
-		Panes:           sessionEnvironment,
 		Clipboard:       clipboard,
 		PayloadStore:    filesystemadapter.NewPayloadStore(payloadRoot),
 		WorkflowRuntime: sessionEnvironment,

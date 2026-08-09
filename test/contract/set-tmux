@@ -16,32 +16,24 @@ export II_AUTO_DETECT_LHOST=0
 # Alias installation has its own contract; keep repeated backends isolated.
 export II_TMUX_INTEGRATION=0
 
-compare() {
-  name="$1"
-  variable="$2"
-  shift 2
-  for backend in legacy go; do
-    tmux -S "$socket" set-environment -u "$variable" 2>/dev/null || true
-    set +e
-    "$invoke" "$backend" "$@" >"${tmp_dir}/${name}.${backend}.out" 2>"${tmp_dir}/${name}.${backend}.err"
-    printf '%s\n' "$?" >"${tmp_dir}/${name}.${backend}.status"
-    set -e
-    tmux -S "$socket" show-environment "$variable" >"${tmp_dir}/${name}.${backend}.state" 2>/dev/null || true
-  done
-  diff -u "${tmp_dir}/${name}.legacy.status" "${tmp_dir}/${name}.go.status"
-  diff -u "${tmp_dir}/${name}.legacy.out" "${tmp_dir}/${name}.go.out"
-  diff -u "${tmp_dir}/${name}.legacy.err" "${tmp_dir}/${name}.go.err"
-  diff -u "${tmp_dir}/${name}.legacy.state" "${tmp_dir}/${name}.go.state"
-}
-
-compare assignment ii_note set note=value
-compare pair ii_note s note "two words"
-compare compact ii_note s:note=a=b
-compare invalid ii_note set note
-compare conflict ii_note set note --from-shell --from-file
-compare sf-usage ii_note sf one two
-
 printf "domain='example.test'\n" >"${tmp_dir}/vars.env"
-compare from-file ii_domain sf "${tmp_dir}/vars.env"
+while IFS='|' read -r name variable encoded_args expected_status expected_out expected_err expected_state; do
+  [[ -n "$name" && "$name" != \#* ]] || continue
+  encoded_args="${encoded_args//@VARS@/${tmp_dir}\/vars.env}"
+  IFS=',' read -r -a command_args <<<"$encoded_args"
+  tmux -S "$socket" set-environment -u "$variable" 2>/dev/null || true
+  set +e
+  "$invoke" "${command_args[@]}" >"${tmp_dir}/${name}.out" 2>"${tmp_dir}/${name}.err"
+  actual_status=$?
+  set -e
+  tmux -S "$socket" show-environment "$variable" >"${tmp_dir}/${name}.state" 2>/dev/null || true
+  printf '%b' "$expected_out" >"${tmp_dir}/${name}.expected.out"
+  printf '%b' "$expected_err" >"${tmp_dir}/${name}.expected.err"
+  printf '%b' "$expected_state" >"${tmp_dir}/${name}.expected.state"
+  [[ "$actual_status" == "$expected_status" ]]
+  diff -u "${tmp_dir}/${name}.expected.out" "${tmp_dir}/${name}.out"
+  diff -u "${tmp_dir}/${name}.expected.err" "${tmp_dir}/${name}.err"
+  diff -u "${tmp_dir}/${name}.expected.state" "${tmp_dir}/${name}.state"
+done <"${repo_dir}/test/fixtures/set-command.tsv"
 
-printf 'set command tmux differential contracts passed\n'
+printf 'set command tmux fixture contracts passed\n'

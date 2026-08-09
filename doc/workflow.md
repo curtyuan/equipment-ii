@@ -771,7 +771,8 @@ and layout changes, unresolved variables, and exact ordered pane input.
 
 - Update payload schema, usage, help, architecture, tmux integration, and testing
   documentation together with representative executable combo payloads.
-- Extend `script/help` expectations for the changed selector-copy semantics
+- Extend Go resolution and `make test-contract` expectations for the changed
+  selector-copy semantics
   without adding a public workflow command.
 - Run syntax checks, plugin-load and help audits, legacy payload render/copy
   checks, pice regression tests, parser tests, and isolated multi-pane tmux smoke

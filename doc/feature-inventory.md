@@ -11,14 +11,14 @@
 | Pasted payload input | Zsh | Complete |
 | Combo workflows | Go payload/terminal/tmux packages | Complete ownership boundary; final integration validation remains |
 | Tmux alias setup/status | Zsh | Complete |
-| Tmux `:ii` input popup | Go internal helper | Temporary; migrate to Zsh |
-| `p -w` web helpers | Zsh target | Not implemented; old spellings diagnose migration only |
-| Payload data/package | `ori-ii/payloads` temporarily | Move to root and remove frozen baseline |
+| Tmux `:ii` input popup | Zsh packaged helper | Complete |
+| `p -w` web helpers | Zsh | Complete; removed `--www`/`www` options are rejected |
+| Payload data/package | root `payloads` | Complete |
 
 Go has no public dispatcher and rejects public command names. Its accepted
-runtime entries are `__combo-render`, `__combo-copy`, `__combo-run`, and the
-temporary `__tmux_popup` input helper. Shell-state and parent-shell operation
+runtime entries are `__combo-render`, `__combo-copy`, and `__combo-run`. The
+popup input helper is Zsh-owned. Shell-state and parent-shell operation
 protocols and their superseded tests have been removed.
 
-Detailed ordering and unresolved decisions are tracked in
-[`todo/runtime-migration.md`](todo/runtime-migration.md).
+The runtime ownership migration is complete. Payload-specific field validation
+continues as normal operator testing and is not a runtime migration dependency.

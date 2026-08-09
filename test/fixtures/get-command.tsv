@@ -1,0 +1,5 @@
+# case	arguments	status	selected value
+shortcut	gr	0	192.0.2.20
+compact	g:r	0	192.0.2.20
+multiple	g host	0	192.0.2.10
+missing	g no-such-variable	1	

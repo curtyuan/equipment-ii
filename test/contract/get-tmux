@@ -17,31 +17,28 @@ server_pid="$(tmux -S "$socket" display-message -p -t get-contract:0.0 '#{pid}')
 pane="$(tmux -S "$socket" display-message -p -t get-contract:0.0 '#{pane_id}')"
 export TMUX="${socket},${server_pid},0"
 export TMUX_PANE="$pane"
-# Alias installation has its own contract; keep repeated backends isolated.
-export II_TMUX_INTEGRATION=0
-export II_CLIP_BACKEND=tmux
+export II_TMUX_INTEGRATION=0 II_CLIP_BACKEND=tmux
 tmux -S "$socket" set-environment ii_rhost 192.0.2.20
 tmux -S "$socket" set-environment ii_lhost 192.0.2.10
 
-compare() {
-  name="$1"
-  shift
-  for backend in legacy go; do
-    tmux -S "$socket" delete-buffer 2>/dev/null || true
-    set +e
-    "$invoke" "$backend" "$@" >"${tmp_dir}/${name}.${backend}.out" 2>"${tmp_dir}/${name}.${backend}.err"
-    printf '%s\n' "$?" >"${tmp_dir}/${name}.${backend}.status"
-    set -e
-    tmux -S "$socket" save-buffer - >"${tmp_dir}/${name}.${backend}.buffer" 2>/dev/null || true
-  done
-  diff -u "${tmp_dir}/${name}.legacy.status" "${tmp_dir}/${name}.go.status"
-  diff -u "${tmp_dir}/${name}.legacy.out" "${tmp_dir}/${name}.go.out"
-  diff -u "${tmp_dir}/${name}.legacy.err" "${tmp_dir}/${name}.go.err"
-  diff -u "${tmp_dir}/${name}.legacy.buffer" "${tmp_dir}/${name}.go.buffer"
-}
+while IFS=$'\t' read -r name arguments expected_status expected_value; do
+  [[ -n "$name" && "$name" != \#* ]] || continue
+  read -r -a command_args <<<"$arguments"
+  tmux -S "$socket" delete-buffer 2>/dev/null || true
+  set +e
+  "$invoke" "${command_args[@]}" >"${tmp_dir}/${name}.out" 2>"${tmp_dir}/${name}.err"
+  status=$?
+  set -e
+  [[ "$status" == "$expected_status" ]]
+  if [[ "$expected_status" == 0 ]]; then
+    printf 'value copied successfully\n\n%s\n' "$expected_value" >"${tmp_dir}/${name}.expected.out"
+    diff -u "${tmp_dir}/${name}.expected.out" "${tmp_dir}/${name}.out"
+    [[ ! -s "${tmp_dir}/${name}.err" ]]
+    [[ "$(tmux -S "$socket" save-buffer -)" == "$expected_value" ]]
+  else
+    [[ ! -s "${tmp_dir}/${name}.out" ]]
+    grep -Fx 'no matched' "${tmp_dir}/${name}.err"
+  fi
+done <"${repo_dir}/test/fixtures/get-command.tsv"
 
-compare shortcut gr
-compare compact g:r
-compare multiple g host
-compare missing g no-such-variable
-printf 'get command tmux differential contracts passed\n'
+printf 'get command tmux fixture contracts passed\n'

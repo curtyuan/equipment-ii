@@ -12,30 +12,26 @@ server_pid="$(tmux -S "$socket" display-message -p -t unset-contract:0.0 '#{pid}
 pane="$(tmux -S "$socket" display-message -p -t unset-contract:0.0 '#{pane_id}')"
 export TMUX="${socket},${server_pid},0"
 export TMUX_PANE="$pane"
-# Alias installation has its own contract; keep repeated backends isolated.
 export II_TMUX_INTEGRATION=0
 
-run_case() {
-  answer="$1"
-  expected_remaining="$2"
-  for backend in legacy go; do
-    tmux -S "$socket" set-environment ii_alpha one
-    tmux -S "$socket" set-environment ii_empty ""
-    set +e
-    printf '%s\n' "$answer" | "$invoke" "$backend" u -a \
-      >"${tmp_dir}/${answer}.${backend}.out" 2>"${tmp_dir}/${answer}.${backend}.err"
-    printf '%s\n' "$?" >"${tmp_dir}/${answer}.${backend}.status"
-    set -e
-    tmux -S "$socket" show-environment | grep '^ii_' | sort \
-      >"${tmp_dir}/${answer}.${backend}.state" || true
-  done
-  diff -u "${tmp_dir}/${answer}.legacy.status" "${tmp_dir}/${answer}.go.status"
-  diff -u "${tmp_dir}/${answer}.legacy.out" "${tmp_dir}/${answer}.go.out"
-  diff -u "${tmp_dir}/${answer}.legacy.err" "${tmp_dir}/${answer}.go.err"
-  diff -u "${tmp_dir}/${answer}.legacy.state" "${tmp_dir}/${answer}.go.state"
-  [[ "$(wc -l <"${tmp_dir}/${answer}.go.state")" == "$expected_remaining" ]]
-}
+while IFS=$'\t' read -r name answer expected_status expected_remaining; do
+  [[ -n "$name" && "$name" != \#* ]] || continue
+  tmux -S "$socket" set-environment ii_alpha one
+  tmux -S "$socket" set-environment ii_beta two
+  set +e
+  printf '%s\n' "$answer" | "$invoke" u -a >"${tmp_dir}/${name}.out" 2>"${tmp_dir}/${name}.err"
+  status=$?
+  set -e
+  [[ "$status" == "$expected_status" ]]
+  [[ ! -s "${tmp_dir}/${name}.err" ]]
+  state="$(tmux -S "$socket" show-environment | grep '^ii_' | LC_ALL=C sort || true)"
+  if [[ "$expected_remaining" == 2 ]]; then
+    [[ "$state" == $'ii_alpha=one\nii_beta=two' ]]
+    [[ "$(<"${tmp_dir}/${name}.out")" == 'unset all ii_ variables in this tmux session? [y/N] aborted' ]]
+  else
+    [[ -z "$state" ]]
+    grep -Fx 'unset 2 variable(s)' "${tmp_dir}/${name}.out"
+  fi
+done <"${repo_dir}/test/fixtures/unset-all.tsv"
 
-run_case n 2
-run_case y 0
-printf 'unset-all tmux differential contracts passed\n'
+printf 'unset-all tmux fixture contracts passed\n'

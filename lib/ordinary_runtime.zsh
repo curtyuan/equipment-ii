@@ -16,17 +16,8 @@ typeset -gA II_ORDINARY_COMMAND_SPEC=(
   payload-input ii_zsh_cmd_payload_input
   tmux-integration ii_zsh_cmd_tmux
   help-display ii_zsh_cmd_help
-  web-migration ii_zsh_cmd_web_migration
+  web ii_zsh_cmd_web
 )
-
-ii_zsh_cmd_web_migration() {
-  if [[ " $* " == *" -w "* ]]; then
-    print -u2 -- 'ii: p -w is not implemented yet'
-  else
-    print -u2 -- 'ii: payload --www/www moved to: ii p -w'
-  fi
-  return 2
-}
 
 ii_ordinary_resolve() {
   local command="${1:-}"
@@ -91,8 +82,8 @@ ii_ordinary_resolve() {
       [[ " $* " != *" -h "* && " $* " != *" --help "* ]] && print -r -- payload-select
       ;;
     payload|p)
-      if [[ " $* " == *" --www "* || " $* " == *" www "* || " $* " == *" -w "* ]]; then
-        print -r -- web-migration
+      if [[ "${1:-}" == -w ]]; then
+        print -r -- web
       else
         if [[ " $* " == *" --input "* || " $* " == *" input "* ]]; then
           print -r -- payload-input

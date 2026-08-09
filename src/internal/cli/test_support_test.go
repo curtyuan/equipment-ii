@@ -35,7 +35,6 @@ func newTestCLI() *CLI {
 	return New(false, Dependencies{
 		Environment:  fakeSessionEnvironment{},
 		Stdin:        strings.NewReader(""),
-		Panes:        fakePanes{},
 		Clipboard:    fakeClipboard{},
 		PayloadStore: fakePayloadStore{},
 	})

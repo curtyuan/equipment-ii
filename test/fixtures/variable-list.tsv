@@ -1,0 +1,9 @@
+# case	arguments	stdout with C escapes
+all	ls	lhost\n192.0.2.10\nnote\na=b\nrhost\n192.0.2.20\n
+filter	ls HOST	lhost\n192.0.2.10\nrhost\n192.0.2.20\n
+alias-list	list host	lhost\n192.0.2.10\nrhost\n192.0.2.20\n
+alias-variable	variable NOTE	note\na=b\n
+alias-vars	vars	lhost\n192.0.2.10\nnote\na=b\nrhost\n192.0.2.20\n
+alias-var	var rhost ignored-extra-argument	rhost\n192.0.2.20\n
+v-list	v	lhost\n192.0.2.10\nnote\na=b\nrhost\n192.0.2.20\n
+v-filter	v HOST	lhost\n192.0.2.10\nrhost\n192.0.2.20\n

@@ -12,7 +12,7 @@ if [[ -z "${II_GO_BIN:-}" ]]; then
   fi
 fi
 typeset -g II_PLUGIN_DIR="$II_GO_ROOT"
-typeset -g II_PAYLOAD_DIR="${II_PAYLOAD_DIR:-${II_GO_ROOT}/ori-ii/payloads}"
+typeset -g II_PAYLOAD_DIR="${II_PAYLOAD_DIR:-${II_GO_ROOT}/payloads}"
 typeset -g II_CONFIG_FILE="${II_CONFIG_FILE:-${HOME}/.config/ii/ii.conf}"
 [[ -r "$II_CONFIG_FILE" ]] && source "$II_CONFIG_FILE"
 
@@ -25,6 +25,7 @@ source "${II_GO_ROOT}/lib/ordinary_get.zsh"
 source "${II_GO_ROOT}/lib/ordinary_interactive.zsh"
 source "${II_GO_ROOT}/lib/ordinary_payload_render.zsh"
 source "${II_GO_ROOT}/lib/ordinary_payload.zsh"
+source "${II_GO_ROOT}/lib/ordinary_web.zsh"
 source "${II_GO_ROOT}/lib/ordinary_tmux.zsh"
 source "${II_GO_ROOT}/lib/ordinary_help.zsh"
 source "${II_GO_ROOT}/lib/ordinary_runtime.zsh"

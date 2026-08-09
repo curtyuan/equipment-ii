@@ -55,4 +55,4 @@ if tmux -S "$socket" show-environment -t mutate-contract ii_remove >/dev/null 2>
   exit 1
 fi
 
-print "Go variable mutation tmux contract passed"
+print "Zsh variable mutation tmux contract passed"

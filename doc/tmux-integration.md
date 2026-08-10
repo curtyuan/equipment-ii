@@ -132,7 +132,7 @@ The global user option `@ii_integration_marker` identifies ii's installed
 alias. Its value contains:
 
 ```text
-version=2 index=INDEX helper=/absolute/path/to/ii-go
+version=3 index=INDEX helper=/absolute/path/to/script/ii-tmux-popup
 ```
 
 The marker lets ii refresh its own alias without treating an unrelated array
@@ -180,7 +180,7 @@ server: /tmp/tmux-1000/default
 configured: default | disabled | force
 command alias: installed | missing | stale | conflict
 command: ii
-helper: /absolute/path/to/ii-go
+helper: /absolute/path/to/script/ii-tmux-popup
 Prefix+: native or user-defined | legacy ii adapter
 ```
 
@@ -191,7 +191,8 @@ Automatic repair occurs only while loading the plugin with integration enabled.
 
 - Failure to inspect or install the alias does not abort the rest of plugin
   loading.
-- A missing or non-executable Go runtime leaves the alias uninstalled.
+- A missing or non-executable `script/ii-tmux-popup` helper leaves the alias
+  uninstalled.
 - A same-name conflict is preserved unless force mode is explicitly configured.
 - A disappeared target pane, buffer creation failure, paste failure, or final
   Enter failure is reported in the popup.
@@ -199,7 +200,17 @@ Automatic repair occurs only while loading the plugin with integration enabled.
 
 ## Regression Coverage
 
-`script/test-tmux-integration` uses an isolated tmux server and verifies:
+The isolated tmux contracts are run with:
+
+```zsh
+make test-tmux-install
+make test-tmux-status
+make test-tmux-popup
+make test-tmux-popup-interactive
+make test-payload-input-usage-tmux
+```
+
+Together they verify:
 
 - native binding preservation;
 - unused-index installation;
@@ -209,4 +220,6 @@ Automatic repair occurs only while loading the plugin with integration enabled.
 - force replacement;
 - migration from the legacy Prefix adapter.
 
-Popup transport and pane identity are covered by `script/test-workflow-tmux`.
+Popup transport, pane identity, streamed input, and interactive cancellation
+are covered by the popup and payload-input contracts above. Combo workflow
+domain and selector behavior are covered by Go tests under `src/`.

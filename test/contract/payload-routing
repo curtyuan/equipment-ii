@@ -33,7 +33,7 @@ source "${root}/ii.plugin.zsh"
 ii help >"${tmp_dir}/help.out"
 ii version >"${tmp_dir}/version.out"
 grep -Fx 'usage: ii COMMAND [ARGS]' "${tmp_dir}/help.out"
-grep -Fx 'ii 0.2.4' "${tmp_dir}/version.out"
+grep -Fx "ii $(<"${root}/VERSION")" "${tmp_dir}/version.out"
 [[ ! -s "$II_GO_CALL_LOG" ]]
 
 export rhost=shell-value

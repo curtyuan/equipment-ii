@@ -1,2 +1,0 @@
-# description: PowerShell Invoke-WebRequest download of $file into $env:TEMP
-iwr -Uri "$file" -OutFile "$env:TEMP\$file"

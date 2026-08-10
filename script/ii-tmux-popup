@@ -11,5 +11,5 @@ fi
 if [[ ! -o interactive && -t 0 ]]; then
   exec zsh -f -i "$0" "$@"
 fi
-II_TMUX_INTEGRATION=0 II_GO_ROOT="$root" source "${root}/ii.plugin.zsh" || exit
+II_TMUX_INTEGRATION=0 II_ROOT="$root" source "${root}/ii.plugin.zsh" || exit
 ii_zsh_tmux_popup "$@"

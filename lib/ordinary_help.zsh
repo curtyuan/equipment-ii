@@ -1,7 +1,7 @@
 # Zsh-owned public help, version, and unknown-command presentation.
 
 ii_zsh_help_file() {
-  print -r -- "${II_GO_ROOT}/help/$1.txt"
+  print -r -- "${II_ROOT}/help/$1.txt"
 }
 
 ii_zsh_help_print() {
@@ -78,7 +78,7 @@ ii_zsh_cmd_help() {
   local command="${1:-}"
   shift 2>/dev/null || true
   if [[ "$command" == (version|-v|--version) && " $* " != *' -h '* && " $* " != *' --help '* ]]; then
-    print -r -- "ii $(<"${II_GO_ROOT}/VERSION")"
+    print -r -- "ii $(<"${II_ROOT}/VERSION")"
     return
   fi
   local -a topic_args

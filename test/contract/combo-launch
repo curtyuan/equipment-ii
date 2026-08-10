@@ -8,7 +8,7 @@ mkdir -p "${tmp_dir}/payloads/combo"
 print -rl -- '# flow: 1' '# stage: zsh | test' '# lane: local' '# advance: confirm' 'echo ok' \
   >"${tmp_dir}/payloads/combo/test"
 
-typeset -g II_GO_ROOT="$root"
+typeset -g II_ROOT="$root"
 typeset -g II_GO_BIN="${tmp_dir}/ii-go"
 typeset -g II_PAYLOAD_DIR="${tmp_dir}/payloads"
 typeset -g II_INTERACTIVE_KEY=y

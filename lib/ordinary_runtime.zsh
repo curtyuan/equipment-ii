@@ -1,6 +1,6 @@
 # Ordinary-command ownership and dispatch. Keep this table independent from
 # combo parsing: a selected # flow: 1 payload is the only path into Go's
-# workflow runtime once the ownership migration is complete.
+# workflow runtime.
 
 typeset -gA II_ORDINARY_COMMAND_SPEC=(
   set-explicit ii_zsh_cmd_set_explicit

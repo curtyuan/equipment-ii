@@ -24,12 +24,6 @@ an older executable implementation.
 | File | Purpose |
 | --- | --- |
 | [architecture.md](architecture.md) | Current Zsh/tmux/Go ownership and invocation boundaries. |
-| [feature-inventory.md](feature-inventory.md) | Live feature ownership, migration status, and the `/www` compatibility inventory. |
 | [help.md](help.md) | Help output contract, per-feature registration, routing, and maintenance workflow. |
 | [testing.md](testing.md) | Syntax checks, smoke tests, and regression scenarios. |
 | [release.md](release.md) | Version bumping, package build output, and release tagging. |
-
-## Active TODOs
-
-Files under `todo/`, when present, track active implementation work. There are
-currently no active runtime migration TODOs.

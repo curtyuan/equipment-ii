@@ -51,15 +51,13 @@ git tag v0.3.0
 git push origin master --tags
 ```
 
-The release workflow checks that the tag matches `VERSION`, builds static Linux
-amd64 and arm64 deployment packages, and publishes:
+The release workflow checks that the tag matches `VERSION`, builds a static
+Linux amd64 deployment package, and publishes:
 
 ```text
 ii-VERSION-linux-amd64.tar.gz
 ii-VERSION-linux-amd64.zip
-ii-VERSION-linux-arm64.tar.gz
-ii-VERSION-linux-arm64.zip
 ```
 
-Each archive has the same top-level `ii/` deployment directory and contains an
-`ii-go` binary matching the architecture in its filename.
+Each archive has the same top-level `ii/` deployment directory and contains a
+Linux amd64 `ii-go` binary.

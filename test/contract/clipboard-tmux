@@ -8,7 +8,7 @@ trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp
 
 tmux -f /dev/null -S "$socket" new-session -d -s clipboard-contract -x 110 -y 36 'zsh -f'
 command_text="cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go"
-command_text+=" && source ./ii.plugin.zsh"
+command_text+=" && source ./src/zsh/ii.plugin.zsh"
 command_text+=" && ii clip backend xclip-both"
 command_text+=" && print -r -- SHELL_BACKEND=\$II_CLIP_BACKEND"
 command_text+=" && unset II_CLIP_BACKEND II_CLIP_CMD"

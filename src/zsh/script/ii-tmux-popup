@@ -1,7 +1,12 @@
 #!/usr/bin/env zsh
 
 script_dir="${0:A:h}"
-root="${script_dir:h}"
+zsh_root="${script_dir:h}"
+if [[ -r "${zsh_root}/RELEASE" ]]; then
+  root="$zsh_root"
+else
+  root="${zsh_root:h:h}"
+fi
 if [[ "${1:-}" == --version ]]; then
   version=unknown
   [[ -r "${root}/VERSION" ]] && version="$(<"${root}/VERSION")"
@@ -11,5 +16,5 @@ fi
 if [[ ! -o interactive && -t 0 ]]; then
   exec zsh -f -i "$0" "$@"
 fi
-II_TMUX_INTEGRATION=0 II_ROOT="$root" source "${root}/ii.plugin.zsh" || exit
+II_TMUX_INTEGRATION=0 II_ROOT="$root" source "${zsh_root}/ii.plugin.zsh" || exit
 ii_zsh_tmux_popup "$@"

@@ -34,6 +34,21 @@ ii_zsh_cmd_list() {
   done < <(ii_zsh_tmux_variable_lines)
 }
 
+ii_zsh_output_entry_name() {
+  local entry="$1" name
+  entry="${entry%$'\r'}"
+  entry="${entry#${entry%%[![:space:]]*}}"
+  [[ -n "$entry" && "$entry" != \#* ]] || return 1
+  if [[ "$entry" == export[[:space:]]* ]]; then
+    entry="${entry#export}"
+    entry="${entry#${entry%%[![:space:]]*}}"
+  fi
+  [[ "$entry" == *=* ]] || return 1
+  name="${entry%%=*}"
+  [[ "$name" != *[[:space:]]* && "${(L)name}" =~ '^[a-z_][a-z0-9_]*$' ]] || return 1
+  REPLY="${(L)name}"
+}
+
 ii_zsh_cmd_output() {
   local command="$1"
   shift
@@ -43,7 +58,9 @@ ii_zsh_cmd_output() {
     return 2
   }
   ii_zsh_tmux_available || return
-  local output="${1:-.env}" output_abs parent temp line name value count=0
+  local output="${1:-.env}" output_abs parent temp line name value answer
+  local count=0 kept_count=0
+  local -A current_names extra_names
   output_abs="${output:A}"
   parent="${output_abs:h}"
   [[ -d "$parent" ]] || {
@@ -64,9 +81,42 @@ ii_zsh_cmd_output() {
       name="${line%%=*}"
       value="${line#*=}"
       [[ -n "$value" ]] || continue
-      print -r -- "${name#ii_}=${(qq)value}"
+      name="${name#ii_}"
+      print -r -- "${name}=${(qq)value}"
+      current_names[$name]=1
       (( ++count ))
     done < <(ii_zsh_tmux_variable_lines) >|"$temp"
+
+    if [[ -f "$output_abs" ]]; then
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        ii_zsh_output_entry_name "$line" || continue
+        (( ${+current_names[$REPLY]} )) && continue
+        extra_names[$REPLY]=1
+      done <"$output_abs"
+    fi
+
+    if (( ${#extra_names} )); then
+      print -n -- "$output_abs contains ${#extra_names} variable(s) not in the current output. (c) cover / (y) keep / (n) abort: "
+      IFS= read -r answer || true
+      case "${(L)answer}" in
+        c) ;;
+        y)
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            ii_zsh_output_entry_name "$line" || {
+              print -r -- "$line" >>"$temp"
+              continue
+            }
+            (( ${+current_names[$REPLY]} )) && continue
+            print -r -- "$line" >>"$temp"
+          done <"$output_abs"
+          kept_count=${#extra_names}
+          ;;
+        n|*)
+          print -r -- aborted
+          return 1
+          ;;
+      esac
+    fi
     command mv -f -- "$temp" "$output_abs" || {
       print -u2 "ii: failed to replace variable output: $output_abs"
       return 1
@@ -75,5 +125,5 @@ ii_zsh_cmd_output() {
   } always {
     [[ -n "$temp" ]] && command rm -f -- "$temp"
   }
-  print -r -- "wrote $count variable(s) to $output_abs"
+  print -r -- "wrote $(( count + kept_count )) variable(s) to $output_abs"
 }

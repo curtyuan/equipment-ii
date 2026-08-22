@@ -33,7 +33,7 @@ start_case() {
   tmux -S "$socket" kill-server 2>/dev/null || true
   tmux -f /dev/null -S "$socket" new-session -d -s payload-input-contract -x 110 -y 36 'zsh -f'
   tmux -S "$socket" set-environment -t payload-input-contract ii_rhost 192.0.2.55
-  send_line "cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go && II_CLIP_BACKEND=tmux && source ./ii.plugin.zsh && print -r -- CASE_READY"
+  send_line "cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go && II_CLIP_BACKEND=tmux && source ./src/zsh/ii.plugin.zsh && print -r -- CASE_READY"
   wait_for "CASE_READY" >/dev/null
 }
 

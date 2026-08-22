@@ -1,5 +1,16 @@
 # Architecture
 
+`ii` is distributed as a Zsh plugin with a bundled Go helper. The public
+product entrypoint is `ii.plugin.zsh`; `ii-go` is an internal implementation
+detail for opted-in combo workflows and is not a standalone public CLI.
+
+## Platform boundary
+
+The runtime and release package support Linux amd64 only. `make build` always
+cross-builds a static Linux amd64 `ii-go`, even when invoked from another host.
+No runtime fallback or package variant is maintained for another operating
+system or architecture.
+
 ## Ownership chain
 
 ```text
@@ -47,31 +58,51 @@ shell-state, parent-shell operations, or execution-file protocol exists.
 
 The Go binary rejects public commands and unknown internal commands.
 
+## Source-language boundary
+
+Both runtime implementations live below `src/`, separated as `src/zsh/` and
+`src/go/`. This is a source-layout boundary, not a change in runtime ownership:
+moving Zsh parsing into the Go process would change when tmux state is read,
+validated, and updated, and a child process cannot directly mutate the calling
+shell's variables, working directory, or functions. Keeping the public parser
+and ordinary command sequence in Zsh preserves those ordering and
+current-shell guarantees. Go remains an isolated helper entered only after Zsh
+has selected and validated an opted-in combo workflow.
+
+`II_ROOT` continues to identify the project or installed package root, where
+`help/`, `payloads/`, and `ii-go` live. In the repository, `II_ZSH_ROOT`
+identifies `src/zsh/`; the packaged layout is flattened, so both roots identify
+the package root. The distinction lets the source tree stay language-oriented
+without exposing that development layout in the deployment package.
+
 ## Source layout
 
 ```text
-ii.plugin.zsh                   Zsh composition and configuration
-lib/ordinary_runtime.zsh       public command specification and dispatch
-lib/ordinary_variables.zsh     set/import/load/unset mutations
-lib/ordinary_read.zsh          list and output
-lib/ordinary_get.zsh           get and copy
-lib/ordinary_interactive.zsh   interactive variable actions
-lib/ordinary_clipboard.zsh     one clipboard policy
-lib/ordinary_payload*.zsh      catalog, rendering, input, combo handoff
-lib/ordinary_tmux.zsh          alias installation and status
-lib/ordinary_help.zsh          static help routing
-help/                           public help contracts
-src/cmd/ii/main.go             Go helper composition root
-src/internal/payload/          renderer and combo workflow domain
-src/internal/terminal/         popup input and workflow interaction
-src/internal/adapter/tmux/     tmux state, panes, memory, literal transport
-src/internal/adapter/clipboard combo stage copy transport
-src/internal/adapter/filesystem combo payload catalog boundary
-test/contract/                 public/runtime architecture contracts
-payloads/                      bundled payload data
+src/zsh/ii.plugin.zsh                 Zsh composition and configuration
+src/zsh/lib/ordinary_runtime.zsh      public command specification and dispatch
+src/zsh/lib/ordinary_variables.zsh    set/import/load/unset mutations
+src/zsh/lib/ordinary_read.zsh         list and output
+src/zsh/lib/ordinary_get.zsh          get and copy
+src/zsh/lib/ordinary_interactive.zsh  interactive variable actions
+src/zsh/lib/ordinary_clipboard.zsh    one clipboard policy
+src/zsh/lib/ordinary_payload*.zsh     catalog, rendering, input, combo handoff
+src/zsh/lib/ordinary_tmux.zsh         alias installation and status
+src/zsh/lib/ordinary_help.zsh         static help routing
+src/zsh/script/ii-tmux-popup          tmux popup entrypoint
+src/go/cmd/ii/main.go                 Go helper composition root
+src/go/internal/payload/              renderer and combo workflow domain
+src/go/internal/terminal/             popup input and workflow interaction
+src/go/internal/adapter/tmux/         tmux state, panes, memory, literal transport
+src/go/internal/adapter/clipboard combo stage copy transport
+src/go/internal/adapter/filesystem combo payload catalog boundary
+help/                                  public help contracts
+test/contract/                         public/runtime architecture contracts
+payloads/                              bundled payload data
 ```
 
-Generated binaries and packages live under `build/` and `export/`.
+Generated binaries and packages live under `build/` and `export/`. The single
+deployment unit is `export/ii`; architecture-specific export trees are not
+maintained.
 
 ## State and rendering
 
@@ -91,3 +122,4 @@ and session identity are checked again immediately before transport.
 - Public command results are checked against reviewed repository fixtures;
   tests never execute an older runtime to generate expected output.
 - Go remains strictly scoped to selected combo workflows.
+- Linux amd64 is the sole supported deployment platform.

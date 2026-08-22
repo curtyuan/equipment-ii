@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-plugin="${repo_dir}/ii.plugin.zsh"
+plugin="${repo_dir}/src/zsh/ii.plugin.zsh"
 
 II_CONFIG_FILE=/dev/null \
 II_COLOR="${II_CONTRACT_COLOR:-never}" \

@@ -28,7 +28,7 @@ export II_GO_BIN="${tmp_dir}/bin/ii-go"
 export II_GO_CALL_LOG="${tmp_dir}/go.calls"
 export II_PAYLOAD_DIR="${tmp_dir}/payloads"
 export II_CONFIG_FILE=/dev/null
-source "${root}/ii.plugin.zsh"
+source "${root}/src/zsh/ii.plugin.zsh"
 [[ ! -s "$II_GO_CALL_LOG" ]]
 ii help >"${tmp_dir}/help.out"
 ii version >"${tmp_dir}/version.out"

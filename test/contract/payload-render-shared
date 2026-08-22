@@ -9,7 +9,7 @@ trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp
 
 tmux -f /dev/null -S "$socket" new-session -d -s payload-render-shared 'sleep 30'
 export TMUX="${socket},1,0"
-source "${root}/ii.plugin.zsh"
+source "${root}/src/zsh/ii.plugin.zsh"
 
 apply_assignments() {
   local target="$1" assignments="$2" assignment name value

@@ -23,7 +23,7 @@ func fixtureAssignments(raw string, source Source) MapResolver {
 }
 
 func TestSharedRenderFixture(t *testing.T) {
-	path := filepath.Join("..", "..", "..", "test", "fixtures", "payload-render.tsv")
+	path := filepath.Join("..", "..", "..", "..", "test", "fixtures", "payload-render.tsv")
 	file, err := os.Open(path)
 	if err != nil {
 		t.Fatal(err)

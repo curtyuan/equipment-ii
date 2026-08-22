@@ -33,7 +33,7 @@ export II_GO_BIN="${tmp_dir}/bin/ii-go"
 export II_CONFIG_FILE=/dev/null
 export II_TMUX_INTEGRATION=0
 
-source "${root}/ii.plugin.zsh"
+source "${root}/src/zsh/ii.plugin.zsh"
 : >"$II_GO_CALL_LOG"
 
 ii s note 'two words' >"${tmp_dir}/set.out"

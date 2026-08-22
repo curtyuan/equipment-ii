@@ -37,6 +37,42 @@ check_output v-output v --out
 check_output vo vo
 check_output voc voc
 
+cover_target="${tmp_dir}/cover.env"
+printf "plain='old'\nlegacy='remove me'\n" >"$cover_target"
+printf 'c\n' | "$invoke" vo "$cover_target" >"${tmp_dir}/cover.out" 2>"${tmp_dir}/cover.err"
+grep -F "contains 1 variable(s) not in the current output. (c) cover / (y) keep / (n) abort:" "${tmp_dir}/cover.out"
+grep -F "wrote 5 variable(s) to $cover_target" "${tmp_dir}/cover.out"
+[[ ! -s "${tmp_dir}/cover.err" ]]
+diff -u "${repo_dir}/test/fixtures/variable-output.txt" "$cover_target"
+
+keep_target="${tmp_dir}/keep.env"
+printf "# retained note\nplain='old'\nlegacy='keep me'\n" >"$keep_target"
+printf 'y\n' | "$invoke" vo "$keep_target" >"${tmp_dir}/keep.out" 2>"${tmp_dir}/keep.err"
+grep -F "wrote 6 variable(s) to $keep_target" "${tmp_dir}/keep.out"
+[[ ! -s "${tmp_dir}/keep.err" ]]
+grep -Fx "plain='value'" "$keep_target"
+grep -Fx "legacy='keep me'" "$keep_target"
+grep -Fx '# retained note' "$keep_target"
+[[ "$(grep -c '^plain=' "$keep_target")" == 1 ]]
+
+abort_target="${tmp_dir}/abort.env"
+printf "plain='old'\nlegacy='unchanged'\n" >"$abort_target"
+cp "$abort_target" "${tmp_dir}/abort.expected"
+set +e
+printf 'n\n' | "$invoke" vo "$abort_target" >"${tmp_dir}/abort.out" 2>"${tmp_dir}/abort.err"
+abort_status=$?
+set -e
+[[ "$abort_status" == 1 && ! -s "${tmp_dir}/abort.err" ]]
+grep -F '(c) cover / (y) keep / (n) abort: aborted' "${tmp_dir}/abort.out"
+diff -u "${tmp_dir}/abort.expected" "$abort_target"
+
+subset_target="${tmp_dir}/subset.env"
+printf "plain='old'\n" >"$subset_target"
+"$invoke" vo "$subset_target" >"${tmp_dir}/subset.out" 2>"${tmp_dir}/subset.err"
+[[ ! -s "${tmp_dir}/subset.err" ]]
+! grep -F 'cover' "${tmp_dir}/subset.out"
+diff -u "${repo_dir}/test/fixtures/variable-output.txt" "$subset_target"
+
 (
   cd "$tmp_dir"
   "$invoke" vo >default.out 2>default.err

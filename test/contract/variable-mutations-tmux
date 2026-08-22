@@ -11,7 +11,7 @@ tmux -S "$socket" set-environment -t mutate-contract ii_rhost 192.0.2.44
 tmux -S "$socket" set-environment -t mutate-contract ii_remove remove-me
 
 command_text="cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go"
-command_text+=" && II_AUTO_DETECT_LHOST_INTERFACE=lo && source ./ii.plugin.zsh"
+command_text+=" && II_AUTO_DETECT_LHOST_INTERFACE=lo && source ./src/zsh/ii.plugin.zsh"
 command_text+=" && ii load"
 command_text+=" && print -r -- LOAD=\$rhost"
 command_text+=" && ii u remove"

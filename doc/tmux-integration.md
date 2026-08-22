@@ -63,7 +63,7 @@ The installed array value is conceptually:
 ```tmux
 set-option -s command-alias[INDEX] \
   "ii=display-popup -EE -T 'ii pie VERSION' -w 90% -h 90% \
-  -d '#{pane_current_path}' /absolute/path/to/script/ii-tmux-popup \
+  -d '#{pane_current_path}' /absolute/path/to/src/zsh/script/ii-tmux-popup \
   execute '#{pane_id}' '#{session_id}'"
 ```
 
@@ -91,7 +91,7 @@ The native alias enters the packaged Zsh popup helper directly:
 ```text
 tmux command alias
   -> display-popup
-  -> script/ii-tmux-popup execute ORIGIN SESSION
+  -> src/zsh/script/ii-tmux-popup execute ORIGIN SESSION
   -> render and confirm
   -> validate and send to the originating pane
 ```
@@ -132,7 +132,7 @@ The global user option `@ii_integration_marker` identifies ii's installed
 alias. Its value contains:
 
 ```text
-version=3 index=INDEX helper=/absolute/path/to/script/ii-tmux-popup
+version=3 index=INDEX helper=/absolute/path/to/src/zsh/script/ii-tmux-popup
 ```
 
 The marker lets ii refresh its own alias without treating an unrelated array
@@ -180,7 +180,7 @@ server: /tmp/tmux-1000/default
 configured: default | disabled | force
 command alias: installed | missing | stale | conflict
 command: ii
-helper: /absolute/path/to/script/ii-tmux-popup
+helper: /absolute/path/to/src/zsh/script/ii-tmux-popup
 Prefix+: native or user-defined | legacy ii adapter
 ```
 
@@ -191,7 +191,7 @@ Automatic repair occurs only while loading the plugin with integration enabled.
 
 - Failure to inspect or install the alias does not abort the rest of plugin
   loading.
-- A missing or non-executable `script/ii-tmux-popup` helper leaves the alias
+- A missing or non-executable `src/zsh/script/ii-tmux-popup` helper leaves the alias
   uninstalled.
 - A same-name conflict is preserved unless force mode is explicitly configured.
 - A disappeared target pane, buffer creation failure, paste failure, or final
@@ -222,4 +222,4 @@ Together they verify:
 
 Popup transport, pane identity, streamed input, and interactive cancellation
 are covered by the popup and payload-input contracts above. Combo workflow
-domain and selector behavior are covered by Go tests under `src/`.
+domain and selector behavior are covered by Go tests under `src/go/`.

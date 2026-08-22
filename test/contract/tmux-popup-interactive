@@ -19,7 +19,7 @@ tmux -f /dev/null -S "$socket" new-session -d -s go-popup-contract -x 100 -y 30 
 server_pid="$(tmux -S "$socket" display-message -p -t go-popup-contract:0.0 '#{pid}')"
 pane="$(tmux -S "$socket" display-message -p -t go-popup-contract:0.0 '#{pane_id}')"
 tmux_env="${socket},${server_pid},0"
-helper="${root}/script/ii-tmux-popup"
+helper="${root}/src/zsh/script/ii-tmux-popup"
 session="$(tmux -S "$socket" display-message -p -t go-popup-contract:0.0 '#{session_id}')"
 
 TERM=xterm-256color zpty go-popup exec env \

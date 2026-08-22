@@ -1,4 +1,5 @@
-GO_DIR := src
+GO_DIR := src/go
+ZSH_DIR := src/zsh
 GO_PACKAGE := ./cmd/ii
 BUILD_DIR := build
 II_GO := $(BUILD_DIR)/ii-go
@@ -6,57 +7,43 @@ EXPORT_DIR := export/ii
 VERSION := $(shell tr -d '\n' < VERSION)
 GO_LDFLAGS := -s -w
 PACKAGE_LIBS := \
-	lib/ordinary_runtime.zsh \
-	lib/ordinary_variables.zsh \
-	lib/ordinary_read.zsh \
-	lib/ordinary_clipboard.zsh \
-	lib/ordinary_get.zsh \
-	lib/ordinary_interactive.zsh \
-	lib/ordinary_payload_render.zsh \
-	lib/ordinary_payload.zsh \
-	lib/ordinary_web.zsh \
-	lib/ordinary_tmux.zsh \
-	lib/ordinary_help.zsh
+	$(ZSH_DIR)/lib/ordinary_runtime.zsh \
+	$(ZSH_DIR)/lib/ordinary_variables.zsh \
+	$(ZSH_DIR)/lib/ordinary_read.zsh \
+	$(ZSH_DIR)/lib/ordinary_clipboard.zsh \
+	$(ZSH_DIR)/lib/ordinary_get.zsh \
+	$(ZSH_DIR)/lib/ordinary_interactive.zsh \
+	$(ZSH_DIR)/lib/ordinary_payload_render.zsh \
+	$(ZSH_DIR)/lib/ordinary_payload.zsh \
+	$(ZSH_DIR)/lib/ordinary_web.zsh \
+	$(ZSH_DIR)/lib/ordinary_tmux.zsh \
+	$(ZSH_DIR)/lib/ordinary_help.zsh
 export GOCACHE := $(CURDIR)/$(BUILD_DIR)/.gocache
 
-.PHONY: all build package package-linux-amd64 fmt-check vet test test-go test-contract test-ordinary-set-tmux test-payload-render-shared test-payload-routing test-web-helpers test-combo-launch test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-input-usage-tmux clean
+.PHONY: all build package fmt-check vet test test-go test-contract test-ordinary-set-tmux test-payload-render-shared test-payload-routing test-web-helpers test-combo-launch test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-input-usage-tmux clean
 
 all: package
 
 build:
 	mkdir -p $(BUILD_DIR)
-	cd $(GO_DIR) && CGO_ENABLED=0 go build -trimpath \
+	cd $(GO_DIR) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
 		-ldflags "$(GO_LDFLAGS)" \
-		-o ../$(II_GO) $(GO_PACKAGE)
+		-o "$(CURDIR)/$(II_GO)" $(GO_PACKAGE)
 
 package: build
 	rm -rf $(EXPORT_DIR)
 	mkdir -p $(EXPORT_DIR)/lib $(EXPORT_DIR)/script
-	cp ii.plugin.zsh README.md VERSION $(EXPORT_DIR)/
+	cp README.md VERSION $(EXPORT_DIR)/
+	cp $(ZSH_DIR)/ii.plugin.zsh $(EXPORT_DIR)/
 	cp -R help $(EXPORT_DIR)/help
 	cp $(PACKAGE_LIBS) $(EXPORT_DIR)/lib/
 	cp $(II_GO) $(EXPORT_DIR)/ii-go
 	cp -R payloads $(EXPORT_DIR)/payloads
-	cp script/ii-tmux-popup $(EXPORT_DIR)/script/
+	cp $(ZSH_DIR)/script/ii-tmux-popup $(EXPORT_DIR)/script/
+	chmod +x $(EXPORT_DIR)/ii-go $(EXPORT_DIR)/script/ii-tmux-popup
 	find $(EXPORT_DIR) -type f -name '.gitkeep' -delete
-	printf 'ii %s\nruntime=zsh\ncombo_helper=ii-go\npayload_data=root\n' "$(VERSION)" > $(EXPORT_DIR)/RELEASE
-
-package-linux-amd64:
-	mkdir -p $(BUILD_DIR)
-	cd $(GO_DIR) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
-		-ldflags "$(GO_LDFLAGS)" \
-		-o ../$(BUILD_DIR)/ii-go-linux-amd64 $(GO_PACKAGE)
-	rm -rf export/linux-amd64
-	mkdir -p export/linux-amd64/ii/lib export/linux-amd64/ii/script
-	cp ii.plugin.zsh README.md VERSION export/linux-amd64/ii/
-	cp -R help export/linux-amd64/ii/help
-	cp $(PACKAGE_LIBS) export/linux-amd64/ii/lib/
-	cp $(BUILD_DIR)/ii-go-linux-amd64 export/linux-amd64/ii/ii-go
-	cp -R payloads export/linux-amd64/ii/payloads
-	cp script/ii-tmux-popup export/linux-amd64/ii/script/
-	find export/linux-amd64/ii -type f -name '.gitkeep' -delete
 	printf 'ii %s\nruntime=zsh\ncombo_helper=ii-go\narchitecture=linux-amd64\npayload_data=root\n' \
-		"$(VERSION)" > export/linux-amd64/ii/RELEASE
+		"$(VERSION)" > $(EXPORT_DIR)/RELEASE
 
 fmt-check:
 	@test -z "$$(gofmt -l $$(find $(GO_DIR) -name '*.go' -type f))" || { \

@@ -1,7 +1,7 @@
 # Clipboard Behavior
 
 `ii i` and `ii p` both copy through `ii_zsh_clip_copy` in
-`lib/ordinary_clipboard.zsh`.
+`src/zsh/lib/ordinary_clipboard.zsh`.
 The commands differ in what they copy, not in the final copy layer:
 
 - `ii i` Enter copies the selected variable value and closes.

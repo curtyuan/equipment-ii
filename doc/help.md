@@ -1,7 +1,7 @@
 # Help System
 
-Public help is Zsh-owned. `lib/ordinary_help.zsh` maps public aliases and nested
-forms to static files under `help/`; `lib/ordinary_runtime.zsh` sends all help
+Public help is Zsh-owned. `src/zsh/lib/ordinary_help.zsh` maps public aliases and nested
+forms to static files under `help/`; `src/zsh/lib/ordinary_runtime.zsh` sends all help
 and version forms there without starting Go.
 
 Each help file follows this order:

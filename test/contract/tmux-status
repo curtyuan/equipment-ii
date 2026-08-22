@@ -16,7 +16,7 @@ export TMUX_PANE="$pane"
 "$invoke" tmux status >"${tmp_dir}/status.out" 2>"${tmp_dir}/status.err"
 [[ ! -s "${tmp_dir}/status.err" ]]
 grep -Fx "server: $socket" "${tmp_dir}/status.out"
-grep -Fx "helper: ${repo_dir}/script/ii-tmux-popup" "${tmp_dir}/status.out"
+grep -Fx "helper: ${repo_dir}/src/zsh/script/ii-tmux-popup" "${tmp_dir}/status.out"
 sed -e '/^server:/d' -e '/^helper:/d' "${tmp_dir}/status.out" >"${tmp_dir}/status.stable"
 diff -u "${repo_dir}/test/fixtures/tmux-status.txt" "${tmp_dir}/status.stable"
 

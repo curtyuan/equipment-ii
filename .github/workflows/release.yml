@@ -27,8 +27,26 @@ jobs:
             exit 1
           fi
 
-      - name: Build architecture-specific deployment packages
-        run: make package-linux-amd64
+      - name: Build deployment package
+        run: make
+
+      - name: Install smoke test dependency
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y zsh
+
+      - name: Smoke test deployment package
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x export/ii/ii-go
+          test -x export/ii/script/ii-tmux-popup
+          II_CONFIG_FILE=/dev/null zsh -fc '
+            source ./export/ii/ii.plugin.zsh
+            [[ "$II_ROOT" == "$PWD/export/ii" ]]
+            [[ "$II_ZSH_ROOT" == "$PWD/export/ii" ]]
+            [[ "$II_GO_BIN" == "$PWD/export/ii/ii-go" ]]
+            ii version
+          '
+          ./export/ii/script/ii-tmux-popup --version
 
       - name: Create archives
         shell: bash
@@ -36,12 +54,24 @@ jobs:
           set -euo pipefail
           version="$(<VERSION)"
           mkdir -p dist
-          package_root="export/linux-amd64"
+          package_root="export"
           tar -C "$package_root" -czf \
             "dist/ii-${version}-linux-amd64.tar.gz" ii
           (
             cd "$package_root"
-            zip -qr "../../dist/ii-${version}-linux-amd64.zip" ii
+            zip -qr "../dist/ii-${version}-linux-amd64.zip" ii
+          )
+          cp "dist/ii-${version}-linux-amd64.tar.gz" \
+            dist/ii-linux-amd64.tar.gz
+          cp "dist/ii-${version}-linux-amd64.zip" \
+            dist/ii-linux-amd64.zip
+          (
+            cd dist
+            sha256sum \
+              "ii-${version}-linux-amd64.tar.gz" \
+              "ii-${version}-linux-amd64.zip" \
+              ii-linux-amd64.tar.gz \
+              ii-linux-amd64.zip > SHA256SUMS
           )
 
       - name: Publish GitHub release

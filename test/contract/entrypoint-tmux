@@ -19,7 +19,7 @@ fail() {
 
 tmux -f /dev/null -S "$socket" new-session -d -s adapter-test -x 100 -y 30 'zsh -f'
 tmux -S "$socket" send-keys -t adapter-test:0.0 \
-  "cd ${(q)root} && II_CONFIG_FILE=/dev/null source ./ii.plugin.zsh && ii s rhost 192.0.2.40 && print -r -- ENTRY_SHELL_RHOST=\$rhost" Enter
+  "cd ${(q)root} && II_CONFIG_FILE=/dev/null source ./src/zsh/ii.plugin.zsh && ii s rhost 192.0.2.40 && print -r -- ENTRY_SHELL_RHOST=\$rhost" Enter
 
 typeset pane_output=""
 integer attempt

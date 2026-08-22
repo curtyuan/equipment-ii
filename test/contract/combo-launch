@@ -25,9 +25,9 @@ tmux() {
   print -rl -- "$@" >|"$TMUX_CALL_LOG"
 }
 
-source "${root}/lib/ordinary_variables.zsh"
-source "${root}/lib/ordinary_clipboard.zsh"
-source "${root}/lib/ordinary_payload_render.zsh"
+source "${root}/src/zsh/lib/ordinary_variables.zsh"
+source "${root}/src/zsh/lib/ordinary_clipboard.zsh"
+source "${root}/src/zsh/lib/ordinary_payload_render.zsh"
 
 ii_zsh_combo_launch combo/test 0 >"${tmp_dir}/stdout"
 grep -Fx 'Execute this combo workflow? [y/N] y' "${tmp_dir}/stdout"

@@ -109,13 +109,13 @@ session aborts pending stages without choosing a replacement pane.
 ## Implementation Map
 
 ```text
-lib/ordinary_payload.zsh          Zsh selection and combo handoff
-lib/ordinary_payload_render.zsh   shared rendering contract
-src/internal/payload/             parser, assignments, runner
-src/internal/terminal/            pane selector and confirmation UI
-src/internal/adapter/tmux/         panes, memory, literal transport
-src/internal/adapter/clipboard/    combo copy transport
-src/internal/cli/                  internal ii-go entrypoints
+src/zsh/lib/ordinary_payload.zsh          Zsh selection and combo handoff
+src/zsh/lib/ordinary_payload_render.zsh   shared rendering contract
+src/go/internal/payload/             parser, assignments, runner
+src/go/internal/terminal/            pane selector and confirmation UI
+src/go/internal/adapter/tmux/         panes, memory, literal transport
+src/go/internal/adapter/clipboard/    combo copy transport
+src/go/internal/cli/                  internal ii-go entrypoints
 ```
 
 Automated coverage is described in [testing.md](testing.md). The exact stored

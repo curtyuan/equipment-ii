@@ -264,7 +264,15 @@ source ./.env
 
 Names are lowercase without the internal `ii_` prefix. Values use shell-safe
 single-quote escaping, so spaces, quotes, and shell metacharacters remain data
-when the file is sourced. Existing output files are replaced atomically.
+when the file is sourced. If an existing file contains variables absent from
+the current tmux output, `ii` prompts before the file is reduced:
+
+- `c` (cover) replaces it with only the current variables.
+- `y` (keep) updates current variables and retains the extra existing ones.
+- `n`, EOF, or any other response aborts without changing the file.
+
+If no variables would be removed, output proceeds without prompting. Successful
+writes replace the file atomically.
 
 ## Interactive Variables
 

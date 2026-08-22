@@ -7,7 +7,7 @@ document.
 ## Test Layers
 
 ```text
-src/**/*_test.go    Go combo-domain, terminal, and adapter tests
+src/go/**/*_test.go Go combo-domain, terminal, and adapter tests
 test/contract/      Zsh public behavior and isolated tmux contracts
 test/fixtures/      reviewed public output and shared render fixtures
 ```
@@ -28,7 +28,8 @@ routing, web helpers, the single-process combo launch boundary, a static Go
 build, and public help/command contracts.
 
 The primary target requires `go`, `zsh`, `tmux`, and `fzf`. Tmux contracts
-create isolated Unix sockets under a temporary directory.
+create isolated Unix sockets under a temporary directory. Runtime and package
+validation target the project's sole supported platform, Linux amd64.
 
 ## Tmux Contracts
 
@@ -75,9 +76,9 @@ confirmed combo starts one Go process rather than a daemon or per-stage helper.
 ## Syntax and Load Checks
 
 ```zsh
-zsh -n ii.plugin.zsh
+zsh -n src/zsh/ii.plugin.zsh
 zsh -n lib/*.zsh
-zsh -fc 'II_CONFIG_FILE=/dev/null; source ./ii.plugin.zsh; type ii; ii version'
+zsh -fc 'II_CONFIG_FILE=/dev/null; source ./src/zsh/ii.plugin.zsh; type ii; ii version'
 ```
 
 Sourcing the plugin and running public help, version, ordinary variables, or
@@ -88,12 +89,11 @@ ordinary payload commands must not start Go.
 ```zsh
 make clean
 make
-make package-linux-amd64
 ```
 
-`make` creates the local deployment unit under `export/ii`. The amd64 target
-creates `export/linux-amd64/ii` with a statically linked Linux `ii-go` helper.
-Both packages must contain the plugin, helper, libraries, help, payloads,
-popup script, `VERSION`, and `RELEASE`.
+`make` creates the sole deployment unit under `export/ii` with a statically
+linked Linux amd64 `ii-go` helper. It must contain the plugin, helper,
+libraries, help, payloads, popup script, `VERSION`, and `RELEASE`. No package
+for another platform is produced or tested.
 
 Generated `build/` and `export/` trees are ignored and are never test sources.

@@ -17,7 +17,7 @@ chmod +x "${tmp_dir}/bin/fzf"
 
 export PATH="${tmp_dir}/bin:${PATH}"
 export II_CONFIG_FILE=/dev/null II_PAYLOAD_DIR="${tmp_dir}/payloads" II_WWW_ROOT="${tmp_dir}/www"
-source "${root}/ii.plugin.zsh"
+source "${root}/src/zsh/ii.plugin.zsh"
 export rhost=web-host
 
 ii p -w file "${tmp_dir}/input.txt" >"${tmp_dir}/file.out"

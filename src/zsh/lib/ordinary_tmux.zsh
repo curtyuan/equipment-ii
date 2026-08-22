@@ -7,7 +7,7 @@ typeset -g II_TMUX_INTEGRATION_NOTICE='@ii_integration_conflict_notice'
 ii_zsh_tmux_alias_command() {
   local version=unknown
   [[ -r "${II_ROOT}/VERSION" ]] && version="$(<"${II_ROOT}/VERSION")"
-  print -r -- "ii=display-popup -EE -T 'ii pie ${version}' -w 90% -h 90% -d '#{pane_current_path}' ${(q)II_ROOT}/script/ii-tmux-popup execute '#{pane_id}' '#{session_id}'"
+  print -r -- "ii=display-popup -EE -T 'ii pie ${version}' -w 90% -h 90% -d '#{pane_current_path}' ${(q)II_ZSH_ROOT}/script/ii-tmux-popup execute '#{pane_id}' '#{session_id}'"
 }
 
 ii_zsh_tmux_scan_aliases() {
@@ -59,7 +59,7 @@ ii_zsh_tmux_finish_install() {
 ii_zsh_tmux_install_alias() {
   local alias_index="$1" alias_command marker
   alias_command="$(ii_zsh_tmux_alias_command)"
-  marker="version=${II_TMUX_INTEGRATION_SCHEMA} index=${alias_index} helper=${II_ROOT}/script/ii-tmux-popup"
+  marker="version=${II_TMUX_INTEGRATION_SCHEMA} index=${alias_index} helper=${II_ZSH_ROOT}/script/ii-tmux-popup"
   tmux set-option -s "command-alias[$alias_index]" "$alias_command" || return
   tmux set-option -gq "$II_TMUX_INTEGRATION_MARKER" "$marker" || return
   tmux set-option -gu "$II_TMUX_INTEGRATION_NOTICE" 2>/dev/null || true
@@ -68,13 +68,13 @@ ii_zsh_tmux_install_alias() {
 
 ii_zsh_tmux_ensure() {
   [[ -n "${TMUX:-}" && "${II_TMUX_INTEGRATION:-1}" != 0 && $+commands[tmux] -eq 1 ]] || return 0
-  [[ -x "${II_ROOT}/script/ii-tmux-popup" ]] || { print -u2 -- "ii: tmux popup helper is not executable: ${II_ROOT}/script/ii-tmux-popup"; return 1; }
+  [[ -x "${II_ZSH_ROOT}/script/ii-tmux-popup" ]] || { print -u2 -- "ii: tmux popup helper is not executable: ${II_ZSH_ROOT}/script/ii-tmux-popup"; return 1; }
   local marker marker_index alias_index expected_marker expected_command notice force=0
   ii_zsh_tmux_scan_aliases
   marker="$(tmux show-option -gqv "$II_TMUX_INTEGRATION_MARKER" 2>/dev/null)"
   marker_index="$(ii_zsh_tmux_marker_field "$marker" index 2>/dev/null)"
   expected_command="$(ii_zsh_tmux_alias_command)"
-  expected_marker="version=${II_TMUX_INTEGRATION_SCHEMA} index=${marker_index} helper=${II_ROOT}/script/ii-tmux-popup"
+  expected_marker="version=${II_TMUX_INTEGRATION_SCHEMA} index=${marker_index} helper=${II_ZSH_ROOT}/script/ii-tmux-popup"
   if [[ -n "$marker_index" && "$marker" == "$expected_marker" && "${II_TMUX_ALIAS_VALUES[$marker_index]:-}" == "$expected_command" ]]; then
     ii_zsh_tmux_finish_install
     return
@@ -86,7 +86,7 @@ ii_zsh_tmux_ensure() {
       ii_zsh_tmux_install_alias "$alias_index"
       return
     fi
-    notice="version=${II_TMUX_INTEGRATION_SCHEMA} helper=${II_ROOT}/script/ii-tmux-popup"
+    notice="version=${II_TMUX_INTEGRATION_SCHEMA} helper=${II_ZSH_ROOT}/script/ii-tmux-popup"
     if [[ "$(tmux show-option -gqv "$II_TMUX_INTEGRATION_NOTICE" 2>/dev/null)" != "$notice" ]]; then
       print -u2 -- "ii: tmux command alias 'ii' is already defined; ii popup alias was not installed"
       print -u2 -- 'ii: set II_TMUX_INTEGRATION_FORCE=1 to replace it, or II_TMUX_INTEGRATION=0 to silence this notice'
@@ -102,7 +102,7 @@ ii_zsh_tmux_alias_state() {
   ii_zsh_tmux_scan_aliases
   marker_index="$(ii_zsh_tmux_marker_field "$marker" index 2>/dev/null)"
   alias_index="${II_TMUX_ALIAS_INDEX[ii]:-}"
-  expected="version=${II_TMUX_INTEGRATION_SCHEMA} index=${marker_index} helper=${II_ROOT}/script/ii-tmux-popup"
+  expected="version=${II_TMUX_INTEGRATION_SCHEMA} index=${marker_index} helper=${II_ZSH_ROOT}/script/ii-tmux-popup"
   if [[ -n "$marker_index" && "$marker" == "$expected" && "${II_TMUX_ALIAS_VALUES[$marker_index]:-}" == "$(ii_zsh_tmux_alias_command)" ]]; then print installed
   elif [[ -n "$alias_index" ]]; then
     if [[ "$alias_index" == "$marker_index" ]] && ii_zsh_tmux_owned_alias "${II_TMUX_ALIAS_VALUES[$alias_index]}"; then print stale
@@ -125,7 +125,7 @@ ii_zsh_cmd_tmux() {
   [[ -n "$server" ]] || server="${TMUX%%,*}"
   binding="$(tmux list-keys -T prefix : 2>/dev/null)"
   print -rl -- "server: $server" "configured: $configured" "command alias: $(ii_zsh_tmux_alias_state "$marker")" \
-    'command: ii' "helper: ${II_ROOT}/script/ii-tmux-popup"
+    'command: ii' "helper: ${II_ZSH_ROOT}/script/ii-tmux-popup"
   if [[ "$binding" == *'if-shell -F "##{==:%1,ii pice}"'* && "$binding" == *ii-tmux-pice* ]]; then
     print -r -- 'Prefix+: legacy ii adapter'
   else

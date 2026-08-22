@@ -18,7 +18,7 @@ tmux -S "$socket" split-window -d -t load-all-contract:0 'zsh -f'
 tmux -S "$socket" set-environment -t load-all-contract ii_domain example.test
 
 command_text="cd ${(q)root} && II_CONFIG_FILE=/dev/null && II_GO_BIN=${(q)root}/build/ii-go"
-command_text+=" && PATH=${(q)tmp_dir}/bin:\$PATH && source ./ii.plugin.zsh"
+command_text+=" && PATH=${(q)tmp_dir}/bin:\$PATH && source ./src/zsh/ii.plugin.zsh"
 command_text+=" && ii la"
 command_text+=" && print -r -- LOCAL_DOMAIN=\$domain"
 tmux -S "$socket" send-keys -t load-all-contract:0.0 "$command_text" Enter

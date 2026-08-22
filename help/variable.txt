@@ -17,7 +17,8 @@ Without --out, list non-empty variables using the same optional key filter as
 ii ls. With --out, write all non-empty variables to PATH in shell-sourceable
 name='value' format. PATH defaults to .env in the current directory.
 
-If an existing file contains variables that are absent from the current tmux
-output, ii prompts before reducing it: c covers the file with only the current
-variables, y keeps the extra existing variables while updating current values,
-and n (or any other response) aborts without changing the file.
+For an existing file, differences are shown before writing: red "-" lines are
+file-only or old values, and blue "+" lines are current or replacement values.
+Choose Y to update current variables while retaining other file content, C to
+replace all ii-managed entries and remove missing ones, or N to abort. Unrelated
+dotenv settings are ignored and preserved. Any other response also aborts.

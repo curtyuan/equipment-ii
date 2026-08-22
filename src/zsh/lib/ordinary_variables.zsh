@@ -145,9 +145,9 @@ ii_zsh_set_from_shell() {
 ii_zsh_unquote_file_value() {
   local value="$1"
   if [[ ${#value} -ge 2 && "$value[1]" == "'" && "$value[-1]" == "'" ]]; then
-    value="${value[2,-2]//\'\\\'\'/\'}"
+    value="${(Q)value}"
   elif [[ ${#value} -ge 2 && "$value[1]" == '"' && "$value[-1]" == '"' ]]; then
-    value="${value[2,-2]//\\\"/\"}"
+    value="${(Q)value}"
   fi
   print -r -- "$value"
 }

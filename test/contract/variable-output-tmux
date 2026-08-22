@@ -38,12 +38,18 @@ check_output vo vo
 check_output voc voc
 
 cover_target="${tmp_dir}/cover.env"
-printf "plain='old'\nlegacy='remove me'\n" >"$cover_target"
+printf "APP_TOKEN='preserve me'\nplain='old'\ndomain='remove me'\n" >"$cover_target"
 printf 'c\n' | "$invoke" vo "$cover_target" >"${tmp_dir}/cover.out" 2>"${tmp_dir}/cover.err"
-grep -F "contains 1 variable(s) not in the current output. (c) cover / (y) keep / (n) abort:" "${tmp_dir}/cover.out"
-grep -F "wrote 5 variable(s) to $cover_target" "${tmp_dir}/cover.out"
+grep -Fx -- "- domain='remove me'" "${tmp_dir}/cover.out"
+grep -Fx -- "- plain='old'" "${tmp_dir}/cover.out"
+grep -Fx -- "+ plain='value'" "${tmp_dir}/cover.out"
+! grep -F 'APP_TOKEN' "${tmp_dir}/cover.out"
+grep -F "(Y) update current variables / (C) cover all / (N) abort:" "${tmp_dir}/cover.out"
+grep -F "wrote 6 variable(s) to $cover_target" "${tmp_dir}/cover.out"
 [[ ! -s "${tmp_dir}/cover.err" ]]
-diff -u "${repo_dir}/test/fixtures/variable-output.txt" "$cover_target"
+grep -Fx "APP_TOKEN='preserve me'" "$cover_target"
+! grep -q '^domain=' "$cover_target"
+diff -u <(sort "${repo_dir}/test/fixtures/variable-output.txt") <(grep -v '^APP_TOKEN=' "$cover_target" | sort)
 
 keep_target="${tmp_dir}/keep.env"
 printf "# retained note\nplain='old'\nlegacy='keep me'\n" >"$keep_target"
@@ -63,15 +69,30 @@ printf 'n\n' | "$invoke" vo "$abort_target" >"${tmp_dir}/abort.out" 2>"${tmp_dir
 abort_status=$?
 set -e
 [[ "$abort_status" == 1 && ! -s "${tmp_dir}/abort.err" ]]
-grep -F '(c) cover / (y) keep / (n) abort: aborted' "${tmp_dir}/abort.out"
+grep -F '(Y) update current variables / (C) cover all / (N) abort: aborted' "${tmp_dir}/abort.out"
 diff -u "${tmp_dir}/abort.expected" "$abort_target"
 
 subset_target="${tmp_dir}/subset.env"
 printf "plain='old'\n" >"$subset_target"
-"$invoke" vo "$subset_target" >"${tmp_dir}/subset.out" 2>"${tmp_dir}/subset.err"
+printf 'y\n' | "$invoke" vo "$subset_target" >"${tmp_dir}/subset.out" 2>"${tmp_dir}/subset.err"
 [[ ! -s "${tmp_dir}/subset.err" ]]
-! grep -F 'cover' "${tmp_dir}/subset.out"
-diff -u "${repo_dir}/test/fixtures/variable-output.txt" "$subset_target"
+grep -F 'cover all' "${tmp_dir}/subset.out"
+diff -u <(sort "${repo_dir}/test/fixtures/variable-output.txt") <(sort "$subset_target")
+
+color_target="${tmp_dir}/color.env"
+printf "domain='red'\nplain='old'\n" >"$color_target"
+printf 'n\n' | II_CONTRACT_COLOR=always II_CONTRACT_NO_COLOR= "$invoke" vo "$color_target" >"${tmp_dir}/color.out" 2>"${tmp_dir}/color.err" || true
+grep -F $'\e[31m- domain=' "${tmp_dir}/color.out"
+grep -F $'\e[31m- plain=' "${tmp_dir}/color.out"
+grep -F $'\e[34m+ plain=' "${tmp_dir}/color.out"
+grep -F $'\e[34m+ quote=' "${tmp_dir}/color.out"
+[[ ! -s "${tmp_dir}/color.err" ]]
+
+matching_target="${tmp_dir}/matching.env"
+cp "${repo_dir}/test/fixtures/variable-output.txt" "$matching_target"
+"$invoke" vo "$matching_target" >"${tmp_dir}/matching.out" 2>"${tmp_dir}/matching.err"
+grep -Fx "$matching_target already matches the current variables" "${tmp_dir}/matching.out"
+[[ ! -s "${tmp_dir}/matching.err" ]]
 
 (
   cd "$tmp_dir"

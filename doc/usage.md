@@ -264,15 +264,22 @@ source ./.env
 
 Names are lowercase without the internal `ii_` prefix. Values use shell-safe
 single-quote escaping, so spaces, quotes, and shell metacharacters remain data
-when the file is sourced. If an existing file contains variables absent from
-the current tmux output, `ii` prompts before the file is reduced:
+when the file is sourced. For an existing file, `ii` first compares its values
+with the current tmux variables. Only ii's standard variable names and custom
+variables currently stored as `ii_` tmux entries participate; unrelated dotenv
+settings are ignored and preserved. File-only and old ii values are shown with
+a red `-`; current-only and replacement values are shown with a blue `+`. It
+then prompts before changing the file:
 
-- `c` (cover) replaces it with only the current variables.
-- `y` (keep) updates current variables and retains the extra existing ones.
-- `n`, EOF, or any other response aborts without changing the file.
+- `Y` updates every current variable and leaves file-only entries, comments,
+  and other lines in place.
+- `C` (cover) replaces all ii-managed entries with the current variables,
+  removing missing ii entries while preserving unrelated dotenv settings.
+- `N`, EOF, or any other response aborts without changing the file.
 
-If no variables would be removed, output proceeds without prompting. Successful
-writes replace the file atomically.
+If there is no difference, `ii` reports that the file already matches and does
+not rewrite it. Successful writes replace the file atomically. `II_COLOR=always`
+or `II_COLOR=never` can force or suppress colors when output is not a terminal.
 
 ## Interactive Variables
 

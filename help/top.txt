@@ -13,7 +13,8 @@ Variables:
                           Set one or more variables with "="
   set|s NAME[,NAME...] --from-shell
                           Save current shell variables back to tmux
-  set|s --from-shell -a | sha
+  sh NAME[,NAME...]       Shortcut for set --from-shell
+  set|s --from-shell --all | sha
                           Save all non-empty default shell variables
   set|s --from-file [PATH] | sf [PATH]
                           Import variables from PATH, default .env

@@ -24,8 +24,8 @@ while preserving tmux as the shared fallback across panes.
 | `ii set NAME=VALUE` | `ii s NAME=VALUE` | Set internal `ii_name` in tmux and export the configured shell name in this shell |
 | `ii set NAME VALUE` | `ii s NAME VALUE` | Set one variable from explicit CLI arguments |
 | `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
-| `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell` | Save current shell variables back into tmux |
-| `ii set --from-shell -a` | `ii s --from-shell -a`, `ii sha` | Save every non-empty default shell variable into tmux |
+| `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell`, `ii sh NAME[,NAME...]` | Save current shell variables back into tmux |
+| `ii set --from-shell --all` | `ii s --from-shell --all`, `ii sha` | Save every non-empty default shell variable into tmux |
 | `ii set --from-file [PATH]` | `ii s --from-file [PATH]`, `ii sf [PATH]` | Import variables from PATH, defaulting to `.env` in the current directory |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface, defaulting to `tun0` |
 | `ii set rhost=VALUE` | `ii s:rhost=VALUE` | Set rhost and automatically detect lhost when enabled |
@@ -179,7 +179,7 @@ ii s:usert --from-shell
 `--from-shell` checks the lowercase shell name first, then the uppercase name.
 Missing shell variables print a red warning and are skipped.
 
-`ii s --from-shell -a`, or `ii sha`, checks the complete default-name list instead of taking
+`ii s --from-shell --all`, or `ii sha`, checks the complete default-name list instead of taking
 names. It imports and prints only defaults with a non-empty lowercase or
 uppercase shell value, preferring lowercase. Unset and empty defaults are
 silently skipped. Arbitrary non-default shell variables are not imported.
@@ -286,7 +286,7 @@ or `II_COLOR=never` can force or suppress colors when output is not a terminal.
 `ii i` shows common variable names even when they do not have values yet. The
 fzf list shows names with a one-line value preview. Variables with values are
 listed before empty default names, so the cursor starts near active entries.
-The selected value appears in a compact bottom preview.
+The selector keeps the current action hints in its footer.
 
 Keys:
 
@@ -413,13 +413,11 @@ For documentation and tooling, the logical payload object includes `$schema`,
 metadata line is shown in preview but omitted from copied, printed, and written
 output.
 
-The payload selector list shows payload paths only. The selected payload
-preview reserves a description block above the template body, highlights
-renderable tokens with values in green, highlights missing renderable tokens in
-red, leaves uppercase and legacy `II_` payload tokens unchanged, and shows
-selector controls and copy status at the bottom of the preview. The bottom
-controls use a compact borderless layout with no outer padding and wrap only
-between complete action units.
+The payload selector list shows payload paths only, with the selected source
+template in the preview. Rendering and variable resolution happen after the
+selection is accepted; resolved and unresolved values are then reported in the
+terminal. The selector shows its controls in the footer and keeps uppercase and
+legacy `II_` payload tokens unchanged during rendering.
 
 In the selector, `j` and `k` move between payloads. `/` enters search mode and
 Esc returns to normal mode. `y` copies the selected rendered payload and closes

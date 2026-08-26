@@ -35,13 +35,22 @@ func Color(code int, text string, enabled bool) string {
 	return fmt.Sprintf("\x1b[%dm%s\x1b[0m", code, text)
 }
 
+func BoldColor(code int, text string, enabled bool) string {
+	if !enabled {
+		return text
+	}
+	return fmt.Sprintf("\x1b[1;%dm%s\x1b[0m", code, text)
+}
+
 func printPayloadReport(report []payload.ReportEntry, color bool, output io.Writer) {
 	for _, entry := range report {
+		name := BoldColor(32, entry.Name, color)
 		switch entry.Source {
 		case payload.SourceSession:
-			fmt.Fprintf(output, "%s used from ii: %s\n", entry.Name, entry.Value)
+			fmt.Fprintf(output, "%s used from ii: %s\n", name, entry.Value)
 		case payload.SourceMissing:
-			fmt.Fprintln(output, Color(31, fmt.Sprintf("%s unresolved: kept as %s", entry.Name, entry.Value), color))
+			name = BoldColor(31, entry.Name, color)
+			fmt.Fprintf(output, "%s unresolved: kept as %s\n", name, entry.Value)
 		}
 	}
 }

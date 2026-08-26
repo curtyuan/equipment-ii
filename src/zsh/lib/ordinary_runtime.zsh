@@ -30,7 +30,7 @@ ii_ordinary_resolve() {
   fi
 
   case "$command" in
-    sr|sf|sha)
+    sr|sf|sh|sha)
       [[ "$*" != *" -h"* && "$*" != *" --help"* ]] && print -r -- set-explicit
       ;;
     s:*)

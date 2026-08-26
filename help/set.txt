@@ -6,8 +6,9 @@ usage: ii set NAME=VALUE [NAME=VALUE...]
        ii s:NAME=VALUE[,NAME=VALUE...]
        ii set NAME[,NAME...] [--from-shell]
        ii s:NAME[,NAME...] [--from-shell]
-       ii set --from-shell -a
-       ii s --from-shell -a
+       ii sh NAME[,NAME...]
+       ii set --from-shell --all
+       ii s --from-shell --all
        ii sha
        ii set --from-file [PATH]
        ii s --from-file [PATH]
@@ -20,6 +21,7 @@ Aliases:
   s
   sr
   sf
+  sh
   sha
 
 Help:
@@ -40,10 +42,13 @@ Forms:
     names are checked first, then uppercase names. Missing shell variables print
     red warnings and are skipped.
 
-  --from-shell -a
+  sh NAME[,NAME...]
+    Shortcut for ii s NAME[,NAME...] --from-shell.
+
+  --from-shell --all
     Check every default ii variable name against non-empty lowercase, then
     uppercase shell variables. Save and print each value found; silently skip
-    unset or empty defaults.
+    unset or empty defaults. The shorter -a option remains supported.
 
   --from-file [PATH]
     Read NAME=VALUE entries from PATH, defaulting to .env in the current

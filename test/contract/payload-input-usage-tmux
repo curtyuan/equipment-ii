@@ -69,6 +69,31 @@ wait_for 'printf "%s\n" 192.0.2.55' >/dev/null
 [[ "$(tmux -S "$socket" save-buffer -)" == 'printf "%s\n" 192.0.2.55' ]]
 
 start_case
+send_line "ii pic"
+wait_for "ii input>" >/dev/null
+interactive_multiline=$'printf "first\\n"\nprintf "second\\n"'
+print -rn -- "$interactive_multiline" | tmux -S "$socket" load-buffer -b ii-test -
+tmux -S "$socket" paste-buffer -p -b ii-test -t "$target" -d
+sleep 0.2
+before_enter="$(tmux -S "$socket" capture-pane -p -t "$target" -S -80)"
+[[ "$before_enter" != *'payload copied successfully'* ]]
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'payload copied successfully' >/dev/null
+[[ "$(tmux -S "$socket" save-buffer -)" == "$interactive_multiline" ]]
+
+start_case
+send_line "ii pic"
+wait_for "ii input>" >/dev/null
+alt_first='printf "alt-first\n"'
+alt_second='printf "alt-second\n"'
+tmux -S "$socket" send-keys -t "$target" -l "$alt_first"
+tmux -S "$socket" send-keys -t "$target" -l $'\e\r'
+tmux -S "$socket" send-keys -t "$target" -l "$alt_second"
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'payload copied successfully' >/dev/null
+[[ "$(tmux -S "$socket" save-buffer -)" == "$alt_first"$'\n'"$alt_second" ]]
+
+start_case
 interactive_marker="${tmp_dir}/interactive-pice.executed"
 interactive_payload="print -r -- INTERACTIVE_PICE_EXECUTED > ${(q)interactive_marker}"
 send_line "ii pice"

@@ -119,4 +119,24 @@ grep -Fx "ii: output path is a directory: $directory" "${tmp_dir}/directory.err"
 grep -Fx "ii: output directory not found: ${tmp_dir}/missing" "${tmp_dir}/missing.err"
 grep -Fx 'ii: usage: ii v --out [PATH] | ii vo [PATH]' "${tmp_dir}/usage.err"
 
+interactive_target="${tmp_dir}/interactive.env"
+printf "plain='old'\nlegacy='keep me'\n" >"$interactive_target"
+printf -v interactive_command 'II_CONFIG_FILE=/dev/null II_TMUX_INTEGRATION=0 source %q; ii vo %q' \
+  "${repo_dir}/src/zsh/ii.plugin.zsh" "$interactive_target"
+tmux -S "$socket" send-keys -t output-contract:0.0 -l "$interactive_command"
+tmux -S "$socket" send-keys -t output-contract:0.0 Enter
+for _ in {1..100}; do
+  interactive_output="$(tmux -S "$socket" capture-pane -p -t output-contract:0.0 -S -120)"
+  [[ "$interactive_output" == *'(N) abort'* ]] && break
+  sleep 0.1
+done
+[[ "$interactive_output" == *'(N) abort'* ]]
+tmux -S "$socket" send-keys -t output-contract:0.0 y
+for _ in {1..100}; do
+  grep -Fxq "plain='value'" "$interactive_target" && break
+  sleep 0.1
+done
+grep -Fx "plain='value'" "$interactive_target"
+grep -Fx "legacy='keep me'" "$interactive_target"
+
 printf 'variable output tmux fixture contracts passed\n'

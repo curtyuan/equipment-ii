@@ -159,7 +159,7 @@ ii_zsh_cmd_web() {
 
 ii_zsh_cmd_web_file() {
   [[ $# -eq 1 ]] || { print -u2 -- 'ii: usage: ii p -w file PATH'; return 2; }
-  local source="$1" source_abs root directory rendered report
+  local source="$1" source_abs root directory rendered report report_color=0
   [[ -f "$source" ]] || { print -u2 -- "ii: file not found: $source"; return 1; }
   source_abs="${source:A}"
   [[ -f "$source_abs" && ! -L "$source_abs" ]] || { print -u2 -- "ii: invalid source file: $source"; return 1; }
@@ -169,7 +169,8 @@ ii_zsh_cmd_web_file() {
   [[ -d "$directory" && ! -L "$directory" ]] || { print -u2 -- "ii: invalid web directory: $directory"; return 1; }
   ii_zsh_payload_render_text "$(<"$source_abs")" ordinary >/dev/null || return
   rendered="$II_PAYLOAD_RENDERED_TEXT"
-  report="$(ii_zsh_payload_report)"
+  ii_zsh_color_enabled && report_color=1
+  report="$(ii_zsh_payload_report "$report_color")"
   ii_zsh_web_link "$root" "$directory" "$source_abs" "${source_abs:t}" || return
   [[ -n "$report" ]] && print -r -- "$report" && print
   print -r -- '----------------------------------------'

@@ -11,6 +11,7 @@ print -rl -- '# flow: 1' '# stage: zsh | test' '# lane: local' '# advance: confi
   >"${tmp_dir}/payloads/combo/test"
 
 print -rl -- '#!/usr/bin/env sh' \
+  'printf "%s\n" "$@" >"$II_FZF_ARGS_LOG"' \
   'awk -v selected="$II_TEST_SELECT" '\''index($0, selected) { print; exit }'\''' \
   >"${tmp_dir}/bin/fzf"
 chmod +x "${tmp_dir}/bin/fzf"
@@ -26,6 +27,7 @@ export TMUX="${socket},1,0"
 export PATH="${tmp_dir}/bin:${PATH}"
 export II_GO_BIN="${tmp_dir}/bin/ii-go"
 export II_GO_CALL_LOG="${tmp_dir}/go.calls"
+export II_FZF_ARGS_LOG="${tmp_dir}/fzf.args"
 export II_PAYLOAD_DIR="${tmp_dir}/payloads"
 export II_CONFIG_FILE=/dev/null
 source "${root}/src/zsh/ii.plugin.zsh"
@@ -39,6 +41,10 @@ grep -Fx "ii $(<"${root}/VERSION")" "${tmp_dir}/version.out"
 export rhost=shell-value
 export II_TEST_SELECT=ordinary
 ii p >"${tmp_dir}/ordinary.out"
+grep -Fx -- '--border-label= Enter render | e execute | y yank | q quit ' "$II_FZF_ARGS_LOG"
+grep -Fx -- '--bind=j:down,k:up,e:accept,y:accept,q:abort' "$II_FZF_ARGS_LOG"
+grep -F -- 'l:change-preview-window(up,99%,wrap,noinfo)' "$II_FZF_ARGS_LOG"
+grep -F -- '/:show-input+enable-search' "$II_FZF_ARGS_LOG"
 grep -Fx 'rhost used from shell: shell-value' "${tmp_dir}/ordinary.out"
 grep -Fx 'echo shell-value' "${tmp_dir}/ordinary.out"
 [[ ! -s "$II_GO_CALL_LOG" ]]
@@ -49,6 +55,19 @@ grep -Fx 'payload copied successfully' "${tmp_dir}/input.out"
 grep -Fx 'echo shell-value' "${tmp_dir}/input.out"
 [[ "$(tmux -S "$socket" save-buffer -)" == 'echo shell-value' ]]
 [[ ! -s "$II_GO_CALL_LOG" ]]
+
+unset NO_COLOR 2>/dev/null || true
+export II_COLOR=always
+export II_PAYLOAD_KEY=y
+export II_TEST_SELECT=ordinary
+ii p ordinary >"${tmp_dir}/ordinary-y-color.out"
+grep -F $'\e[1;32mrhost\e[0m used from shell: shell-value' "${tmp_dir}/ordinary-y-color.out"
+export II_PAYLOAD_KEY=e
+export II_INTERACTIVE_KEY=y
+ii p ordinary >"${tmp_dir}/ordinary-e-color.out"
+grep -F $'\e[1;32mrhost\e[0m used from shell: shell-value' "${tmp_dir}/ordinary-e-color.out"
+unset II_PAYLOAD_KEY II_INTERACTIVE_KEY
+export II_COLOR=auto
 
 export II_TEST_SELECT=combo/test
 ii p >"${tmp_dir}/combo.out"

@@ -41,4 +41,23 @@ while IFS=$'\t' read -r case_id input shell_values tmux_values ordinary_want com
   }
 done <"$fixture"
 
+export rhost=rendered
+unset missing 2>/dev/null || true
+tmux set-environment -u ii_missing 2>/dev/null || true
+ii_zsh_payload_render_text 'echo $rhost $missing' ordinary >/dev/null
+unset NO_COLOR 2>/dev/null || true
+II_COLOR=always
+report_color=0
+ii_zsh_color_enabled && report_color=1
+colored_report="$(ii_zsh_payload_report "$report_color")"
+[[ "$colored_report" == *$'\e[1;32mrhost\e[0m used from shell: rendered'* ]]
+[[ "$colored_report" == *$'\e[1;31mmissing\e[0m unresolved: kept as $missing'* ]]
+NO_COLOR=1
+report_color=0
+ii_zsh_color_enabled && report_color=1
+(( report_color == 0 ))
+plain_report="$(ii_zsh_payload_report 0)"
+[[ "$plain_report" == *'rhost used from shell: rendered'* ]]
+[[ "$plain_report" != *$'\e['* ]]
+
 print 'shared payload render contract passed (Zsh)'

@@ -73,6 +73,19 @@ typeset shell_only=from-shell
 ii s shell_only --from-shell >"${tmp_dir}/from-shell.out"
 [[ "$(tmux -S "$socket" show-environment ii_shell_only)" == 'ii_shell_only=from-shell' ]]
 
+typeset shell_alias=from-sh
+ii sh shell_alias >"${tmp_dir}/sh.out"
+[[ "$(tmux -S "$socket" show-environment ii_shell_alias)" == 'ii_shell_alias=from-sh' ]]
+
+typeset domain=all-domain lport=8443
+ii s --from-shell --all >"${tmp_dir}/from-shell-all.out"
+[[ "$(tmux -S "$socket" show-environment ii_domain)" == 'ii_domain=all-domain' ]]
+[[ "$(tmux -S "$socket" show-environment ii_lport)" == 'ii_lport=8443' ]]
+
+typeset domain=sha-domain
+ii sha >"${tmp_dir}/sha.out"
+[[ "$(tmux -S "$socket" show-environment ii_domain)" == 'ii_domain=sha-domain' ]]
+
 print -r -- "file_only='two words'" >"${tmp_dir}/vars.env"
 print -r -- "empty_file=''" >>"${tmp_dir}/vars.env"
 tmux -S "$socket" set-environment ii_empty_file stale

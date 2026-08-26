@@ -43,9 +43,9 @@ Help:
 Payload files:
   Open the payload selector, render the selected template, and print the output.
 
-  The selector shows payload paths in the list and a selected template preview
-  at the bottom, with resolved renderable tokens highlighted green and missing
-  tokens highlighted red.
+  The selector shows payload paths in the list and a preview of the selected
+  source template at the bottom. Rendering and variable resolution are shown
+  after you choose the payload.
   A first-line "# description: ..." metadata line is shown in preview but
   omitted from copied output.
   "# stage: ..." metadata lines are emitted as paste-safe "# --- ... ---"

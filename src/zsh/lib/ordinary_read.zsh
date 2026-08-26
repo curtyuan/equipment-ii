@@ -144,7 +144,12 @@ ii_zsh_cmd_output() {
 
     if (( different )); then
       print -n -- "Update $output_abs? (Y) update current variables / (C) cover all / (N) abort: "
-      IFS= read -r answer || true
+      if [[ -t 0 ]]; then
+        IFS= read -r -k 1 answer || true
+        print
+      else
+        IFS= read -r answer || true
+      fi
       case "${(L)answer}" in
         y)
           while IFS= read -r line || [[ -n "$line" ]]; do

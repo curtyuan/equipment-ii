@@ -59,6 +59,7 @@ ii_zsh_payload_body() {
 
 ii_zsh_payload_select() {
   local root="$1" category="$2" query="$3" preview_dir result action=enter selected line relative_path payload_path
+  local -a result_lines
   local -a paths entries
   paths=("${(@f)$(ii_zsh_payload_list "$root" | ii_zsh_payload_filter "$category")}")
   (( ${#paths} )) || { print -u2 -- 'ii: no payloads found'; return 1; }
@@ -70,20 +71,40 @@ ii_zsh_payload_select() {
     command cp -- "$payload_path" "${preview_dir}/${index}"
     entries+=("$relative_path"$'\t'"${preview_dir}/${index}")
   done
-  result="$(print -rl -- "$entries[@]" | fzf --ansi --layout=reverse --prompt="ii payload:${category}> " \
-    --query="$query" --height='80%' --border $'--delimiter=\t' --with-nth=1 --expect=enter \
-    --bind='j:down,k:up,e:print(e)+accept,y:print(y)+accept,q:abort' \
-    '--preview=cat -- {2}' '--preview-window=up,50%,nowrap,noinfo')" || {
+  local normal_footer='j/k Move  / Search  l Expand  Enter Render  e Execute  y Yank  q Quit'
+  local expanded_footer='j/k Move  h Back  Enter Render  y Yank  q Quit'
+  local search_footer='Type Filter  Esc Normal  Enter Render'
+  local normal_keys='j,k,e,y,q,l,h,/'
+  result="$(print -rl -- "$entries[@]" | \
+    II_FZF_NORMAL_FOOTER="$normal_footer" II_FZF_EXPANDED_FOOTER="$expanded_footer" \
+    II_FZF_SEARCH_FOOTER="$search_footer" \
+    fzf --ansi --layout=reverse --prompt="ii payload:${category}> " \
+      --query="$query" --height='80%' --border \
+      --border-label=' Enter render | e execute | y yank | q quit ' \
+      $'--delimiter=\t' --with-nth=1 --expect=enter,e,y \
+      --bind="start:hide-input+disable-search+rebind($normal_keys)" \
+      --bind="/:show-input+enable-search+transform-footer(printf %s \"\$II_FZF_SEARCH_FOOTER\")+unbind($normal_keys)" \
+      --bind="esc:clear-query+hide-input+disable-search+transform-footer(printf %s \"\$II_FZF_NORMAL_FOOTER\")+rebind($normal_keys)" \
+      --bind='j:down,k:up,e:accept,y:accept,q:abort' \
+      --bind="l:change-preview-window(up,99%,wrap,noinfo)+transform-footer(printf %s \"\$II_FZF_EXPANDED_FOOTER\")+hide-input+disable-search+unbind(/,e)+rebind(j,k,y,q,l,h)" \
+      --bind="h:change-preview-window(up,50%,nowrap,noinfo)+transform-footer(printf %s \"\$II_FZF_NORMAL_FOOTER\")+hide-input+disable-search+rebind($normal_keys)" \
+      '--preview=cat -- {2}' '--preview-window=up,50%,nowrap,noinfo' \
+      --footer="$normal_footer" --no-separator)" || {
     command rm -rf -- "$preview_dir"
     return 1
   }
   command rm -rf -- "$preview_dir"
   [[ -n "$result" ]] || return 1
-  if [[ "$result" == (enter|e|y|q)$'\n'* ]]; then
-    action="${result%%$'\n'*}"
-    line="${result#*$'\n'}"
+  result_lines=("${(@f)result}")
+  action="${result_lines[1]:-}"
+  if [[ "$action" == (enter|e|y|q) ]]; then
+    line="${result_lines[2]}"
+  elif [[ "${result_lines[2]:-}" == (enter|e|y|q) ]]; then
+    action="${result_lines[2]}"
+    line="${result_lines[1]}"
   else
-    line="$result"
+    action=enter
+    line="${result_lines[1]}"
   fi
   [[ -n "${II_PAYLOAD_KEY:-}" ]] && action="$II_PAYLOAD_KEY"
   selected="${line%%$'\t'*}"
@@ -92,14 +113,22 @@ ii_zsh_payload_select() {
 }
 
 ii_zsh_payload_report() {
-  local variable_name source variable_value
+  local color_enabled="${1:-0}" variable_name source variable_value label
   for variable_name in ${(ok)II_PAYLOAD_RENDER_REPORT_SOURCE}; do
     source="${II_PAYLOAD_RENDER_REPORT_SOURCE[$variable_name]}"
     variable_value="${II_PAYLOAD_RENDER_REPORT_VALUE[$variable_name]}"
+    label="$variable_name"
+    if (( color_enabled )); then
+      if [[ "$source" == missing ]]; then
+        label=$'\e[1;31m'"$variable_name"$'\e[0m'
+      else
+        label=$'\e[1;32m'"$variable_name"$'\e[0m'
+      fi
+    fi
     case "$source" in
-      shell) print -r -- "$variable_name used from shell: $variable_value" ;;
-      ii) print -r -- "$variable_name used from ii: $variable_value" ;;
-      missing) print -r -- "$variable_name unresolved: kept as $variable_value" ;;
+      shell) print -r -- "$label used from shell: $variable_value" ;;
+      ii) print -r -- "$label used from ii: $variable_value" ;;
+      missing) print -r -- "$label unresolved: kept as $variable_value" ;;
     esac
   done
 }
@@ -112,9 +141,9 @@ ii_zsh_payload_confirm() {
   done
   if [[ -n "$missing" ]]; then
     print -u2 -- "ii: unresolved variables: $missing"
-    print -n -- 'Unresolved variables may make this payload ineffective. Execute anyway? [y/N] '
+    print -n -- 'Unresolved variables may make this payload ineffective. Execute anyway? [Y/Enter] '
   else
-    print -n -- 'Execute this payload? [y/N] '
+    print -n -- 'Execute this payload? [Y/Enter] '
   fi
   if [[ -n "${II_INTERACTIVE_KEY:-}" ]]; then
     answer="$II_INTERACTIVE_KEY"
@@ -129,7 +158,7 @@ ii_zsh_payload_confirm() {
     print -u2 -- 'ii: cannot confirm execution without a terminal'
     return 1
   fi
-  [[ "${(L)answer}" == y ]]
+  [[ -z "$answer" || "${(L)answer}" == y ]]
 }
 
 ii_zsh_payload_output_path() {
@@ -181,7 +210,7 @@ ii_zsh_cmd_payload() {
   else query="${(j: :)terms}"
   fi
   (( $+commands[fzf] )) || { print -u2 -- 'ii: required command not found: fzf'; return 1; }
-  local root selection action relative_path payload_path body rendered report backend
+  local root selection action relative_path payload_path body rendered report backend report_color=0
   root="$(ii_zsh_payload_root)" || return
   selection="$(ii_zsh_payload_select "$root" "$category" "$query")" || return
   action="${selection%%$'\t'*}"
@@ -204,7 +233,8 @@ ii_zsh_cmd_payload() {
   body="$(ii_zsh_payload_body "$payload_path")"
   ii_zsh_payload_render_text "$body" ordinary >/dev/null || return
   rendered="$II_PAYLOAD_RENDERED_TEXT"
-  report="$(ii_zsh_payload_report)"
+  ii_zsh_color_enabled && report_color=1
+  report="$(ii_zsh_payload_report "$report_color")"
   if (( output )); then ii_zsh_payload_write "$rendered" "$output_spec" || return; fi
   if [[ "$action" == y || ( $copy -eq 1 && $execute -eq 0 ) ]]; then
     if ii_zsh_clip_copy "$rendered"; then print -r -- 'payload copied successfully'
@@ -243,7 +273,9 @@ ii_zsh_payload_read_input() {
     zle -N ii-zsh-payload-input-newline ii_zsh_payload_input_newline
     zle -N ii-zsh-payload-input-cancel ii_zsh_payload_input_cancel
     bindkey -N ii-zsh-payload-input emacs
+    bindkey -M ii-zsh-payload-input $'\e[200~' .bracketed-paste
     bindkey -M ii-zsh-payload-input $'\e\r' ii-zsh-payload-input-newline
+    bindkey -M ii-zsh-payload-input $'\e\n' ii-zsh-payload-input-newline
     bindkey -M ii-zsh-payload-input $'\e' ii-zsh-payload-input-cancel
     vared -M ii-zsh-payload-input -p 'ii input> ' input || { print -u2 -- 'ii: input cancelled'; return 130; }
     [[ "$input" != (:q|:q!) ]] || { print -u2 -- 'ii: input cancelled'; return 130; }
@@ -285,8 +317,9 @@ ii_zsh_cmd_payload_input() {
   fi
   ii_zsh_payload_read_input || return
   ii_zsh_payload_render_text "$II_PAYLOAD_INPUT_TEXT" ordinary >/dev/null || return
-  local rendered="$II_PAYLOAD_RENDERED_TEXT" report
-  report="$(ii_zsh_payload_report)"
+  local rendered="$II_PAYLOAD_RENDERED_TEXT" report report_color=0
+  ii_zsh_color_enabled && report_color=1
+  report="$(ii_zsh_payload_report "$report_color")"
   typeset -g II_PAYLOAD_OUTPUT_PATH=''
   if (( output )); then ii_zsh_payload_write "$rendered" "$output_spec" || return; fi
   if (( copy && ! execute )); then

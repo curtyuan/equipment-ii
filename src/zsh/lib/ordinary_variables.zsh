@@ -215,6 +215,10 @@ ii_zsh_cmd_set_explicit() {
     return
   fi
 
+  if [[ "$command" == sh ]]; then
+    set -- "$@" --from-shell
+  fi
+
   if [[ "$command" == sr ]]; then
     [[ $# -eq 1 ]] || {
       print -u2 "ii: usage: ii sr VALUE"
@@ -234,7 +238,7 @@ ii_zsh_cmd_set_explicit() {
     case "$arg" in
       --from-shell) from_shell=1 ;;
       --from-file) from_file=1 ;;
-      -a) all=1 ;;
+      -a|--all) all=1 ;;
       *) remaining+=("$arg") ;;
     esac
   done
@@ -243,7 +247,7 @@ ii_zsh_cmd_set_explicit() {
     return 2
   fi
   if (( all && ! from_shell )); then
-    print -u2 "ii: -a is only supported with --from-shell"
+    print -u2 "ii: --all is only supported with --from-shell"
     return 2
   fi
   if (( from_file )); then
@@ -256,7 +260,7 @@ ii_zsh_cmd_set_explicit() {
   fi
   if (( from_shell )); then
     if (( all && ${#remaining} )); then
-      print -u2 "ii: --from-shell -a does not accept variable names"
+      print -u2 "ii: --from-shell --all does not accept variable names"
       return 2
     fi
     ii_zsh_set_from_shell "$all" "$remaining[@]"

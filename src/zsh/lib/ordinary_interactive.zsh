@@ -59,46 +59,71 @@ ii_zsh_cmd_interactive() {
   ii_zsh_tmux_available || return
   (( $+commands[fzf] )) || { print -u2 'ii: fzf command not found'; return 1; }
 
-  local result action=enter selected name value
-  result="$(ii_zsh_interactive_entries | fzf -i --ansi --expect=enter,i,y,q --layout=reverse --prompt='ii vars> ')" || return 1
-  [[ -n "$result" ]] || return 1
-  if [[ "$result" == (enter|i|y|q)$'\n'* ]]; then
-    action="${result%%$'\n'*}"
-    selected="${result#*$'\n'}"
-  else
-    selected="$result"
-  fi
-  [[ -n "${II_INTERACTIVE_KEY:-}" ]] && action="$II_INTERACTIVE_KEY"
-  selected="${selected%%$'\n'*}"
-  name="${selected%%$'\t'*}"
-  value="${selected#*$'\t'}"
-  [[ -n "$name" ]] || return 1
+  local result action selected name value footer_status=''
+  local -a result_lines
+  local normal_footer search_footer
+  local normal_keys='j,k,h,l,i,y,q,/'
+  while true; do
+    normal_footer="j/k Move  / Search  i/l Edit  Enter Copy+Quit  y Copy  h/q Quit${footer_status:+  |  $footer_status}"
+    search_footer="Type Filter  Esc Normal  Enter Copy+Quit${footer_status:+  |  $footer_status}"
+    result="$(ii_zsh_interactive_entries | \
+      II_FZF_NORMAL_FOOTER="$normal_footer" II_FZF_SEARCH_FOOTER="$search_footer" \
+        fzf -i --ansi --expect=enter,i,y --layout=reverse --prompt='ii vars> ' \
+        $'--delimiter=\t' --with-nth=1,2 \
+        --bind="start:hide-input+disable-search+rebind($normal_keys)" \
+        --bind="/:show-input+enable-search+transform-footer(printf %s \"\$II_FZF_SEARCH_FOOTER\")+unbind($normal_keys)" \
+        --bind="esc:clear-query+hide-input+disable-search+transform-footer(printf %s \"\$II_FZF_NORMAL_FOOTER\")+rebind($normal_keys)" \
+        --bind='j:down,k:up,l:accept,i:accept,y:accept,h:abort,q:abort' \
+        --footer="$normal_footer" --no-separator)" || return 1
+    [[ -n "$result" ]] || return 1
+    result_lines=("${(@f)result}")
+    action="${result_lines[1]:-}"
+    if [[ "$action" == (enter|i|y|q) ]]; then
+      selected="${result_lines[2]}"
+    elif [[ "${result_lines[2]:-}" == (enter|i|y|q) ]]; then
+      action="${result_lines[2]}"
+      selected="${result_lines[1]}"
+    else
+      action=enter
+      selected="${result_lines[1]}"
+    fi
+    [[ -n "${II_INTERACTIVE_KEY:-}" ]] && action="$II_INTERACTIVE_KEY"
+    selected="${selected%%$'\n'*}"
+    name="${selected%%$'\t'*}"
+    value="${selected#*$'\t'}"
+    [[ -n "$name" ]] || return 1
 
-  case "$action" in
-    q) return 1 ;;
-    i)
-      if [[ "$name" == 'add new variable' ]]; then ii_zsh_interactive_add
-      else ii_zsh_interactive_edit "$name" "$value"
-      fi
-      ;;
-    enter)
-      if [[ "$name" == 'add new variable' ]]; then
-        ii_zsh_interactive_add
-      elif ii_zsh_clip_copy "$value"; then
-        print -r -- "copied $name"
-      else
-        print -r -- "selected $name; clipboard copy failed"
-      fi
-      ;;
-    y)
-      if [[ "$name" == 'add new variable' ]]; then
-        ii_zsh_interactive_add
-      elif ii_zsh_clip_copy "$value"; then
-        print -r -- "copied $name"
-      else
-        print -r -- "selected $name; clipboard copy failed"
-      fi
-      ;;
-    *) return 1 ;;
-  esac
+    case "$action" in
+      q) return 1 ;;
+      i)
+        if [[ "$name" == 'add new variable' ]]; then ii_zsh_interactive_add
+        else ii_zsh_interactive_edit "$name" "$value"
+        fi
+        [[ -n "${II_INTERACTIVE_KEY:-}" ]] && return
+        footer_status='variable saved'
+        ;;
+      enter)
+        if [[ "$name" == 'add new variable' ]]; then
+          ii_zsh_interactive_add
+        elif ii_zsh_clip_copy "$value"; then
+          print -r -- "copied $name"
+        else
+          print -r -- "selected $name; clipboard copy failed"
+        fi
+        return
+        ;;
+      y)
+        if [[ "$name" == 'add new variable' ]]; then
+          ii_zsh_interactive_add || return
+          footer_status='variable saved'
+        elif ii_zsh_clip_copy "$value"; then
+          footer_status="copied $name"
+        else
+          footer_status="selected $name; clipboard copy failed"
+        fi
+        [[ -n "${II_INTERACTIVE_KEY:-}" ]] && print -r -- "$footer_status" && return
+        ;;
+      *) return 1 ;;
+    esac
+  done
 }

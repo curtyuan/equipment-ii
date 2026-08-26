@@ -169,8 +169,9 @@ ii_zsh_tmux_popup() {
   (( input_status == 0 )) || return "$input_status"
   [[ -n "$II_PAYLOAD_INPUT_TEXT" ]] || { print -u2 -- 'ii: input is empty'; return 1; }
   ii_zsh_payload_render_text "$II_PAYLOAD_INPUT_TEXT" tmux >/dev/null || return
-  local rendered="$II_PAYLOAD_RENDERED_TEXT" report missing='' variable answer
-  report="$(ii_zsh_payload_report)"
+  local rendered="$II_PAYLOAD_RENDERED_TEXT" report missing='' variable answer report_color=0
+  ii_zsh_color_enabled && report_color=1
+  report="$(ii_zsh_payload_report "$report_color")"
   print -r -- "Target: ${window} (${pane})" "Command: ${pane_command}"
   [[ -n "$report" ]] && print -r -- '' "$report"
   print -r -- '' '----------------------------------------' "$rendered" ''

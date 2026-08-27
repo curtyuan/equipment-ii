@@ -1,0 +1,65 @@
+#!/usr/bin/env zsh
+set -eu
+
+root="${0:A:h:h:h}"
+tmp_dir="$(mktemp -d)"
+socket="${tmp_dir}/tmux.sock"
+target='fzf-modes:0.0'
+trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
+
+mkdir -p "${tmp_dir}/payloads/shell"
+print -r -- 'echo $rhost' >"${tmp_dir}/payloads/shell/ordinary"
+tmux -f /dev/null -S "$socket" new-session -d -s fzf-modes -x 100 -y 30 'zsh -f'
+
+capture() {
+  tmux -S "$socket" capture-pane -p -t "$target" -S -80
+}
+
+wait_for() {
+  local expected="$1" output
+  for _ in {1..100}; do
+    output="$(capture)"
+    [[ "$output" == *"$expected"* ]] && { print -r -- "$output"; return; }
+    sleep 0.1
+  done
+  print -u2 -- "fzf mode contract timed out waiting for: $expected"
+  print -u2 -- "$output"
+  return 1
+}
+
+wait_for_line() {
+  local expected="$1" output
+  for _ in {1..100}; do
+    output="$(capture)"
+    print -r -- "$output" | grep -Fxq -- "$expected" && return
+    sleep 0.1
+  done
+  print -u2 -- "fzf mode contract timed out waiting for line: $expected"
+  print -u2 -- "$output"
+  return 1
+}
+
+prefix="cd ${(q)root} && export II_CONFIG_FILE=/dev/null II_TMUX_INTEGRATION=0 II_AUTO_DETECT_LHOST=0 II_PAYLOAD_DIR=${(q)tmp_dir}/payloads && source ${(q)root}/src/zsh/ii.plugin.zsh"
+tmux -S "$socket" send-keys -t "$target" -l "$prefix && ii s rhost=example >/dev/null && ii i; print -r -- INTERACTIVE_RETURNED"
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'j/k Move  / Search  i/l Edit' >/dev/null
+tmux -S "$socket" send-keys -t "$target" /
+wait_for 'Type Filter  Esc Normal' >/dev/null
+tmux -S "$socket" send-keys -t "$target" Escape
+wait_for 'j/k Move  / Search  i/l Edit' >/dev/null
+! capture | grep -Fxq -- INTERACTIVE_RETURNED
+tmux -S "$socket" send-keys -t "$target" Escape
+wait_for_line INTERACTIVE_RETURNED
+
+tmux -S "$socket" send-keys -t "$target" -l 'ii p ordinary; print -r -- PAYLOAD_RETURNED'
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'j/k Move  / Search  l Expand' >/dev/null
+tmux -S "$socket" send-keys -t "$target" /
+wait_for 'Type Filter  Esc Normal' >/dev/null
+tmux -S "$socket" send-keys -t "$target" Escape
+wait_for 'j/k Move  / Search  l Expand' >/dev/null
+! capture | grep -Fxq -- PAYLOAD_RETURNED
+tmux -S "$socket" send-keys -t "$target" Escape
+wait_for_line PAYLOAD_RETURNED
+
+print 'fzf search and normal mode Esc contracts passed'

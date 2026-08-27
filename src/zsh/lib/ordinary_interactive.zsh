@@ -59,22 +59,29 @@ ii_zsh_cmd_interactive() {
   ii_zsh_tmux_available || return
   (( $+commands[fzf] )) || { print -u2 'ii: fzf command not found'; return 1; }
 
-  local result action selected name value footer_status=''
+  local result action selected name value footer_status='' mode_file esc_normal_actions
   local -a result_lines
   local normal_footer search_footer
   local normal_keys='j,k,h,l,i,y,q,/'
   while true; do
+    mode_file="$(mktemp "${TMPDIR:-/tmp}/ii-fzf-mode.XXXXXXXX")" || return
+    print -r -- normal >|"$mode_file"
     normal_footer="j/k Move  / Search  i/l Edit  Enter Copy+Quit  y Copy  h/q Quit${footer_status:+  |  $footer_status}"
     search_footer="Type Filter  Esc Normal  Enter Copy+Quit${footer_status:+  |  $footer_status}"
+    esc_normal_actions="clear-query+hide-input+disable-search+transform-footer(printf %s \"\$II_FZF_NORMAL_FOOTER\")+rebind($normal_keys)"
     result="$(ii_zsh_interactive_entries | \
       II_FZF_NORMAL_FOOTER="$normal_footer" II_FZF_SEARCH_FOOTER="$search_footer" \
+      II_FZF_MODE_FILE="$mode_file" II_FZF_ESC_NORMAL_ACTIONS="$esc_normal_actions" \
         fzf -i --ansi --expect=enter,i,y --layout=reverse --prompt='ii vars> ' \
         $'--delimiter=\t' --with-nth=1,2 \
         --bind="start:hide-input+disable-search+rebind($normal_keys)" \
-        --bind="/:show-input+enable-search+transform-footer(printf %s \"\$II_FZF_SEARCH_FOOTER\")+unbind($normal_keys)" \
-        --bind="esc:clear-query+hide-input+disable-search+transform-footer(printf %s \"\$II_FZF_NORMAL_FOOTER\")+rebind($normal_keys)" \
+        --bind="/:execute-silent(printf search > \"\$II_FZF_MODE_FILE\")+show-input+enable-search+transform-footer(printf %s \"\$II_FZF_SEARCH_FOOTER\")+unbind($normal_keys)" \
+        --bind='esc:transform(if [ "$(cat "$II_FZF_MODE_FILE")" = search ]; then printf normal > "$II_FZF_MODE_FILE"; printf %s "$II_FZF_ESC_NORMAL_ACTIONS"; else printf abort; fi)' \
         --bind='j:down,k:up,l:accept,i:accept,y:accept,h:abort,q:abort' \
-        --footer="$normal_footer" --no-separator)" || return 1
+        --footer="$normal_footer" --no-separator)"
+    local result_status=$?
+    command rm -f -- "$mode_file"
+    (( result_status == 0 )) || return 1
     [[ -n "$result" ]] || return 1
     result_lines=("${(@f)result}")
     action="${result_lines[1]:-}"

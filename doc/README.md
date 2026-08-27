@@ -26,4 +26,5 @@ an older executable implementation.
 | [architecture.md](architecture.md) | Current Zsh/tmux/Go ownership and invocation boundaries. |
 | [help.md](help.md) | Help output contract, per-feature registration, routing, and maintenance workflow. |
 | [testing.md](testing.md) | Syntax checks, smoke tests, and regression scenarios. |
+| [audit-v0.2.5.md](audit-v0.2.5.md) | Compatibility matrix and evidence for the v0.2.5 behavioral audit. |
 | [release.md](release.md) | Version bumping, package build output, and release tagging. |

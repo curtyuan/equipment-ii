@@ -20,7 +20,7 @@ PACKAGE_LIBS := \
 	$(ZSH_DIR)/lib/ordinary_help.zsh
 export GOCACHE := $(CURDIR)/$(BUILD_DIR)/.gocache
 
-.PHONY: all build package fmt-check vet test test-go test-contract test-ordinary-set-tmux test-payload-render-shared test-payload-routing test-web-helpers test-combo-launch test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-input-usage-tmux clean
+.PHONY: all build package fmt-check vet test test-go test-contract test-ordinary-set-tmux test-payload-render-shared test-payload-routing test-fzf-modes-tmux test-web-helpers test-combo-launch test-entry-tmux test-variables-tmux test-variable-output-tmux test-variable-mutations-tmux test-set-tmux test-unset-all-tmux test-load-all-tmux test-get-tmux test-clipboard-tmux test-tmux-install test-tmux-popup test-tmux-popup-interactive test-tmux-status test-payload-input-usage-tmux clean
 
 all: package
 
@@ -68,6 +68,9 @@ test-payload-render-shared:
 
 test-payload-routing:
 	./test/contract/payload-routing
+
+test-fzf-modes-tmux:
+	./test/contract/fzf-modes-tmux
 
 test-web-helpers:
 	./test/contract/web-helpers
@@ -117,7 +120,7 @@ test-tmux-status: build
 test-payload-input-usage-tmux: build
 	II_GO_BIN="$(CURDIR)/$(II_GO)" ./test/contract/payload-input-usage-tmux
 
-test: fmt-check vet test-go test-payload-render-shared test-payload-routing test-web-helpers test-combo-launch test-contract
+test: fmt-check vet test-go test-payload-render-shared test-payload-routing test-fzf-modes-tmux test-web-helpers test-combo-launch test-contract
 
 clean:
 	rm -rf $(BUILD_DIR) export

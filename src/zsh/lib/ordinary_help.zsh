@@ -43,7 +43,7 @@ ii_zsh_help_topic() {
     ls|list|variable|vars|var) topic=list ;;
     v) [[ " $joined " == *' --out '* ]] && topic=output || topic=variable ;;
     vo|voc|variables-output) topic=output ;;
-    set|s|sr|sf|sh|sha) topic=set ;;
+    set|s|sr|sf|ss|sha) topic=set ;;
     unset|u) topic=unset ;;
     load|l|la) topic=load ;;
     get|g|gr|gl) topic=get ;;

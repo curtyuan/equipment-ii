@@ -13,7 +13,12 @@ const workflowMemoryOption = "@ii_workflow_lane_bindings"
 var _ payload.WorkflowRuntime = (*SessionEnvironment)(nil)
 
 func (s *SessionEnvironment) CurrentWorkflowSession() (string, string, error) {
-	output, err := s.output("display-message", "-p", "#{session_id}\t#{pane_id}")
+	args := []string{"display-message", "-p"}
+	if pane := s.getenv("TMUX_PANE"); pane != "" {
+		args = append(args, "-t", pane)
+	}
+	args = append(args, "#{session_id}\t#{pane_id}")
+	output, err := s.output(args...)
 	if err != nil {
 		return "", "", err
 	}

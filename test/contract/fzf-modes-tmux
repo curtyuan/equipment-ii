@@ -7,8 +7,11 @@ socket="${tmp_dir}/tmux.sock"
 target='fzf-modes:0.0'
 trap 'tmux -S "$socket" kill-server 2>/dev/null || true; command rm -rf -- "$tmp_dir"' EXIT
 
-mkdir -p "${tmp_dir}/payloads/shell"
+mkdir -p "${tmp_dir}/payloads/shell" "${tmp_dir}/payloads/script/combo/test"
 print -r -- 'echo $rhost' >"${tmp_dir}/payloads/shell/ordinary"
+print -r -- 'echo hosts-match' >"${tmp_dir}/payloads/shell/hosts-match"
+command cp -- "${root}/payloads/script/combo/test/local-nc-test" \
+  "${tmp_dir}/payloads/script/combo/test/local-nc-test"
 tmux -f /dev/null -S "$socket" new-session -d -s fzf-modes -x 100 -y 30 'zsh -f'
 
 capture() {
@@ -61,5 +64,48 @@ wait_for 'j/k Move  / Search  l Expand' >/dev/null
 ! capture | grep -Fxq -- PAYLOAD_RETURNED
 tmux -S "$socket" send-keys -t "$target" Escape
 wait_for_line PAYLOAD_RETURNED
+
+tmux -S "$socket" send-keys -t "$target" -l 'ii p hosts; print -r -- KEYWORD_RETURNED'
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'j/k Move  / Search  l Expand' >/dev/null
+wait_for 'shell/hosts-match' >/dev/null
+keyword_screen="$(capture)"
+[[ "$keyword_screen" != *'shell/ordinary'* ]]
+[[ "$keyword_screen" != *'Type Filter  Esc Normal'* ]]
+tmux -S "$socket" send-keys -t "$target" Escape
+wait_for_line KEYWORD_RETURNED
+
+tmux -S "$socket" send-keys -t "$target" -l 'ii p definitely-no-match; print -r -- ZERO_RETURNED'
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'j/k Move  / Search  l Expand' >/dev/null
+zero_screen="$(capture)"
+[[ "$zero_screen" != *'shell/hosts-match'* ]]
+tmux -S "$socket" send-keys -t "$target" /
+wait_for 'Type Filter  Esc Normal' >/dev/null
+tmux -S "$socket" send-keys -t "$target" C-u
+tmux -S "$socket" send-keys -t "$target" -l hosts
+wait_for 'shell/hosts-match' >/dev/null
+tmux -S "$socket" send-keys -t "$target" Escape
+wait_for 'j/k Move  / Search  l Expand' >/dev/null
+tmux -S "$socket" send-keys -t "$target" Escape
+wait_for_line ZERO_RETURNED
+
+tmux -S "$socket" send-keys -t "$target" -l 'typeset -gi combo_launches=0; ii_zsh_combo_launch() { (( ++combo_launches )); print -r -- "COMBO_LAUNCH:$combo_launches:$1:$2"; }; ii p local-nc-test'
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'j/k Move  / Search  l Expand' >/dev/null
+tmux -S "$socket" send-keys -t "$target" e
+wait_for_line 'COMBO_LAUNCH:1:script/combo/test/local-nc-test:0'
+
+tmux -S "$socket" send-keys -t "$target" -l 'ii pe local-nc-test'
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'j/k Move  / Search  l Expand' >/dev/null
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for_line 'COMBO_LAUNCH:2:script/combo/test/local-nc-test:0'
+
+tmux -S "$socket" send-keys -t "$target" -l 'unfunction ii_zsh_combo_launch; source src/zsh/lib/ordinary_payload_render.zsh; tmux() { if [[ "$1" == display-popup ]]; then print -r -- COMBO_SINGLE_KEY_POPUP; else command tmux "$@"; fi; }; ii_zsh_combo_launch script/combo/test/local-nc-test 0'
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'Execute this combo workflow? [y/N]' >/dev/null
+tmux -S "$socket" send-keys -t "$target" y
+wait_for_line COMBO_SINGLE_KEY_POPUP
 
 print 'fzf search and normal mode Esc contracts passed'

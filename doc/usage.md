@@ -24,7 +24,7 @@ while preserving tmux as the shared fallback across panes.
 | `ii set NAME=VALUE` | `ii s NAME=VALUE` | Set internal `ii_name` in tmux and export the configured shell name in this shell |
 | `ii set NAME VALUE` | `ii s NAME VALUE` | Set one variable from explicit CLI arguments |
 | `ii set NAME=VALUE NAME=VALUE` | `ii s:NAME=VALUE,NAME=VALUE` | Set multiple variables with `=` |
-| `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell`, `ii sh NAME[,NAME...]` | Save current shell variables back into tmux |
+| `ii set NAME[,NAME...] --from-shell` | `ii s:NAME[,NAME...] --from-shell`, `ii ss NAME[,NAME...]` | Save current shell variables back into tmux |
 | `ii set --from-shell --all` | `ii s --from-shell --all`, `ii sha` | Save every non-empty default shell variable into tmux |
 | `ii set --from-file [PATH]` | `ii s --from-file [PATH]`, `ii sf [PATH]` | Import variables from PATH, defaulting to `.env` in the current directory |
 | `ii set -d [INTERFACE]` | `ii s -d`, `ii s:lhost -d [INTERFACE]` | Detect lhost from an interface, defaulting to `tun0` |

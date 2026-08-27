@@ -75,6 +75,7 @@ ii_zsh_payload_select() {
   local expanded_footer='j/k Move  h Back  Enter Render  y Yank  q Quit'
   local search_footer='Type Filter  Esc Normal  Enter Render'
   local normal_keys='j,k,e,y,q,l,h,/'
+  local initial_keys="enter,$normal_keys"
   mode_file="${preview_dir}/mode"
   print -r -- normal >|"$mode_file"
   esc_normal_actions="clear-query+hide-input+disable-search+transform-footer(printf %s \"\$II_FZF_NORMAL_FOOTER\")+rebind($normal_keys)"
@@ -82,11 +83,12 @@ ii_zsh_payload_select() {
     II_FZF_NORMAL_FOOTER="$normal_footer" II_FZF_EXPANDED_FOOTER="$expanded_footer" \
     II_FZF_SEARCH_FOOTER="$search_footer" II_FZF_MODE_FILE="$mode_file" \
     II_FZF_ESC_NORMAL_ACTIONS="$esc_normal_actions" \
-    fzf --ansi --layout=reverse --prompt="ii payload:${category}> " \
+    fzf --sync --ansi --layout=reverse --prompt="ii payload:${category}> " \
       --query="$query" --height='80%' --border \
       --border-label=' Enter render | e execute | y yank | q quit ' \
       $'--delimiter=\t' --with-nth=1 --expect=enter,e,y \
-      --bind="start:hide-input+disable-search+rebind($normal_keys)" \
+      --bind="start:hide-input+unbind($initial_keys)" \
+      --bind="result:disable-search+rebind($initial_keys)+unbind(result)" \
       --bind="/:execute-silent(printf search > \"\$II_FZF_MODE_FILE\")+show-input+enable-search+transform-footer(printf %s \"\$II_FZF_SEARCH_FOOTER\")+unbind($normal_keys)" \
       --bind='esc:transform(if [ "$(cat "$II_FZF_MODE_FILE")" = search ]; then printf normal > "$II_FZF_MODE_FILE"; printf %s "$II_FZF_ESC_NORMAL_ACTIONS"; else printf abort; fi)' \
       --bind='j:down,k:up,e:accept,y:accept,q:abort' \

@@ -73,9 +73,9 @@ typeset shell_only=from-shell
 ii s shell_only --from-shell >"${tmp_dir}/from-shell.out"
 [[ "$(tmux -S "$socket" show-environment ii_shell_only)" == 'ii_shell_only=from-shell' ]]
 
-typeset shell_alias=from-sh
-ii sh shell_alias >"${tmp_dir}/sh.out"
-[[ "$(tmux -S "$socket" show-environment ii_shell_alias)" == 'ii_shell_alias=from-sh' ]]
+typeset shell_alias=from-ss
+ii ss shell_alias >"${tmp_dir}/ss.out"
+[[ "$(tmux -S "$socket" show-environment ii_shell_alias)" == 'ii_shell_alias=from-ss' ]]
 
 typeset domain=all-domain lport=8443
 ii s --from-shell --all >"${tmp_dir}/from-shell-all.out"

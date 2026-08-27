@@ -6,7 +6,7 @@ usage: ii set NAME=VALUE [NAME=VALUE...]
        ii s:NAME=VALUE[,NAME=VALUE...]
        ii set NAME[,NAME...] [--from-shell]
        ii s:NAME[,NAME...] [--from-shell]
-       ii sh NAME[,NAME...]
+       ii ss NAME[,NAME...]
        ii set --from-shell --all
        ii s --from-shell --all
        ii sha
@@ -21,7 +21,7 @@ Aliases:
   s
   sr
   sf
-  sh
+  ss
   sha
 
 Help:
@@ -42,7 +42,7 @@ Forms:
     names are checked first, then uppercase names. Missing shell variables print
     red warnings and are skipped.
 
-  sh NAME[,NAME...]
+  ss NAME[,NAME...]
     Shortcut for ii s NAME[,NAME...] --from-shell.
 
   --from-shell --all

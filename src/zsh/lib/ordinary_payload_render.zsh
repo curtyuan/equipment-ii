@@ -126,8 +126,15 @@ ii_zsh_combo_launch() {
   if [[ -n "${II_INTERACTIVE_KEY:-}" ]]; then
     answer="$II_INTERACTIVE_KEY"
     print -r -- "$answer"
+  elif [[ -t 0 ]]; then
+    IFS= read -r -k 1 answer || true
+    print
+  elif [[ -r /dev/tty ]]; then
+    IFS= read -r -k 1 answer </dev/tty || true
+    print
   else
-    IFS= read -r answer || true
+    print -u2 -- 'ii: cannot confirm combo execution without a terminal'
+    return 1
   fi
   [[ "${(L)answer}" == y ]] || {
     print -u2 -- 'ii: execution cancelled'
@@ -144,6 +151,6 @@ ii_zsh_combo_launch() {
   identity="$(tmux display-message -p '#{session_id}'$'\t''#{pane_id}')" || return
   session="${identity%%$'\t'*}"
   origin="${identity#*$'\t'}"
-  popup_command="${(q)II_GO_BIN} __combo-run ${(q)relative_path} ${(q)origin} ${(q)session} ${(q)copy_stages} ${(q)backend}"
+  popup_command="II_PAYLOAD_DIR=${(q)root} ${(q)II_GO_BIN} __combo-run ${(q)relative_path} ${(q)origin} ${(q)session} ${(q)copy_stages} ${(q)backend}"
   tmux display-popup -EE -T 'ii workflow' -w '90%' -h '90%' -d '#{pane_current_path}' "$popup_command"
 }

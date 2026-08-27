@@ -215,7 +215,7 @@ ii_zsh_cmd_set_explicit() {
     return
   fi
 
-  if [[ "$command" == sh ]]; then
+  if [[ "$command" == ss ]]; then
     set -- "$@" --from-shell
   fi
 

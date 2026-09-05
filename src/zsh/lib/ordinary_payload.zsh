@@ -272,18 +272,38 @@ ii_zsh_cmd_payload() {
 ii_zsh_payload_read_input() {
   typeset -g II_PAYLOAD_INPUT_TEXT=''
   if [[ -t 0 ]]; then
-    local input=''
+    local input='' vared_status=0
     print -r -- 'Paste payload input below. Enter renders; Alt-Enter adds a line; Esc cancels.' ''
     ii_zsh_payload_input_newline() { LBUFFER+=$'\n'; zle redisplay; }
+    ii_zsh_payload_input_accept() {
+      if (( PENDING > 0 )); then
+        LBUFFER+=$'\n'
+        zle redisplay
+      else
+        zle accept-line
+      fi
+    }
     ii_zsh_payload_input_cancel() { BUFFER=:q; zle accept-line; }
     zle -N ii-zsh-payload-input-newline ii_zsh_payload_input_newline
+    zle -N ii-zsh-payload-input-accept ii_zsh_payload_input_accept
     zle -N ii-zsh-payload-input-cancel ii_zsh_payload_input_cancel
     bindkey -N ii-zsh-payload-input emacs
     bindkey -M ii-zsh-payload-input $'\e[200~' .bracketed-paste
+    bindkey -M ii-zsh-payload-input $'\r' ii-zsh-payload-input-accept
+    bindkey -M ii-zsh-payload-input $'\n' ii-zsh-payload-input-accept
     bindkey -M ii-zsh-payload-input $'\e\r' ii-zsh-payload-input-newline
     bindkey -M ii-zsh-payload-input $'\e\n' ii-zsh-payload-input-newline
     bindkey -M ii-zsh-payload-input $'\e' ii-zsh-payload-input-cancel
-    vared -M ii-zsh-payload-input -p 'ii input> ' input || { print -u2 -- 'ii: input cancelled'; return 130; }
+    {
+      # vared does not reliably advertise bracketed-paste mode through every
+      # terminal/SSH/tmux combination. Ask the terminal explicitly so pasted
+      # newlines stay in this edit buffer instead of accepting the first line.
+      print -rn -- $'\e[?2004h' >/dev/tty
+      vared -M ii-zsh-payload-input -p 'ii input> ' input || vared_status=$?
+    } always {
+      print -rn -- $'\e[?2004l' >/dev/tty
+    }
+    (( vared_status == 0 )) || { print -u2 -- 'ii: input cancelled'; return 130; }
     [[ "$input" != (:q|:q!) ]] || { print -u2 -- 'ii: input cancelled'; return 130; }
     [[ "$input" == *$'\n':w ]] && input="${input%$'\n':w}"
     [[ "$input" == :w ]] && input=''

@@ -52,7 +52,7 @@ heredoc_pice=$'ii pice <<\'EOF\'\n'"${heredoc_payload}"$'\nEOF'
 print -rn -- "$heredoc_pice" | tmux -S "$socket" load-buffer -b ii-test -
 tmux -S "$socket" paste-buffer -b ii-test -t "$target" -d
 tmux -S "$socket" send-keys -t "$target" Enter
-wait_for "Execute this payload? [y/N]" >/dev/null
+wait_for "Execute this payload? [Y/Enter]" >/dev/null
 tmux -S "$socket" send-keys -t "$target" y
 for attempt in {1..100}; do
   [[ -f "$heredoc_marker" ]] && break
@@ -84,6 +84,19 @@ wait_for 'payload copied successfully' >/dev/null
 start_case
 send_line "ii pic"
 wait_for "ii input>" >/dev/null
+raw_multiline=$'UP_FILE=.\\pea.txt\nUP_URL=http://${rhost}:81/upload'
+print -rn -- "$raw_multiline" | tmux -S "$socket" load-buffer -b ii-test -
+tmux -S "$socket" paste-buffer -b ii-test -t "$target" -d
+sleep 0.2
+before_enter="$(tmux -S "$socket" capture-pane -p -t "$target" -S -80)"
+[[ "$before_enter" != *'payload copied successfully'* ]]
+tmux -S "$socket" send-keys -t "$target" Enter
+wait_for 'payload copied successfully' >/dev/null
+[[ "$(tmux -S "$socket" save-buffer -)" == $'UP_FILE=.\\pea.txt\nUP_URL=http://192.0.2.55:81/upload' ]]
+
+start_case
+send_line "ii pic"
+wait_for "ii input>" >/dev/null
 alt_first='printf "alt-first\n"'
 alt_second='printf "alt-second\n"'
 tmux -S "$socket" send-keys -t "$target" -l "$alt_first"
@@ -99,7 +112,7 @@ interactive_payload="print -r -- INTERACTIVE_PICE_EXECUTED > ${(q)interactive_ma
 send_line "ii pice"
 wait_for "ii input>" >/dev/null
 send_line "$interactive_payload"
-wait_for "Execute this payload? [y/N]" >/dev/null
+wait_for "Execute this payload? [Y/Enter]" >/dev/null
 tmux -S "$socket" send-keys -t "$target" y
 for attempt in {1..100}; do
   [[ -f "$interactive_marker" ]] && break
@@ -126,7 +139,7 @@ pie_command=$'ii pie <<\'EOF\'\n'"${pie_payload}"$'\nEOF'
 print -rn -- "$pie_command" | tmux -S "$socket" load-buffer -b ii-test -
 tmux -S "$socket" paste-buffer -b ii-test -t "$target" -d
 tmux -S "$socket" send-keys -t "$target" Enter
-wait_for "Execute this payload? [y/N]" >/dev/null
+wait_for "Execute this payload? [Y/Enter]" >/dev/null
 tmux -S "$socket" send-keys -t "$target" y
 for attempt in {1..100}; do
   [[ -f "$pie_marker" ]] && break
